@@ -1,0 +1,122 @@
+@prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
+@prefix accord-sh: <https://spectacular-voyage.github.io/accord/shapes#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+accord-sh:ManifestShape a sh:NodeShape ;
+  sh:targetClass accord:Manifest ;
+  sh:property [
+    sh:path accord:hasCase ;
+    sh:minCount 1 ;
+    sh:node accord-sh:TransitionCaseShape ;
+    sh:message "An Accord manifest must contain at least one transition case." ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, a manifest title must be a single string." ;
+  ] .
+
+accord-sh:TransitionCaseShape a sh:NodeShape ;
+  sh:targetClass accord:TransitionCase ;
+  sh:property [
+    sh:path accord:operationId ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A transition case must declare exactly one operationId." ;
+  ] ;
+  sh:property [
+    sh:path accord:fromRef ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A transition case must declare exactly one fromRef." ;
+  ] ;
+  sh:property [
+    sh:path accord:toRef ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A transition case must declare exactly one toRef." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasFileExpectation ;
+    sh:node accord-sh:FileExpectationShape ;
+    sh:message "Each file expectation must satisfy the Accord file expectation shape." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasRdfExpectation ;
+    sh:maxCount 1 ;
+    sh:node accord-sh:RdfExpectationShape ;
+    sh:message "If present, the RDF expectation must satisfy the Accord RDF expectation shape." ;
+  ] .
+
+accord-sh:FileExpectationShape a sh:NodeShape ;
+  sh:targetClass accord:FileExpectation ;
+  sh:property [
+    sh:path accord:path ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A file expectation must declare exactly one path." ;
+  ] ;
+  sh:property [
+    sh:path accord:changeType ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class accord:FileChangeType ;
+    sh:in ( accord:added accord:updated accord:removed accord:absent ) ;
+    sh:message "A file expectation must use one of the supported file change types." ;
+  ] ;
+  sh:property [
+    sh:path accord:compareMode ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class accord:CompareMode ;
+    sh:in ( accord:bytes accord:text accord:json accord:rdfCanonical ) ;
+    sh:message "If present, compareMode must be one of the supported Accord comparison modes." ;
+  ] .
+
+accord-sh:RdfExpectationShape a sh:NodeShape ;
+  sh:targetClass accord:RdfExpectation ;
+  sh:property [
+    sh:path accord:compareMode ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class accord:CompareMode ;
+    sh:in ( accord:rdfCanonical ) ;
+    sh:message "If present, RDF expectations currently use the rdfCanonical comparison mode." ;
+  ] ;
+  sh:property [
+    sh:path accord:ignorePredicate ;
+    sh:nodeKind sh:IRI ;
+    sh:class rdf:Property ;
+    sh:message "ignorePredicate values must be IRIs for RDF predicates." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasAskAssertion ;
+    sh:node accord-sh:SparqlAskAssertionShape ;
+    sh:message "Each ASK assertion must satisfy the Accord SPARQL ASK assertion shape." ;
+  ] .
+
+accord-sh:SparqlAskAssertionShape a sh:NodeShape ;
+  sh:targetClass accord:SparqlAskAssertion ;
+  sh:property [
+    sh:path accord:query ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A SPARQL ASK assertion must declare exactly one query." ;
+  ] ;
+  sh:property [
+    sh:path accord:expectedBoolean ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+    sh:message "A SPARQL ASK assertion must declare exactly one expected boolean result." ;
+  ] .

@@ -1,0 +1,148 @@
+@prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://spectacular-voyage.github.io/accord/accord-ontology> a owl:Ontology ;
+  dcterms:title "Accord ontology" ;
+  dcterms:description "A small ontology for machine-readable conformance manifests and reusable acceptance checks." ;
+  rdfs:comment "Accord models manifests as executable acceptance metadata rather than long-form prose specifications." .
+
+accord:Manifest a owl:Class ;
+  rdfs:label "Manifest" ;
+  rdfs:comment "A machine-readable container for one or more conformance cases." .
+
+accord:TransitionCase a owl:Class ;
+  rdfs:label "Transition case" ;
+  rdfs:comment "A conformance case that compares an expected transition from one named state or fixture reference to another." .
+
+accord:FileExpectation a owl:Class ;
+  rdfs:label "File expectation" ;
+  rdfs:comment "An expectation about a file path, its expected change, and the comparison mode used to validate it." .
+
+accord:RdfExpectation a owl:Class ;
+  rdfs:label "RDF expectation" ;
+  rdfs:comment "An expectation about RDF graph or dataset validation, including comparison mode, ignored predicates, and explicit graph assertions." .
+
+accord:SparqlAskAssertion a owl:Class ;
+  rdfs:label "SPARQL ASK assertion" ;
+  rdfs:comment "A SPARQL ASK query paired with the boolean value that must result during validation." .
+
+accord:FileChangeType a owl:Class ;
+  rdfs:label "File change type" ;
+  rdfs:comment "A controlled set of expected file-state transition categories." .
+
+accord:CompareMode a owl:Class ;
+  rdfs:label "Compare mode" ;
+  rdfs:comment "A controlled set of comparison strategies for expected outputs." .
+
+accord:hasCase a owl:ObjectProperty ;
+  rdfs:label "has case" ;
+  rdfs:domain accord:Manifest ;
+  rdfs:range accord:TransitionCase ;
+  rdfs:comment "Links a manifest to one of its conformance cases." .
+
+accord:hasFileExpectation a owl:ObjectProperty ;
+  rdfs:label "has file expectation" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:FileExpectation ;
+  rdfs:comment "Links a transition case to an expected file-level outcome." .
+
+accord:hasRdfExpectation a owl:ObjectProperty ;
+  rdfs:label "has RDF expectation" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:RdfExpectation ;
+  rdfs:comment "Links a transition case to RDF-specific validation expectations." .
+
+accord:hasAskAssertion a owl:ObjectProperty ;
+  rdfs:label "has ASK assertion" ;
+  rdfs:domain accord:RdfExpectation ;
+  rdfs:range accord:SparqlAskAssertion ;
+  rdfs:comment "Associates an RDF expectation with a SPARQL ASK assertion that must evaluate to the expected boolean." .
+
+accord:changeType a owl:ObjectProperty ;
+  rdfs:label "change type" ;
+  rdfs:domain accord:FileExpectation ;
+  rdfs:range accord:FileChangeType ;
+  rdfs:comment "Declares the expected change classification for a file." .
+
+accord:compareMode a owl:ObjectProperty ;
+  rdfs:label "compare mode" ;
+  rdfs:range accord:CompareMode ;
+  rdfs:comment "Declares the comparison strategy to use for validating an expectation." .
+
+accord:ignorePredicate a owl:ObjectProperty ;
+  rdfs:label "ignore predicate" ;
+  rdfs:domain accord:RdfExpectation ;
+  rdfs:range rdf:Property ;
+  rdfs:comment "Identifies an RDF predicate that should be ignored during strict equivalence checks, for example volatile timestamps." .
+
+accord:operationId a owl:DatatypeProperty ;
+  rdfs:label "operation id" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The operation identifier or command identifier whose behavior is being checked." .
+
+accord:fromRef a owl:DatatypeProperty ;
+  rdfs:label "from ref" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The starting fixture, branch, or other named reference for a transition case." .
+
+accord:toRef a owl:DatatypeProperty ;
+  rdfs:label "to ref" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The expected resulting fixture, branch, or other named reference for a transition case." .
+
+accord:path a owl:DatatypeProperty ;
+  rdfs:label "path" ;
+  rdfs:domain accord:FileExpectation ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The file path whose expected state or change is being checked." .
+
+accord:query a owl:DatatypeProperty ;
+  rdfs:label "query" ;
+  rdfs:domain accord:SparqlAskAssertion ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The SPARQL ASK query text used for an explicit graph assertion." .
+
+accord:expectedBoolean a owl:DatatypeProperty ;
+  rdfs:label "expected boolean" ;
+  rdfs:domain accord:SparqlAskAssertion ;
+  rdfs:range xsd:boolean ;
+  rdfs:comment "The expected boolean result for a SPARQL ASK assertion." .
+
+accord:added a accord:FileChangeType ;
+  rdfs:label "added" ;
+  rdfs:comment "The file is expected to be added by the transition." .
+
+accord:updated a accord:FileChangeType ;
+  rdfs:label "updated" ;
+  rdfs:comment "The file is expected to exist before and after the transition, with meaningful content changes." .
+
+accord:removed a accord:FileChangeType ;
+  rdfs:label "removed" ;
+  rdfs:comment "The file is expected to be removed by the transition." .
+
+accord:absent a accord:FileChangeType ;
+  rdfs:label "absent" ;
+  rdfs:comment "The file is expected not to exist in the checked state." .
+
+accord:bytes a accord:CompareMode ;
+  rdfs:label "bytes" ;
+  rdfs:comment "Compare exact byte content." .
+
+accord:text a accord:CompareMode ;
+  rdfs:label "text" ;
+  rdfs:comment "Compare text content after text-oriented normalization." .
+
+accord:json a accord:CompareMode ;
+  rdfs:label "json" ;
+  rdfs:comment "Compare JSON content structurally rather than byte-for-byte." .
+
+accord:rdfCanonical a accord:CompareMode ;
+  rdfs:label "RDF canonical" ;
+  rdfs:comment "Compare RDF content after dataset canonicalization and configured volatility exclusions." .
