@@ -13,21 +13,23 @@ accord-sh:ManifestShape a sh:NodeShape ;
     sh:node accord-sh:TransitionCaseShape ;
     sh:message "An Accord manifest must contain at least one transition case." ;
   ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:maxCount 1 ;
-    sh:datatype xsd:string ;
-    sh:message "If present, a manifest title must be a single string." ;
-  ] .
+  sh:node accord-sh:CommonTextMetadataShape .
 
 accord-sh:TransitionCaseShape a sh:NodeShape ;
   sh:targetClass accord:TransitionCase ;
+  sh:node accord-sh:CommonTextMetadataShape ;
   sh:property [
     sh:path accord:operationId ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:datatype xsd:string ;
     sh:message "A transition case must declare exactly one operationId." ;
+  ] ;
+  sh:property [
+    sh:path accord:fixtureRepo ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, fixtureRepo must be a single string identifying the fixture repository." ;
   ] ;
   sh:property [
     sh:path accord:fromRef ;
@@ -44,15 +46,20 @@ accord-sh:TransitionCaseShape a sh:NodeShape ;
     sh:message "A transition case must declare exactly one toRef." ;
   ] ;
   sh:property [
+    sh:path accord:targetDesignatorPath ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, targetDesignatorPath must be a single string." ;
+  ] ;
+  sh:property [
     sh:path accord:hasFileExpectation ;
     sh:node accord-sh:FileExpectationShape ;
     sh:message "Each file expectation must satisfy the Accord file expectation shape." ;
   ] ;
   sh:property [
     sh:path accord:hasRdfExpectation ;
-    sh:maxCount 1 ;
     sh:node accord-sh:RdfExpectationShape ;
-    sh:message "If present, the RDF expectation must satisfy the Accord RDF expectation shape." ;
+    sh:message "If present, each RDF expectation must satisfy the Accord RDF expectation shape." ;
   ] .
 
 accord-sh:FileExpectationShape a sh:NodeShape ;
@@ -80,28 +87,62 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
     sh:class accord:CompareMode ;
     sh:in ( accord:bytes accord:text accord:json accord:rdfCanonical ) ;
     sh:message "If present, compareMode must be one of the supported Accord comparison modes." ;
-  ] .
+  ] ;
+  sh:or (
+    [
+      sh:not [
+        sh:property [
+          sh:path accord:compareMode ;
+          sh:hasValue accord:rdfCanonical ;
+        ]
+      ]
+    ]
+    [
+      sh:property [
+        sh:path accord:compareMode ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:hasValue accord:rdfCanonical ;
+      ] ;
+      sh:property [
+        sh:path [ sh:inversePath accord:targetsFileExpectation ] ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class accord:RdfExpectation ;
+        sh:message "A file expectation with compareMode accord:rdfCanonical must be targeted by exactly one RDF expectation." ;
+      ]
+    ]
+  ) .
 
 accord-sh:RdfExpectationShape a sh:NodeShape ;
   sh:targetClass accord:RdfExpectation ;
   sh:property [
-    sh:path accord:compareMode ;
+    sh:path accord:targetsFileExpectation ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:nodeKind sh:IRI ;
-    sh:class accord:CompareMode ;
-    sh:in ( accord:rdfCanonical ) ;
-    sh:message "If present, RDF expectations currently use the rdfCanonical comparison mode." ;
+    sh:nodeKind sh:BlankNodeOrIRI ;
+    sh:class accord:FileExpectation ;
+    sh:node accord-sh:RdfTargetFileExpectationShape ;
+    sh:message "An RDF expectation must target exactly one file expectation whose compareMode is accord:rdfCanonical." ;
   ] ;
   sh:property [
     sh:path accord:ignorePredicate ;
     sh:nodeKind sh:IRI ;
-    sh:class rdf:Property ;
     sh:message "ignorePredicate values must be IRIs for RDF predicates." ;
   ] ;
   sh:property [
     sh:path accord:hasAskAssertion ;
     sh:node accord-sh:SparqlAskAssertionShape ;
     sh:message "Each ASK assertion must satisfy the Accord SPARQL ASK assertion shape." ;
+  ] .
+
+accord-sh:RdfTargetFileExpectationShape a sh:NodeShape ;
+  sh:property [
+    sh:path accord:compareMode ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue accord:rdfCanonical ;
+    sh:message "A file expectation targeted by an RDF expectation must use compareMode accord:rdfCanonical." ;
   ] .
 
 accord-sh:SparqlAskAssertionShape a sh:NodeShape ;
@@ -119,4 +160,54 @@ accord-sh:SparqlAskAssertionShape a sh:NodeShape ;
     sh:maxCount 1 ;
     sh:datatype xsd:boolean ;
     sh:message "A SPARQL ASK assertion must declare exactly one expected boolean result." ;
+  ] .
+
+accord-sh:CommonTextMetadataShape a sh:NodeShape ;
+  sh:and (
+    accord-sh:TitleChoiceShape
+    accord-sh:DescriptionChoiceShape
+  ) .
+
+accord-sh:TitleChoiceShape a sh:NodeShape ;
+  sh:or (
+    accord-sh:TitlePlainStringShape
+    accord-sh:TitleLangStringShape
+  ) .
+
+accord-sh:TitlePlainStringShape a sh:NodeShape ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, titles may be expressed as a single plain string." ;
+  ] .
+
+accord-sh:TitleLangStringShape a sh:NodeShape ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype rdf:langString ;
+    sh:uniqueLang true ;
+    sh:message "If present, language-tagged titles must have at most one value per language." ;
+  ] .
+
+accord-sh:DescriptionChoiceShape a sh:NodeShape ;
+  sh:or (
+    accord-sh:DescriptionPlainStringShape
+    accord-sh:DescriptionLangStringShape
+  ) .
+
+accord-sh:DescriptionPlainStringShape a sh:NodeShape ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, descriptions may be expressed as a single plain string." ;
+  ] .
+
+accord-sh:DescriptionLangStringShape a sh:NodeShape ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype rdf:langString ;
+    sh:uniqueLang true ;
+    sh:message "If present, language-tagged descriptions must have at most one value per language." ;
   ] .

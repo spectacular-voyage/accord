@@ -1,7 +1,6 @@
 @prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -12,11 +11,11 @@
 
 accord:Manifest a owl:Class ;
   rdfs:label "Manifest" ;
-  rdfs:comment "A machine-readable container for one or more conformance cases." .
+  rdfs:comment "A machine-readable container for one or more conformance cases. Manifests may carry human-readable titles and descriptions using Dublin Core terms." .
 
 accord:TransitionCase a owl:Class ;
   rdfs:label "Transition case" ;
-  rdfs:comment "A conformance case that compares an expected transition from one named state or fixture reference to another." .
+  rdfs:comment "A conformance case that compares an expected transition from one named state or fixture reference to another. Transition cases may carry human-readable titles and descriptions using Dublin Core terms." .
 
 accord:FileExpectation a owl:Class ;
   rdfs:label "File expectation" ;
@@ -24,7 +23,7 @@ accord:FileExpectation a owl:Class ;
 
 accord:RdfExpectation a owl:Class ;
   rdfs:label "RDF expectation" ;
-  rdfs:comment "An expectation about RDF graph or dataset validation, including comparison mode, ignored predicates, and explicit graph assertions." .
+  rdfs:comment "An expectation about RDF graph or dataset validation for a specific targeted file expectation, including ignored predicates and explicit graph assertions." .
 
 accord:SparqlAskAssertion a owl:Class ;
   rdfs:label "SPARQL ASK assertion" ;
@@ -56,6 +55,12 @@ accord:hasRdfExpectation a owl:ObjectProperty ;
   rdfs:range accord:RdfExpectation ;
   rdfs:comment "Links a transition case to RDF-specific validation expectations." .
 
+accord:targetsFileExpectation a owl:ObjectProperty ;
+  rdfs:label "targets file expectation" ;
+  rdfs:domain accord:RdfExpectation ;
+  rdfs:range accord:FileExpectation ;
+  rdfs:comment "Binds an RDF expectation to the file expectation whose RDF-bearing content it validates." .
+
 accord:hasAskAssertion a owl:ObjectProperty ;
   rdfs:label "has ASK assertion" ;
   rdfs:domain accord:RdfExpectation ;
@@ -76,14 +81,19 @@ accord:compareMode a owl:ObjectProperty ;
 accord:ignorePredicate a owl:ObjectProperty ;
   rdfs:label "ignore predicate" ;
   rdfs:domain accord:RdfExpectation ;
-  rdfs:range rdf:Property ;
-  rdfs:comment "Identifies an RDF predicate that should be ignored during strict equivalence checks, for example volatile timestamps." .
+  rdfs:comment "Identifies an RDF predicate IRI that should be ignored during strict equivalence checks, for example volatile timestamps." .
 
 accord:operationId a owl:DatatypeProperty ;
   rdfs:label "operation id" ;
   rdfs:domain accord:TransitionCase ;
   rdfs:range xsd:string ;
   rdfs:comment "The operation identifier or command identifier whose behavior is being checked." .
+
+accord:fixtureRepo a owl:DatatypeProperty ;
+  rdfs:label "fixture repo" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Identifies the fixture repository whose named refs are used by the transition case." .
 
 accord:fromRef a owl:DatatypeProperty ;
   rdfs:label "from ref" ;
@@ -96,6 +106,12 @@ accord:toRef a owl:DatatypeProperty ;
   rdfs:domain accord:TransitionCase ;
   rdfs:range xsd:string ;
   rdfs:comment "The expected resulting fixture, branch, or other named reference for a transition case." .
+
+accord:targetDesignatorPath a owl:DatatypeProperty ;
+  rdfs:label "target designator path" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The designator path or analogous operation target within the checked domain model." .
 
 accord:path a owl:DatatypeProperty ;
   rdfs:label "path" ;

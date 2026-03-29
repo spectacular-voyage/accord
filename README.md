@@ -9,7 +9,9 @@ Accord is meant to be the thin acceptance-spec layer between prose requirements 
 It is not an attempt to replace TDD, OpenAPI, or ordinary implementation tests. Instead, it gives teams a reusable way to say:
 
 - what operation is under test
+- which fixture repository the named refs come from
 - which starting and ending fixtures or refs define the expected transition
+- which designator path or analogous semantic target the operation addresses
 - which files should be added, updated, removed, or absent
 - how outputs should be compared
 - which RDF predicates are volatile and should be excluded from strict equivalence
@@ -48,7 +50,12 @@ The current ontology starts with a deliberately small set of concepts:
 - `accord:FileExpectation`
 - `accord:RdfExpectation`
 - `accord:SparqlAskAssertion`
+- `accord:fixtureRepo`
+- `accord:targetDesignatorPath`
+- `accord:targetsFileExpectation`
 - controlled values for file change types and compare modes
+
+Case identity should normally be carried by the case node `@id` rather than a separate `scenarioId` property.
 
 The current model is centered on transition cases because many conformance problems are easiest to express as:
 
@@ -56,7 +63,7 @@ The current model is centered on transition cases because many conformance probl
 - perform or simulate one operation
 - compare the resulting state against expected outcomes
 
-That works especially well for systems that combine filesystem layout with RDF content.
+That works especially well for systems that combine filesystem layout with RDF content. Each RDF expectation now targets exactly one file expectation so per-file RDF assertions, ignore lists, and canonical comparison rules remain unambiguous.
 
 ## Validation strategy
 
@@ -71,6 +78,8 @@ This keeps the model RDF-native without forcing authors to maintain both a JSON 
 
 Accord is intended to support a compact JSON-LD authoring style so manifests can still feel JSON-like while remaining grounded in a reusable RDF vocabulary.
 
+Titles and descriptions may be authored either as simple plain strings or as language-tagged values when multilingual metadata is needed.
+
 A future compact authoring profile could look like this:
 
 ```json
@@ -80,6 +89,9 @@ A future compact authoring profile could look like this:
     "dcterms": "http://purl.org/dc/terms/",
     "id": "@id",
     "type": "@type",
+    "targetsFileExpectation": {
+      "@type": "@id"
+    },
     "ignorePredicate": {
       "@type": "@id"
     }
@@ -90,11 +102,17 @@ A future compact authoring profile could look like this:
   "hasCase": [
     {
       "type": "TransitionCase",
+      "id": "#alice-knop-create",
+      "dcterms:title": "Create Alice knop",
+      "dcterms:description": "Checks that knop.create transforms the woven mesh fixture into the expected Alice knop state.",
+      "fixtureRepo": "github.com/semantic-flow/mesh-alice-bio",
       "operationId": "knop.create",
       "fromRef": "03-mesh-created-woven",
       "toRef": "04-alice-knop-created",
+      "targetDesignatorPath": "alice",
       "hasFileExpectation": [
         {
+          "id": "#alice-knop-meta",
           "type": "FileExpectation",
           "path": "alice/_knop/_meta/meta.ttl",
           "changeType": "added",
@@ -104,7 +122,7 @@ A future compact authoring profile could look like this:
       "hasRdfExpectation": [
         {
           "type": "RdfExpectation",
-          "compareMode": "rdfCanonical",
+          "targetsFileExpectation": "#alice-knop-meta",
           "ignorePredicate": [
             "dcterms:created",
             "dcterms:updated"
@@ -138,4 +156,5 @@ The next useful steps for Accord are likely:
 - a compact published JSON-LD context
 - one or two example manifests
 - a tiny reference validator that loads a manifest, applies SHACL, and reports failures clearly
+- a small round-trip example that maps cleanly to fixture repo, branch/ref, target path, and per-file RDF assertions
 - later, optional runner adapters for specific ecosystems
