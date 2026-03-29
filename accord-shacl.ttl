@@ -77,7 +77,7 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class accord:FileChangeType ;
-    sh:in ( accord:added accord:updated accord:removed accord:absent ) ;
+    sh:in ( accord:added accord:updated accord:unchanged accord:removed accord:absent ) ;
     sh:message "A file expectation must use one of the supported file change types." ;
   ] ;
   sh:property [
@@ -87,6 +87,30 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
     sh:class accord:CompareMode ;
     sh:in ( accord:bytes accord:text accord:json accord:rdfCanonical ) ;
     sh:message "If present, compareMode must be one of the supported Accord comparison modes." ;
+  ] ;
+  sh:sparql [
+    sh:message "File expectations with changeType accord:added, accord:updated, or accord:unchanged must declare compareMode." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:changeType ?changeType .
+        FILTER (?changeType IN (accord:added, accord:updated, accord:unchanged))
+        FILTER NOT EXISTS {
+          $this accord:compareMode ?compareMode .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "File expectations with changeType accord:removed or accord:absent must not declare compareMode." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:changeType ?changeType ;
+              accord:compareMode ?compareMode .
+        FILTER (?changeType IN (accord:removed, accord:absent))
+      }
+    """ ;
   ] ;
   sh:or (
     [
@@ -134,6 +158,19 @@ accord-sh:RdfExpectationShape a sh:NodeShape ;
     sh:path accord:hasAskAssertion ;
     sh:node accord-sh:SparqlAskAssertionShape ;
     sh:message "Each ASK assertion must satisfy the Accord SPARQL ASK assertion shape." ;
+  ] ;
+  sh:sparql [
+    sh:message "An RDF expectation must target a file expectation in the same transition case that contains the RDF expectation." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:targetsFileExpectation ?targetFileExpectation .
+        ?case accord:hasRdfExpectation $this .
+        FILTER NOT EXISTS {
+          ?case accord:hasFileExpectation ?targetFileExpectation .
+        }
+      }
+    """ ;
   ] .
 
 accord-sh:RdfTargetFileExpectationShape a sh:NodeShape ;
@@ -167,6 +204,21 @@ accord-sh:CommonTextMetadataShape a sh:NodeShape ;
     accord-sh:TitleChoiceShape
     accord-sh:DescriptionChoiceShape
   ) .
+
+accord-sh:TransitionCaseShape
+  sh:sparql [
+    sh:message "A transition case must not contain two distinct file expectations for the same path." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:hasFileExpectation ?fileExpectationA, ?fileExpectationB .
+        FILTER (?fileExpectationA != ?fileExpectationB)
+        ?fileExpectationA accord:path ?path .
+        ?fileExpectationB accord:path ?path .
+      }
+      LIMIT 1
+    """ ;
+  ] .
 
 accord-sh:TitleChoiceShape a sh:NodeShape ;
   sh:or (

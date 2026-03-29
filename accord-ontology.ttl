@@ -75,6 +75,7 @@ accord:changeType a owl:ObjectProperty ;
 
 accord:compareMode a owl:ObjectProperty ;
   rdfs:label "compare mode" ;
+  rdfs:domain accord:FileExpectation ;
   rdfs:range accord:CompareMode ;
   rdfs:comment "Declares the comparison strategy to use for validating an expectation." .
 
@@ -138,6 +139,10 @@ accord:added a accord:FileChangeType ;
 accord:updated a accord:FileChangeType ;
   rdfs:label "updated" ;
   rdfs:comment "The file is expected to exist before and after the transition, with meaningful content changes." .
+
+accord:unchanged a accord:FileChangeType ;
+  rdfs:label "unchanged" ;
+  rdfs:comment "The file is expected to exist before and after the transition with no meaningful content changes under the declared comparison mode." .
 
 accord:removed a accord:FileChangeType ;
   rdfs:label "removed" ;

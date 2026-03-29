@@ -12,7 +12,7 @@ It is not an attempt to replace TDD, OpenAPI, or ordinary implementation tests. 
 - which fixture repository the named refs come from
 - which starting and ending fixtures or refs define the expected transition
 - which designator path or analogous semantic target the operation addresses
-- which files should be added, updated, removed, or absent
+- which files should be added, updated, left unchanged, removed, or absent
 - how outputs should be compared
 - which RDF predicates are volatile and should be excluded from strict equivalence
 - which explicit graph assertions must hold
@@ -64,6 +64,11 @@ The current model is centered on transition cases because many conformance probl
 - compare the resulting state against expected outcomes
 
 That works especially well for systems that combine filesystem layout with RDF content. Each RDF expectation now targets exactly one file expectation so per-file RDF assertions, ignore lists, and canonical comparison rules remain unambiguous.
+
+For deterministic execution, file expectations that describe present files should also declare how those files are compared. In the current model:
+
+- `added`, `updated`, and `unchanged` file expectations should declare `compareMode`
+- `removed` and `absent` should not
 
 ## Validation strategy
 
@@ -130,7 +135,7 @@ A future compact authoring profile could look like this:
           "hasAskAssertion": [
             {
               "type": "SparqlAskAssertion",
-              "query": "ASK { ?s a <https://semantic-flow.org/ns/core/Knop> . }",
+              "query": "ASK { ?s a <https://semantic-flow.github.io/semantic-flow-ontology/Knop> . }",
               "expectedBoolean": true
             }
           ]
