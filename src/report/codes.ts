@@ -6,6 +6,7 @@ export const CHECK_CODES = {
   FILE_PRESENCE_MISMATCH: "file_presence_mismatch",
   FILE_PRESENCE_OK: "file_presence_ok",
   FIXTURE_REPO_NOT_FOUND: "fixture_repo_not_found",
+  MANIFEST_LOAD_ERROR: "manifest_load_error",
   GIT_REF_UNRESOLVED: "git_ref_unresolved",
   RDF_GRAPH_MISMATCH: "rdf_graph_mismatch",
   RDF_PARSE_ERROR: "rdf_parse_error",
