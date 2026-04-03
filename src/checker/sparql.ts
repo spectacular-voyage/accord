@@ -1,5 +1,47 @@
-export function runAskAssertion(): boolean {
-  throw new Error(
-    "SPARQL ASK execution is not implemented yet. Complete the Comunica integration work first.",
-  );
+import { QueryEngine } from "@comunica/query-sparql";
+import { Store } from "n3";
+import { CHECK_CODES, CheckCode } from "../report/codes.ts";
+import { parseRdfContent, RdfCompareError } from "./compare_rdf.ts";
+
+const queryEngine = new QueryEngine();
+
+export class SparqlAskError extends Error {
+  code: CheckCode;
+
+  constructor(code: CheckCode, message: string) {
+    super(message);
+    this.name = "SparqlAskError";
+    this.code = code;
+  }
+}
+
+export interface RunAskAssertionOptions {
+  dataset: Uint8Array;
+  path: string;
+  query: string;
+}
+
+export async function runAskAssertion(
+  options: RunAskAssertionOptions,
+): Promise<boolean> {
+  const store = new Store(parseRdfContent({
+    bytes: options.dataset,
+    path: options.path,
+  }));
+
+  try {
+    return await queryEngine.queryBoolean(options.query, {
+      sources: [store],
+    });
+  } catch (error) {
+    if (error instanceof RdfCompareError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new SparqlAskError(
+      CHECK_CODES.SPARQL_QUERY_ERROR,
+      `Failed to execute SPARQL ASK query: ${message}`,
+    );
+  }
 }

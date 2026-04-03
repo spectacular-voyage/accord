@@ -34,6 +34,13 @@ const executableScenarioIds = [
   "bb-106-absent-pass-even-if-previously-present",
   "bb-107-absent-fail-when-still-present",
   "bb-108-text-invalid-utf8-error",
+  "bb-201-unchanged-rdf-pass-equivalent-serialization",
+  "bb-202-unchanged-rdf-pass-ignored-predicate-only",
+  "bb-203-unchanged-rdf-fail-meaningful-change",
+  "bb-204-rdf-parse-error",
+  "bb-205-sparql-ask-true-pass",
+  "bb-206-sparql-ask-false-pass",
+  "bb-207-sparql-ask-mismatch-fail",
   "bb-301-json-report-shape",
   "bb-302-text-report-smoke",
 ] as const;

@@ -1,8 +1,16 @@
 import { compareBytes } from "../../checker/compare_bytes.ts";
 import {
+  compareRdfContent,
+  RdfCompareError,
+} from "../../checker/compare_rdf.ts";
+import {
   compareTextContents,
   TextDecodeError,
 } from "../../checker/compare_text.ts";
+import {
+  runAskAssertion,
+  SparqlAskError,
+} from "../../checker/sparql.ts";
 import {
   evaluatePresenceExpectation,
   FileChangeType,
@@ -10,7 +18,12 @@ import {
 import { gitBlobExists, readGitBlob } from "../../git/blobs.ts";
 import { gitRefExists } from "../../git/refs.ts";
 import { GitAccessError, resolveGitRepositoryRoot } from "../../git/repo.ts";
-import { FileExpectation, TransitionCase } from "../../manifest/model.ts";
+import {
+  FileExpectation,
+  RdfExpectation,
+  SparqlAskAssertion,
+  TransitionCase,
+} from "../../manifest/model.ts";
 import {
   ManifestLoadError,
   readManifestSource,
@@ -143,8 +156,10 @@ async function evaluateCaseChecks(
   transitionCase: TransitionCase,
 ): Promise<CheckRecord[]> {
   const checks: CheckRecord[] = [];
+  const fileExpectations = transitionCase.hasFileExpectation ?? [];
+  const presenceByExpectation = new Map<FileExpectation, boolean>();
 
-  for (const fileExpectation of transitionCase.hasFileExpectation ?? []) {
+  for (const fileExpectation of fileExpectations) {
     const path = fileExpectation.path;
     const changeType = fileExpectation.changeType as FileChangeType | undefined;
 
@@ -173,8 +188,12 @@ async function evaluateCaseChecks(
         : presence.reason,
       path,
     });
+    presenceByExpectation.set(fileExpectation, presence.passed);
 
-    if (!presence.passed || !requiresComparison(changeType)) {
+    if (
+      !presence.passed ||
+      !requiresFileComparison(fileExpectation, changeType)
+    ) {
       continue;
     }
 
@@ -188,11 +207,28 @@ async function evaluateCaseChecks(
     );
   }
 
+  checks.push(
+    ...await evaluateRdfExpectationChecks(
+      repoPath,
+      transitionCase,
+      fileExpectations,
+      presenceByExpectation,
+    ),
+  );
+
   return checks;
 }
 
-function requiresComparison(changeType: FileChangeType): boolean {
-  return changeType === "updated" || changeType === "unchanged";
+function requiresFileComparison(
+  fileExpectation: FileExpectation,
+  changeType: FileChangeType,
+): boolean {
+  if (changeType !== "updated" && changeType !== "unchanged") {
+    return false;
+  }
+
+  return fileExpectation.compareMode === "bytes" ||
+    fileExpectation.compareMode === "text";
 }
 
 async function evaluateFileComparison(
@@ -252,6 +288,204 @@ async function evaluateFileComparison(
   throw new Error(
     `Unsupported compare mode for file expectation: ${compareMode}`,
   );
+}
+
+async function evaluateRdfExpectationChecks(
+  repoPath: string,
+  transitionCase: TransitionCase,
+  fileExpectations: FileExpectation[],
+  presenceByExpectation: Map<FileExpectation, boolean>,
+): Promise<CheckRecord[]> {
+  const checks: CheckRecord[] = [];
+
+  for (const rdfExpectation of transitionCase.hasRdfExpectation ?? []) {
+    const targetFileExpectation = resolveTargetFileExpectation(
+      rdfExpectation,
+      fileExpectations,
+    );
+
+    if (targetFileExpectation === undefined) {
+      continue;
+    }
+
+    if (!presenceByExpectation.get(targetFileExpectation)) {
+      continue;
+    }
+
+    const path = targetFileExpectation.path;
+    const changeType = targetFileExpectation.changeType as
+      | FileChangeType
+      | undefined;
+
+    if (
+      path === undefined ||
+      changeType === undefined ||
+      targetFileExpectation.compareMode !== "rdfCanonical"
+    ) {
+      continue;
+    }
+
+    if (changeType === "updated" || changeType === "unchanged") {
+      checks.push(
+        await evaluateRdfComparison({
+          repoPath,
+          fromRef: transitionCase.fromRef!,
+          toRef: transitionCase.toRef!,
+          path,
+          changeType,
+          rdfExpectation,
+        }),
+      );
+    }
+
+    for (const askAssertion of rdfExpectation.hasAskAssertion ?? []) {
+      checks.push(
+        await evaluateSparqlAskAssertion({
+          repoPath,
+          toRef: transitionCase.toRef!,
+          path,
+          askAssertion,
+        }),
+      );
+    }
+  }
+
+  return checks;
+}
+
+function resolveTargetFileExpectation(
+  rdfExpectation: RdfExpectation,
+  fileExpectations: FileExpectation[],
+): FileExpectation | undefined {
+  const target = rdfExpectation.targetsFileExpectation;
+
+  if (target === undefined) {
+    return undefined;
+  }
+
+  return fileExpectations.find((candidate) =>
+    candidate.id === target || candidate.resolvedId === target
+  );
+}
+
+async function evaluateRdfComparison(
+  options: {
+    repoPath: string;
+    fromRef: string;
+    toRef: string;
+    path: string;
+    changeType: FileChangeType;
+    rdfExpectation: RdfExpectation;
+  },
+): Promise<CheckRecord> {
+  const { repoPath, fromRef, toRef, path, changeType, rdfExpectation } =
+    options;
+  const expectationMessage = describeComparisonExpectation(
+    changeType,
+    "rdfCanonical",
+  );
+
+  try {
+    const fromBytes = await readGitBlob(repoPath, fromRef, path);
+    const toBytes = await readGitBlob(repoPath, toRef, path);
+    const contentsEqual = await compareRdfContent({
+      left: fromBytes,
+      right: toBytes,
+      path,
+      ignorePredicates: rdfExpectation.ignorePredicate,
+    });
+    const passed = changeType === "updated" ? !contentsEqual : contentsEqual;
+
+    return {
+      kind: "rdf_compare",
+      status: passed ? "pass" : "fail",
+      code: passed ? CHECK_CODES.RDF_GRAPH_OK : CHECK_CODES.RDF_GRAPH_MISMATCH,
+      message: expectationMessage,
+      path,
+    };
+  } catch (error) {
+    if (error instanceof RdfCompareError) {
+      return {
+        kind: "rdf_compare",
+        status: "error",
+        code: error.code,
+        message: error.message,
+        path,
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function evaluateSparqlAskAssertion(
+  options: {
+    repoPath: string;
+    toRef: string;
+    path: string;
+    askAssertion: SparqlAskAssertion;
+  },
+): Promise<CheckRecord> {
+  const { repoPath, toRef, path, askAssertion } = options;
+  const assertionId = askAssertion.id ?? askAssertion.resolvedId;
+
+  if (typeof askAssertion.query !== "string" || askAssertion.query === "") {
+    return {
+      kind: "sparql_ask",
+      status: "error",
+      code: CHECK_CODES.SPARQL_QUERY_ERROR,
+      message: "SPARQL ASK assertion is missing a query string.",
+      path,
+      assertionId,
+    };
+  }
+
+  if (typeof askAssertion.expectedBoolean !== "boolean") {
+    return {
+      kind: "sparql_ask",
+      status: "error",
+      code: CHECK_CODES.SPARQL_QUERY_ERROR,
+      message: "SPARQL ASK assertion is missing expectedBoolean.",
+      path,
+      assertionId,
+    };
+  }
+
+  try {
+    const dataset = await readGitBlob(repoPath, toRef, path);
+    const actual = await runAskAssertion({
+      dataset,
+      path,
+      query: askAssertion.query,
+    });
+    const passed = actual === askAssertion.expectedBoolean;
+
+    return {
+      kind: "sparql_ask",
+      status: passed ? "pass" : "fail",
+      code: passed
+        ? CHECK_CODES.SPARQL_ASK_OK
+        : CHECK_CODES.SPARQL_ASK_MISMATCH,
+      message: passed
+        ? "SPARQL ASK result matched expectedBoolean."
+        : `Expected SPARQL ASK to return ${askAssertion.expectedBoolean}, but it returned ${actual}.`,
+      path,
+      assertionId,
+    };
+  } catch (error) {
+    if (error instanceof RdfCompareError || error instanceof SparqlAskError) {
+      return {
+        kind: "sparql_ask",
+        status: "error",
+        code: error.code,
+        message: error.message,
+        path,
+        assertionId,
+      };
+    }
+
+    throw error;
+  }
 }
 
 function fileComparisonRecord(
