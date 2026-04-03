@@ -81,11 +81,11 @@ This keeps the model RDF-native without forcing authors to maintain both a JSON 
 
 ## JSON-LD authoring direction
 
-Accord is intended to support a compact JSON-LD authoring style so manifests can still feel JSON-like while remaining grounded in a reusable RDF vocabulary.
+Accord is intended to support a JSON-LD authoring style so manifests can remain grounded in a reusable RDF vocabulary without losing readability for humans.
 
 Titles and descriptions may be authored either as simple plain strings or as language-tagged values when multilingual metadata is needed.
 
-A future compact authoring profile could look like this:
+An authoring profile can look like this:
 
 ```json
 {
@@ -158,7 +158,7 @@ A future compact authoring profile could look like this:
 
 The next useful steps for Accord are likely:
 
-- a compact published JSON-LD context
+- a published JSON-LD context
 - one or two example manifests
 - a tiny reference validator that loads a manifest, applies SHACL, and reports failures clearly
 - a small round-trip example that maps cleanly to fixture repo, branch/ref, target path, and per-file RDF assertions

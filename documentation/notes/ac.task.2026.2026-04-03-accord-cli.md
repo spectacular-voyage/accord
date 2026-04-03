@@ -2,7 +2,7 @@
 id: ex778b6bn59mrvpbl09pzep
 title: 2026 04 03 Accord CLI
 desc: ''
-updated: 1775225028833
+updated: 1775225308734
 created: 1775224391133
 ---
 
@@ -18,6 +18,10 @@ created: 1775224391133
 This task is to design and then prototype a minimal Accord CLI that can load a manifest, validate its basic authoring assumptions, compare named fixture refs, evaluate file expectations, run RDF assertions, and report pass/fail results clearly.
 
 The intended shape is a thin checker, not a workflow engine. It should not attempt to perform operations, create fixtures, or replace repository-native tests. It should simply answer: does this manifest describe what actually changed between these refs?
+
+The repository currently contains ontology, SHACL, and documentation only. There is no Deno scaffold yet, so the first implementation step is bootstrapping a small CLI and test skeleton rather than jumping straight to checker logic.
+
+The behavioral specification for the checker now lives in [[ac.spec.2026.2026-04-03-accord-cli]]. This task note should stay focused on planning, implementation, and follow-up decisions.
 
 The first likely command is:
 
@@ -63,6 +67,25 @@ The checker should likely work in phases:
 
 The first version should stay small. It does not need to understand every conceivable future Accord feature. It only needs to support the current manifest vocabulary well enough to execute the `mesh-alice-bio` examples.
 
+### Current corpus facts
+
+The existing `mesh-alice-bio` manifest set already narrows the practical v1 scope:
+
+- all 13 current manifests contain exactly one `TransitionCase`
+- current file change usage is `added` 91, `unchanged` 38, `updated` 33, and `absent` 9
+- no current manifests use `removed`
+- current compare mode usage is `rdfCanonical` 81, `text` 80, and `bytes` 1
+- no current manifests use `json`
+
+Those facts should drive the implementation order:
+
+- `accord check <manifest>` should default to the only case when exactly one case exists
+- `--case` should remain available, but only as an override for future multi-case manifests
+- v1 should prioritize `added`, `updated`, `unchanged`, and `absent`
+- v1 should prioritize `bytes`, `text`, and `rdfCanonical`
+- `removed` is cheap enough to add later, but it should not block the first usable checker
+- `json` comparison should stay out of the critical path until a real manifest needs it
+
 The simplest repository access model is probably local-git-only:
 
 - `fixtureRepo` identifies the expected repository
@@ -70,6 +93,8 @@ The simplest repository access model is probably local-git-only:
 - file contents at refs are read via `git show <ref>:<path>` or similar targeted commands
 
 That avoids temporary worktrees in the first pass and keeps the checker deterministic and debuggable.
+
+The current authoring files are JSON-LD manifests and the checker should handle them as JSON-LD from the start. The first implementation may still use a deterministic local document-loader policy so execution stays reproducible and fail-closed.
 
 For compare modes, the first useful set is:
 
@@ -89,24 +114,13 @@ The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comuni
 
 ## Open Issues
 
-- Decide whether the CLI should perform SHACL validation itself, or treat SHACL validation as a separate preflight step.
 - Decide how strict `rdfCanonical` must be in v1:
   - true RDF dataset canonicalization, including blank nodes
   - or a narrower initial implementation that is explicitly limited and documented
-- Decide whether manifest loading should be JSON-LD-aware from day one, or whether the first version may parse the compact authoring shape directly and rely on separate SHACL/RDF validation for semantics.
-- Decide how fixture repositories should be located:
-  - explicit `--fixture-repo-path`
-  - repo discovery from `fixtureRepo`
-  - or both
-- Decide whether file comparison should read target files directly from git objects with `git show`, or materialize temporary trees.
 - Decide whether generated HTML should remain `text`-compared, or whether the CLI should normalize line endings and other trivial text differences.
-- Decide the report format:
-  - human-readable text only
-  - JSON only
-  - or text plus optional JSON
 - Decide whether the first version should stop on first failure or accumulate all failures for the selected case.
 - Decide how much dependency weight is acceptable if `Comunica` stays in the stack, since its transitive npm graph is large even though the Deno interop itself appears workable.
-- Decide whether `accord check` should default to validating all cases in a manifest or require an explicit case selector when there are multiple cases.
+- Decide whether a separate `accord validate` command should exist later for SHACL-oriented manifest validation, rather than folding that work into `accord check`.
 
 ## Decisions
 
@@ -117,8 +131,17 @@ The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comuni
   - local manifest file
   - local fixture checkout
   - local git refs
-- Limit the first implementation to the compare modes and expectation types already needed by the `mesh-alice-bio` manifests.
-- Keep SHACL and manifest execution conceptually separate even if the CLI later offers a convenience preflight step.
+- Start with a single top-level command surface centered on `accord check`.
+- For v1, `accord check <manifest>` should default to the only case when the manifest contains exactly one case, and accept `--case` only as an override when needed.
+- The initial reporting shape should be human-readable text by default with optional machine-readable JSON via `--format json`.
+- The first fixture access implementation should read git objects directly with targeted commands such as `git cat-file -e` and `git show <ref>:<path>`, not temporary worktrees.
+- The first manifest loader should handle JSON-LD from the start rather than treating manifests as plain JSON with familiar keys.
+- Scope the first useful checker to the features the current corpus actually needs:
+  - file change types `added`, `updated`, `unchanged`, and `absent`
+  - compare modes `bytes`, `text`, and `rdfCanonical`
+- `removed` may be added once the basic file-state engine is in place, but it is not part of the critical path for the first usable checker.
+- `json` compare mode is explicitly out of scope for the first checker until a real manifest requires it.
+- Keep SHACL and manifest execution conceptually separate; full SHACL validation should not block the first `accord check` implementation.
 
 ## Contract Changes
 
@@ -150,13 +173,23 @@ This task is about executable tooling for the existing Accord contract, not abou
 ## Implementation Plan
 
 - [x] Refine this task note into an explicit thin-checker design centered on `accord check`.
-- [ ] Decide the minimum supported command surface for v1, including case selection and output format.
+- [x] Split normative checker behavior into [[ac.spec.2026.2026-04-03-accord-cli]] so the task note can remain implementation-focused.
+- [x] Decide the minimum supported command surface for v1:
+  - `accord check <manifest>`
+  - optional `--case <case-id>`
+  - optional `--fixture-repo-path <path>`
+  - optional `--format json`
 - [ ] Spike Deno package compatibility more thoroughly with real local manifest and RDF inputs, not just trivial in-memory examples.
-- [ ] Decide the first-pass fixture access strategy: `git show`/`git cat-file` versus temporary worktree materialization.
-- [ ] Prototype manifest loading and case selection for the current JSON-LD authoring shape.
-- [ ] Prototype file expectation checking for `added`, `updated`, `unchanged`, `removed`, and `absent`.
+- [x] Decide the first-pass fixture access strategy: direct `git show` and `git cat-file` access rather than temporary worktree materialization.
+- [ ] Bootstrap the Deno CLI and test scaffold for this repository.
+- [ ] Create the in-repo `testdata/` layout and a test-only fixture materializer that turns source trees into temporary git repositories with the named refs required by [[ac.spec.2026.2026-04-03-accord-cli]].
+- [ ] Prototype manifest loading and case selection for JSON-LD inputs using a deterministic local document-loader policy.
+- [ ] Prototype file expectation checking for `added`, `updated`, `unchanged`, and `absent`.
 - [ ] Prototype `text` and `bytes` comparison.
 - [ ] Prototype `rdfCanonical` handling with ignored-predicate filtering and SPARQL ASK execution.
-- [ ] Decide whether SHACL validation is a built-in CLI step or an explicit documented prerequisite.
 - [ ] Design the failure report structure for both humans and automation.
-- [ ] Run the checker against the existing `mesh-alice-bio` manifests and record the gaps it exposes.
+- [ ] Author the first black-box manifests and scenario index under `testdata/` before relying on the larger `mesh-alice-bio` corpus.
+- [ ] Add unit tests for manifest loading, git-backed file access, change classification, and compare modes.
+- [ ] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
+- [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
+- [ ] Revisit `removed`, `json`, and separate SHACL preflight only after the thin checker passes the current corpus.
