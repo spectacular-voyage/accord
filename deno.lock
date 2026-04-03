@@ -5,8 +5,7 @@
     "jsr:@std/cli@1": "1.0.20",
     "jsr:@std/internal@^1.0.6": "1.0.8",
     "jsr:@std/path@1": "1.1.0",
-    "npm:jsonld@*": "8.3.3",
-    "npm:jsonld@8": "8.3.3"
+    "npm:jsonld@8.3.3": "8.3.3"
   },
   "jsr": {
     "@std/assert@1.0.13": {
@@ -130,7 +129,7 @@
       "jsr:@std/assert@1",
       "jsr:@std/cli@1",
       "jsr:@std/path@1",
-      "npm:jsonld@8"
+      "npm:jsonld@8.3.3"
     ]
   }
 }

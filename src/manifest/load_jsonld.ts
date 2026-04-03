@@ -34,7 +34,7 @@ export async function readManifestSource(
   const resolvedPath = resolve(manifestPath);
   const documentUrl = toFileUrl(resolvedPath).href;
   const sourceText = await Deno.readTextFile(resolvedPath);
-  const rawDocument = JSON.parse(sourceText) as unknown;
+  const rawDocument = parseJsonText(sourceText, manifestPath, documentUrl);
   assertContextReferencesAllowed(getTopLevelContext(rawDocument));
   const expandedDocument = await expandManifest(rawDocument, resolvedPath);
   const document = mapSourceShapeDocument(rawDocument, documentUrl) ??
@@ -136,8 +136,24 @@ async function loadJsonDocument(url: string) {
   return {
     contextUrl: null,
     documentUrl: url,
-    document: JSON.parse(sourceText) as unknown,
+    document: parseJsonText(sourceText, fromFileUrl(url), url),
   };
+}
+
+function parseJsonText(
+  sourceText: string,
+  sourcePath: string,
+  documentUrl: string,
+): unknown {
+  try {
+    return JSON.parse(sourceText) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ManifestLoadError(
+      CHECK_CODES.MANIFEST_LOAD_ERROR,
+      `Failed to parse JSON manifest document at ${sourcePath} (${documentUrl}): ${message}`,
+    );
+  }
 }
 
 function mapSourceShapeDocument(

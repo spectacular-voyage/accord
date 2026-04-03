@@ -79,3 +79,25 @@ Deno.test("readManifestSource rejects a remote JSON-LD context", async () => {
     "Remote JSON-LD context is not allowlisted",
   );
 });
+
+Deno.test("readManifestSource wraps JSON parse failures as ManifestLoadError", async () => {
+  const tempPath = await Deno.makeTempFile({ suffix: ".jsonld" });
+
+  try {
+    await Deno.writeTextFile(tempPath, "{ invalid json");
+
+    const error = await assertRejects(
+      () => readManifestSource(tempPath),
+      ManifestLoadError,
+    );
+
+    assertEquals(error.code, "manifest_load_error");
+    assertEquals(error.message.includes(tempPath), true);
+    assertEquals(
+      error.message.includes("Failed to parse JSON manifest document"),
+      true,
+    );
+  } finally {
+    await Deno.remove(tempPath);
+  }
+});

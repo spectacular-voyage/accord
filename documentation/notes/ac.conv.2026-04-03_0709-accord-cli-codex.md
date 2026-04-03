@@ -1280,3 +1280,210 @@ I’d only consider Vitest later if Accord grows a real Node/Vite-facing package
 - package-level Node test ergonomics that Deno is fighting
 
 Even then, I would add it narrowly for that subproject, not replace the repo’s main Deno test runner.
+
+# User_2026-04-03_0924_28
+
+OK, should we continue on this branch, or do a PR with coderabbit review before continuing.
+
+# gpt-5.4_2026-04-03_0924_36
+
+Do a PR now.
+
+This branch already has a coherent review unit:
+- JSON-LD loader integration
+- local-only context policy
+- resolved-id handling
+- new loader-focused tests
+
+That is enough substance to benefit from CodeRabbit and human review, and it is a clean checkpoint before the harder RDF/SPARQL work starts.
+
+If you keep going without a PR, the next slice will mix:
+- `jsonld.js` integration
+- RDF canonicalization decisions
+- Comunica behavior
+- more black-box expansion
+
+That will make review worse, not better.
+
+So I’d do:
+1. open a PR for the current branch
+2. let CodeRabbit review this JSON-LD slice
+3. address anything real
+4. then continue on the same branch only if the PR is intended to stay open as a stacked working branch
+
+Better still, after this PR is up:
+- keep `feat/accord-jsonld-rdf-checker` for the current PR scope if you want one larger branch, or
+- branch again from it for the RDF/SPARQL work if you want tighter review slices
+
+My bias is slightly toward smaller slices:
+- PR 1: JSON-LD manifest loading and local loader policy
+- PR 2: RDF canonical comparison
+- PR 3: SPARQL ASK execution and full RDF black-box matrix
+
+That is the cleaner review plan.
+
+# User_2026-04-03_0926_45
+
+CI is reporting: "Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/upload-artifact@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true."
+
+I'd prefer to use at least Node24
+
+# gpt-5.4_2026-04-03_0926_52
+
+I’m checking the current Accord workflow and the official action versions before changing anything. The right fix is probably to bump the action versions, not just set the temporary Node 24 override.
+
+# gpt-5.4_2026-04-03_0927_21
+
+I’m patching the workflow to use Node 24-native action releases directly. That is better than relying on GitHub’s temporary `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` compatibility switch.
+
+# gpt-5.4_2026-04-03_0927_25
+
+The workflow change is minimal and targeted: direct action-version upgrades, no behavioral churn. I’m just checking the resulting file and worktree state.
+
+# gpt-5.4_2026-04-03_0927_32
+
+Yes. I updated [ci.yml](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/.github/workflows/ci.yml) to use Node 24-ready action majors instead of relying on the temporary override flags:
+
+- `actions/checkout@v6`
+- `actions/upload-artifact@v6`
+
+I did not add `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, because with the version bump it should not be necessary.
+
+Official references:
+- `actions/checkout` README/release page shows `@v6` usage and `v6.0.2` as latest: https://github.com/actions/checkout
+- `actions/upload-artifact` releases: https://github.com/actions/upload-artifact
+
+No local tests were needed for this change; it is a workflow-only update.
+
+# User_2026-04-03_0933_35
+
+Here's the coderabbit comments. Please review, and implement any that you think are valuable:
+
+Inline comments:
+In `@deno.json`:
+- Line 14: Update or confirm the jsonld dependency entry "jsonld":
+"npm:jsonld@8" in deno.json: either bump it to "npm:jsonld@9.0.0" and run full
+integration/tests to address breaking changes (Node.js >=18,
+rdf-canonize@5/http-client@4, removal of 'application/nquads' alias), or retain
+v8 but explicitly document and verify the runtime Node.js version and downstream
+compatibility for jsonld v8; ensure CI tests run on the targeted Node.js version
+and update any codepaths handling the 'application/nquads' MIME alias or other
+changed APIs in functions that consume jsonld.
+
+In `@src/manifest/load_jsonld.ts`:
+- Around line 31-48: In readManifestSource, JSON.parse(sourceText) can throw a
+raw SyntaxError; catch parsing errors and rethrow them as a ManifestLoadError
+(including the original error/message and the manifestPath/documentUrl for
+context) so callers consistently receive ManifestLoadError; wrap the JSON.parse
+call in a try/catch, create/throw a ManifestLoadError if parsing fails, and keep
+the rest of readManifestSource (expandManifest, mapSourceShapeDocument)
+unchanged.
+
+# gpt-5.4_2026-04-03_0933_47
+
+I’m checking the current `jsonld` pin, the loader code, and the actual `jsonld` release surface before deciding which CodeRabbit suggestions are worth taking. I expect the parse-error wrapping comment to be good; the version-bump comment needs stronger justification before we move it.
+
+# gpt-5.4_2026-04-03_0934_02
+
+The parse-error comment is clearly good. The version-bump comment is weaker, so I’m checking the actual upstream package metadata first instead of taking a speculative major upgrade on trust.
+
+# gpt-5.4_2026-04-03_0934_19
+
+I’m taking two changes from the review, but not the major-version bump as written. The useful parts are: make parse failures consistently surface as `ManifestLoadError`, and tighten the `jsonld` import to the exact version we already resolved and tested instead of a floating major.
+
+# gpt-5.4_2026-04-03_0934_30
+
+The loader/test patch partially applied, but the test hunk missed because the file has moved a bit since the last pass. I’m reopening the exact current file and patching cleanly.
+
+# gpt-5.4_2026-04-03_0934_32
+
+I have the current file state now. I’m patching the exact-version pin plus the parse-error normalization, and I’m adding a unit test so that behavior stays stable.
+
+# gpt-5.4_2026-04-03_0934_48
+
+The parse-error normalization compiles cleanly. I’m waiting on the full suite because the new test should fail if the error surface regressed anywhere in the loader path.
+
+# gpt-5.4_2026-04-03_0935_05
+
+I took the valuable part of the review and pushed a narrower dependency hardening step.
+
+Implemented:
+- [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts) now wraps JSON parse failures as `ManifestLoadError` with path and document-URL context.
+- [manifest_loader_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/manifest_loader_test.ts) now has a unit test proving invalid JSON is normalized into `manifest_load_error`.
+- [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json) now pins `jsonld` to the exact tested version, `npm:jsonld@8.3.3`, instead of a floating `@8`.
+
+I did not take the `jsonld` v9 bump. That comment is directionally reasonable, but not as an inline “just upgrade” change. `jsonld` `9.0.0` raises the Node floor to `>=18` and changes transitive dependencies like `rdf-canonize` and `@digitalbazaar/http-client`, which is too much unreviewed surface for this branch without a dedicated compatibility pass. The current Deno interop is green on `8.3.3`, so a major bump should be its own spike or PR. Sources: https://www.npmjs.com/package/jsonld/v/8.3.3 and https://www.npmjs.com/package/jsonld/v/9.0.0
+
+Verification passed:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task test`
+
+# User_2026-04-03_0936_13
+
+jsonld.js uses rdf-canonize, maybe we should upgrade to 9.0.0 and have parity with latest rdf-canonize?
+
+# gpt-5.4_2026-04-03_0936_50
+
+Not yet.
+
+`jsonld.js` depending on `rdf-canonize` is real, but that alone is not a good reason to upgrade Accord to `jsonld` `9.0.0` right now.
+
+Why I’d hold:
+- our current Accord usage is only `jsonld.expand(...)` plus a custom document loader and `safe: true`; we are not using `jsonld.canonize()` yet
+- `jsonld` `9.0.0` raises its Node engine floor to `>=18` and changes key transitive deps, including `rdf-canonize` `^5` and `@digitalbazaar/http-client` `^4`
+- the currently tested pin, `8.3.3`, is already green in our Deno interop path
+
+So “parity with latest `rdf-canonize`” is not enough by itself. If we want latest `rdf-canonize` for RDF comparison, we can adopt `npm:rdf-canonize@5` directly for Accord’s own RDF checker without forcing a `jsonld` major bump first.
+
+My recommendation:
+- keep `jsonld` at the tested pin `8.3.3` for this PR
+- do a separate spike/PR for:
+  - `jsonld` `9.0.0`
+  - `rdf-canonize` `5.x`
+  - full rerun of loader tests and black-box tests
+- only merge that if it gives us a concrete benefit for the RDF implementation, not just dependency symmetry
+
+If you want a sharper rule: upgrade `jsonld` when we either:
+- start using `jsonld.canonize()` or `toRDF()` directly, or
+- hit a real bug/interop issue in `8.3.3`
+
+Sources:
+- `jsonld.js` README: https://github.com/digitalbazaar/jsonld.js
+- `jsonld` `8.3.3`: https://www.npmjs.com/package/jsonld/v/8.3.3
+- `jsonld` `9.0.0`: https://www.npmjs.com/package/jsonld/v/9.0.0
+
+This last point is an inference from the package metadata plus our current codepath: the upgrade cost is immediate, but the benefit to Accord today is still speculative.
+
+# User_2026-04-03_0937_57
+
+OK, anything else from the coderabbit comments, or are we ready for a commit (message)
+
+# gpt-5.4_2026-04-03_0938_01
+
+Nothing else from the comments looks worth taking right now.
+
+What I accepted:
+- normalize JSON parse failures into `ManifestLoadError`
+- tighten `jsonld` from a floating major to the exact tested pin `8.3.3`
+
+What I rejected:
+- bumping `jsonld` to `9.0.0` in this PR just for dependency parity with newer `rdf-canonize`
+
+So yes, this is ready for a commit.
+
+Suggested commit message:
+
+```text
+fix: harden Accord JSON-LD manifest loading
+
+- wrap JSON parse failures as ManifestLoadError with source context
+- pin jsonld to the tested 8.3.3 release
+- add manifest-loader coverage for invalid JSON input
+```
+
+If you want a version that reads more like a review-followup commit:
+
+```text
+fix: address JSON-LD loader review feedback
+```
