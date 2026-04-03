@@ -1020,3 +1020,36 @@ That does what you want without muting review on the task/spec notes that still 
 If you want, I can patch [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md) to reflect:
 - Codecov without OIDC as the default assumption
 - CodeRabbit exclusions for `ac.conv.*` and `ac.completed.*`
+
+# User_2026-04-03_0903_15
+
+Sure, please patch. Should I start a new chat for the PR Baseline?
+
+# gpt-5.4_2026-04-03_0903_17
+
+I’m patching the CI note now to reflect the simpler Codecov path and the specific CodeRabbit exclusions. After that I’ll answer the chat-splitting question based on scope rather than habit.
+
+# gpt-5.4_2026-04-03_0903_21
+
+I’m making the note concrete enough that the first PR can be cut directly from it, including the repo-local CodeRabbit filter you already know you want.
+
+# gpt-5.4_2026-04-03_0903_42
+
+I patched [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md) to make two things explicit:
+
+- Codecov should start with the simplest upload path, without assuming OIDC or test-results features.
+- `.coderabbit.yaml` should be committed and should exclude:
+  - `documentation/notes/ac.conv.*`
+  - `documentation/notes/ac.completed.*`
+
+No tests were run; this was a note update.
+
+On the chat question: yes, I’d start a new chat for the PR Baseline. This thread already mixes CLI design, spec work, scaffolding, and CI planning. A fresh thread for “implement Accord PR baseline” will keep the execution tighter and make the commit/PR scope much cleaner. A good opener would be:
+
+```text
+Implement Phase 1 PR baseline for Accord:
+- add .github/workflows/ci.yml
+- add .coderabbit.yaml with ac.conv/ac.completed exclusions
+- keep Codecov out for now unless coverage artifact generation is trivial
+- assume branch protection and app installs will be done in GitHub settings, not in-repo
+```

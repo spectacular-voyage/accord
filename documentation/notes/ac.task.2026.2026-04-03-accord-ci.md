@@ -28,7 +28,7 @@ This is the minimum needed to start branch-based development sanely.
 - run `deno task fmt:check`, `deno task lint`, `deno task check`, and `deno task test`
 - generate coverage artifacts in CI even before uploading them anywhere
 - install the CodeRabbit GitHub app for the repository or organization
-- add a minimal root `.coderabbit.yaml` only if we want repository-local review behavior instead of UI-only defaults
+- add a minimal root `.coderabbit.yaml` so repository-local review exclusions are explicit
 - enable branch protection for the default branch
 
 Branch protection should require at least:
@@ -68,7 +68,14 @@ Preferred sequence:
 
 - produce LCOV from Deno tests
 - confirm path stability and report usefulness locally and in CI artifacts
-- then add Codecov upload
+- then add Codecov upload using the simplest supported repository setup first
+
+Default assumption for Accord:
+
+- use the standard Codecov upload action
+- do not assume OIDC is required
+- do not assume Codecov test-results features are needed
+- prefer the ordinary repository onboarding path and only add extra auth or product features if a real need appears
 
 Codecov should not be the first CI feature added. Failing PR validation and code scanning are more important than a coverage dashboard during early bring-up.
 
@@ -92,27 +99,39 @@ Until those decisions are made, a "Release Manual" should stay provisional.
 - `.github/workflows/ci.yml`
 - optionally `.github/workflows/osv-scanner-pr.yml`
 - optionally `.github/workflows/osv-scanner-scheduled.yml`
-- optionally `.coderabbit.yaml`
+- `.coderabbit.yaml`
 - later `.github/workflows/release.yml` or release documentation updates once packaging exists
+
+The initial `.coderabbit.yaml` should at least exclude generated or archival note classes that do not benefit from review:
+
+```yaml
+reviews:
+  path_filters:
+    - "!documentation/notes/ac.conv.*"
+    - "!documentation/notes/ac.completed.*"
+  auto_review:
+    enabled: true
+```
 
 ### GitHub Repository Settings
 
 - branch protection on the default branch
 - CodeRabbit GitHub app installation
 - CodeQL enablement, preferably default setup first
-- Codecov repository onboarding and secret or OIDC setup if we decide to use Codecov
+- Codecov repository onboarding if we decide to use Codecov
 
 ## Decisions
 
 - prioritize PR-based development and review quality over release automation
 - use CodeRabbit for PR review, but do not let it replace ordinary branch protection and human review expectations
+- commit a minimal `.coderabbit.yaml` so `ac.conv.*` and `ac.completed.*` notes are excluded from review noise
 - prefer GitHub CodeQL default setup first; only move to workflow-based advanced setup if a real need appears
+- prefer the simplest Codecov integration path first rather than assuming OIDC or test-results features
 - defer npm release automation until the package shape is explicit
 
 ## Open Questions
 
-- should CodeRabbit configuration live only in the UI initially, or do we want a committed `.coderabbit.yaml` from the start?
-- do we want Codecov upload authentication via token or GitHub OIDC?
+- if Codecov is enabled, does the repository/account setup require a token, or is the standard unified upload flow sufficient as-is?
 - do we want OSV-Scanner findings to block PRs immediately, or report first and gate later?
 - when `accord` becomes npm-installable, do we want a pure CLI package, a library package, or a combined package with `bin`
 

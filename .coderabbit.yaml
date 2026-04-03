@@ -1,0 +1,6 @@
+reviews:
+  path_filters:
+    - "!documentation/notes/ac.conv.*"
+    - "!documentation/notes/ac.completed.*"
+  auto_review:
+    enabled: true

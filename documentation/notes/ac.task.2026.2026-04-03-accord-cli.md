@@ -2,7 +2,7 @@
 id: ex778b6bn59mrvpbl09pzep
 title: 2026 04 03 Accord CLI
 desc: ''
-updated: 1775228681635
+updated: 1775232426867
 created: 1775224391133
 ---
 
@@ -219,3 +219,4 @@ This task is about executable tooling for the existing Accord contract, not abou
 - [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
 - [ ] Revisit `removed`, `json`, and separate SHACL preflight only after the thin checker passes the current corpus.
 - [ ] compose user documentation into [[ac.user-guide]]
+- [ ] compose development documentation into [[ac.dev.general-guidance]]
