@@ -261,6 +261,8 @@ The minimum JSON shape is:
 }
 ```
 
+For report stability, `caseId` in JSON output must use the authored case `@id` value exactly when one is present in the manifest. Only if the case has no authored `@id` may the checker emit a resolved absolute IRI instead.
+
 Each per-check record should include at least:
 
 - check kind
@@ -369,12 +371,17 @@ Each `repo.json` should describe:
 
 Each `refs/<ref-name>/` directory should contain the exact repository working tree that should exist at that ref.
 
+If a ref is intentionally empty, its directory may contain a single sentinel file named `.accord-empty-ref`. The materializer must ignore that sentinel and produce an empty worktree for the ref.
+
 The test harness should materialize temporary git repositories from those source trees during test setup by:
 
 1. creating a temporary repository
-2. copying the contents of each `refs/<ref-name>/` directory into the worktree in order
-3. committing each state
-4. tagging or branching each resulting commit with the exact ref name required by the spec
+2. resetting the worktree to an empty tracked state before each ref is materialized
+3. copying the contents of each `refs/<ref-name>/` directory into the worktree in order
+4. committing each exact tree state
+5. tagging or branching each resulting commit with the exact ref name required by the spec
+
+The materializer must treat each `refs/<ref-name>/` directory as a complete working tree snapshot, not as an overlay patch relative to the previous ref.
 
 The fixture materializer should be test infrastructure, not production CLI behavior.
 

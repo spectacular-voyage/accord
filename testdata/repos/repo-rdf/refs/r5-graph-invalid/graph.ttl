@@ -1,0 +1,3 @@
+@prefix ex: <https://example.test/> .
+
+ex:alice ex:name "Alice" ex:knows ex:bob .

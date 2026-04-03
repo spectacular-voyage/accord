@@ -1,0 +1,52 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    },
+    "ignorePredicate": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-202-unchanged-rdf-pass-ignored-predicate-only",
+  "dcterms:title": "bb-202 unchanged RDF pass ignored predicate only",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#unchanged-rdf-ignored-case",
+      "fixtureRepo": "testdata/repos/repo-rdf",
+      "operationId": "test.unchangedRdfIgnoredPredicate",
+      "fromRef": "r1-graph-v1",
+      "toRef": "r3-graph-v1-ignored-only",
+      "hasFileExpectation": [
+        {
+          "id": "#graph-file",
+          "type": "FileExpectation",
+          "path": "graph.ttl",
+          "changeType": "unchanged",
+          "compareMode": "rdfCanonical"
+        }
+      ],
+      "hasRdfExpectation": [
+        {
+          "id": "#graph-rdf",
+          "type": "RdfExpectation",
+          "targetsFileExpectation": "#graph-file",
+          "ignorePredicate": [
+            "http://purl.org/dc/terms/updated"
+          ]
+        }
+      ]
+    }
+  ]
+}

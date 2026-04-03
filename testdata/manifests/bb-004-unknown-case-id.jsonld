@@ -1,0 +1,53 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-004-unknown-case-id",
+  "dcterms:title": "bb-004 unknown case id",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#selected-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.selectCase",
+      "fromRef": "r0-empty",
+      "toRef": "r1-bytes-a",
+      "hasFileExpectation": [
+        {
+          "id": "#selected-artifact",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "added",
+          "compareMode": "bytes"
+        }
+      ]
+    },
+    {
+      "type": "TransitionCase",
+      "id": "#other-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.selectCase.other",
+      "fromRef": "r3-text-lf",
+      "toRef": "r5-text-changed",
+      "hasFileExpectation": [
+        {
+          "id": "#other-note",
+          "type": "FileExpectation",
+          "path": "note.txt",
+          "changeType": "updated",
+          "compareMode": "text"
+        }
+      ]
+    }
+  ]
+}

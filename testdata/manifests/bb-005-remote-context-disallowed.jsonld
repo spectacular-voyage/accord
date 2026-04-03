@@ -1,0 +1,16 @@
+{
+  "@context": "https://example.invalid/accord/context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-005-remote-context-disallowed",
+  "dcterms:title": "bb-005 remote context disallowed",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#remote-context-case",
+      "fixtureRepo": "testdata/repos/repo-empty",
+      "operationId": "test.remoteContext",
+      "fromRef": "r0-empty",
+      "toRef": "r0-empty"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-105-removed-pass",
+  "dcterms:title": "bb-105 removed pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#removed-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.removed",
+      "fromRef": "r1-bytes-a",
+      "toRef": "r0-empty",
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-removed",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "removed"
+        }
+      ]
+    }
+  ]
+}

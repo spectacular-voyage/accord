@@ -2,7 +2,7 @@
 id: ex778b6bn59mrvpbl09pzep
 title: 2026 04 03 Accord CLI
 desc: ''
-updated: 1775225308734
+updated: 1775228681635
 created: 1775224391133
 ---
 
@@ -182,14 +182,15 @@ This task is about executable tooling for the existing Accord contract, not abou
 - [ ] Spike Deno package compatibility more thoroughly with real local manifest and RDF inputs, not just trivial in-memory examples.
 - [x] Decide the first-pass fixture access strategy: direct `git show` and `git cat-file` access rather than temporary worktree materialization.
 - [ ] Bootstrap the Deno CLI and test scaffold for this repository.
-- [ ] Create the in-repo `testdata/` layout and a test-only fixture materializer that turns source trees into temporary git repositories with the named refs required by [[ac.spec.2026.2026-04-03-accord-cli]].
+- [x] Create the in-repo `testdata/` layout and a test-only fixture materializer plan that turns source trees into temporary git repositories with the named refs required by [[ac.spec.2026.2026-04-03-accord-cli]].
 - [ ] Prototype manifest loading and case selection for JSON-LD inputs using a deterministic local document-loader policy.
 - [ ] Prototype file expectation checking for `added`, `updated`, `unchanged`, and `absent`.
 - [ ] Prototype `text` and `bytes` comparison.
 - [ ] Prototype `rdfCanonical` handling with ignored-predicate filtering and SPARQL ASK execution.
 - [ ] Design the failure report structure for both humans and automation.
-- [ ] Author the first black-box manifests and scenario index under `testdata/` before relying on the larger `mesh-alice-bio` corpus.
+- [x] Author the first black-box manifests and scenario index under `testdata/` before relying on the larger `mesh-alice-bio` corpus.
 - [ ] Add unit tests for manifest loading, git-backed file access, change classification, and compare modes.
 - [ ] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
 - [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
 - [ ] Revisit `removed`, `json`, and separate SHACL preflight only after the thin checker passes the current corpus.
+- [ ] compose user documentation into [[ac.user-guide]]

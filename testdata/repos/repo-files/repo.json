@@ -1,0 +1,34 @@
+{
+  "id": "repo-files",
+  "refs": [
+    {
+      "name": "r0-empty",
+      "empty": true,
+      "description": "No tracked files."
+    },
+    {
+      "name": "r1-bytes-a",
+      "description": "artifact.bin with the baseline byte sequence."
+    },
+    {
+      "name": "r2-bytes-b",
+      "description": "artifact.bin with a different byte sequence."
+    },
+    {
+      "name": "r3-text-lf",
+      "description": "note.txt with LF line endings."
+    },
+    {
+      "name": "r4-text-crlf",
+      "description": "note.txt with CRLF line endings."
+    },
+    {
+      "name": "r5-text-changed",
+      "description": "note.txt with a meaningful content change."
+    },
+    {
+      "name": "r6-text-invalid-utf8",
+      "description": "note.txt with invalid UTF-8 bytes."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "repo-empty",
+  "refs": [
+    {
+      "name": "r0-empty",
+      "empty": true,
+      "description": "No tracked files."
+    }
+  ]
+}

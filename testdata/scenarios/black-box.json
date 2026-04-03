@@ -1,0 +1,318 @@
+{
+  "id": "accord-black-box-v1",
+  "scenarios": [
+    {
+      "id": "bb-001-single-case-auto-select-pass",
+      "manifestPath": "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedCaseId": "#auto-select-case",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-002-explicit-case-pass",
+      "manifestPath": "testdata/manifests/bb-002-explicit-case-pass.jsonld",
+      "repoId": "repo-files",
+      "selectedCaseId": "#selected-case",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedCaseId": "#selected-case",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-003-multi-case-selector-required",
+      "manifestPath": "testdata/manifests/bb-003-multi-case-selector-required.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "case_selection_required"
+      ]
+    },
+    {
+      "id": "bb-004-unknown-case-id",
+      "manifestPath": "testdata/manifests/bb-004-unknown-case-id.jsonld",
+      "repoId": "repo-files",
+      "selectedCaseId": "#missing-case",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "case_not_found"
+      ]
+    },
+    {
+      "id": "bb-005-remote-context-disallowed",
+      "manifestPath": "testdata/manifests/bb-005-remote-context-disallowed.jsonld",
+      "repoId": "repo-empty",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "remote_context_disallowed"
+      ]
+    },
+    {
+      "id": "bb-006-unresolved-ref",
+      "manifestPath": "testdata/manifests/bb-006-unresolved-ref.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "git_ref_unresolved"
+      ]
+    },
+    {
+      "id": "bb-101-added-bytes-pass",
+      "manifestPath": "testdata/manifests/bb-101-added-bytes-pass.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-102-updated-bytes-pass",
+      "manifestPath": "testdata/manifests/bb-102-updated-bytes-pass.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-103-unchanged-text-pass-with-crlf-normalization",
+      "manifestPath": "testdata/manifests/bb-103-unchanged-text-pass-with-crlf-normalization.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-104-unchanged-text-fail",
+      "manifestPath": "testdata/manifests/bb-104-unchanged-text-fail.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "file_content_mismatch"
+      ]
+    },
+    {
+      "id": "bb-105-removed-pass",
+      "manifestPath": "testdata/manifests/bb-105-removed-pass.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-106-absent-pass-even-if-previously-present",
+      "manifestPath": "testdata/manifests/bb-106-absent-pass-even-if-previously-present.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-107-absent-fail-when-still-present",
+      "manifestPath": "testdata/manifests/bb-107-absent-fail-when-still-present.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "file_presence_mismatch"
+      ]
+    },
+    {
+      "id": "bb-108-text-invalid-utf8-error",
+      "manifestPath": "testdata/manifests/bb-108-text-invalid-utf8-error.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "text_decode_error"
+      ]
+    },
+    {
+      "id": "bb-201-unchanged-rdf-pass-equivalent-serialization",
+      "manifestPath": "testdata/manifests/bb-201-unchanged-rdf-pass-equivalent-serialization.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-202-unchanged-rdf-pass-ignored-predicate-only",
+      "manifestPath": "testdata/manifests/bb-202-unchanged-rdf-pass-ignored-predicate-only.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-203-unchanged-rdf-fail-meaningful-change",
+      "manifestPath": "testdata/manifests/bb-203-unchanged-rdf-fail-meaningful-change.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "rdf_graph_mismatch"
+      ]
+    },
+    {
+      "id": "bb-204-rdf-parse-error",
+      "manifestPath": "testdata/manifests/bb-204-rdf-parse-error.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "rdf_parse_error"
+      ]
+    },
+    {
+      "id": "bb-205-sparql-ask-true-pass",
+      "manifestPath": "testdata/manifests/bb-205-sparql-ask-true-pass.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-206-sparql-ask-false-pass",
+      "manifestPath": "testdata/manifests/bb-206-sparql-ask-false-pass.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-207-sparql-ask-mismatch-fail",
+      "manifestPath": "testdata/manifests/bb-207-sparql-ask-mismatch-fail.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "sparql_ask_mismatch"
+      ]
+    },
+    {
+      "id": "bb-301-json-report-shape",
+      "manifestPath": "testdata/manifests/bb-301-json-report-shape.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-302-text-report-smoke",
+      "manifestPath": "testdata/manifests/bb-302-text-report-smoke.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "file_content_mismatch"
+      ]
+    }
+  ]
+}

@@ -393,3 +393,99 @@ The task note at [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/seman
 No tests were run; this was a documentation/spec update.
 
 The next useful move is to create the actual `testdata/` skeleton in the `accord` repo and author the first few scenario manifests plus `black-box.json`.
+
+# User_2026-04-03_0801_42
+
+ok, proceed
+
+# gpt-5.4_2026-04-03_0801_49
+
+I’m creating the initial `testdata/` corpus in the `accord` repo now: fixture source trees, a scenario index, and the first small JSON-LD manifests that map directly to the black-box spec. After that I’ll verify the structure so it’s ready for the test harness and CLI scaffold.
+
+# gpt-5.4_2026-04-03_0802_12
+
+I found one concrete issue while laying out `testdata/`: the spec said the materializer copies each ref tree in order, but unless it clears the worktree between refs, `removed` scenarios become ambiguous because old files can linger. I’m fixing that in the spec before I add the actual fixture files.
+
+# gpt-5.4_2026-04-03_0802_15
+
+The patch missed because the numbered list formatting in the spec shifted slightly. I’m reopening that exact block and patching it against the current text.
+
+# gpt-5.4_2026-04-03_0802_50
+
+I’m at the file-creation step now. I’m creating the `testdata/` directories first, then I’ll add the textual fixture files and manifests, and finally I’ll write the one invalid-UTF-8 fixture with a binary-safe command because `apply_patch` can’t represent it cleanly.
+
+# gpt-5.4_2026-04-03_0802_57
+
+I hit another practical detail before writing the fixtures: empty ref snapshots need a versioned representation. I’m making that explicit in the spec with a sentinel file convention so `r0-empty` can actually live in git without leaking a fake file into the materialized repo.
+
+# gpt-5.4_2026-04-03_0803_18
+
+I found a report-contract ambiguity while wiring the scenario index: `caseId` is stable for tests only if it uses the authored `@id`, not a resolved file-based IRI that changes with temp paths. I’m locking that down in the spec before I write the scenario assertions.
+
+# gpt-5.4_2026-04-03_0803_26
+
+I’m writing the fixture source trees first. These are the stable inputs everything else depends on, so I want them settled before I generate the scenario manifests and index on top of them.
+
+# gpt-5.4_2026-04-03_0803_54
+
+I’ve got the text fixtures in place. I’m now fixing the two byte-sensitive cases with raw writes: one file needs actual CRLF bytes, and one needs invalid UTF-8, which `apply_patch` cannot encode faithfully.
+
+# gpt-5.4_2026-04-03_0804_20
+
+I’m adding the first manifest wave now. This first batch covers setup, case selection, bytes/text, `removed`, `absent`, and the report-smoke scenarios, so the harness can start red-green work before RDF handling lands.
+
+# gpt-5.4_2026-04-03_0805_34
+
+The first manifest wave is in place. I’m adding the RDF scenarios and the scenario index now so the initial corpus is complete enough to drive both fixture materialization and machine-readable black-box expectations.
+
+# gpt-5.4_2026-04-03_0807_02
+
+The corpus is written. I’m verifying the machine-readable parts now: JSON parseability, the scenario/manifests file map, and the byte-level fixtures for CRLF and invalid UTF-8 so we don’t leave a silent mismatch in the test inputs.
+
+# gpt-5.4_2026-04-03_0807_16
+
+The fixture corpus is in place, so I’m updating the task note checkboxes to reflect the completed planning work before stopping. I’m not marking any CLI implementation steps done, just the `testdata/` foundation we actually created.
+
+# gpt-5.4_2026-04-03_0807_31
+
+I’m doing a last verification sweep over the `testdata/` tree and the task note so I can close this out with an accurate summary of what exists now and what still remains unimplemented.
+
+# gpt-5.4_2026-04-03_0807_34
+
+`git diff --stat` only showed tracked-note edits because the new `testdata/` tree is untracked right now. I’m checking `git status` so I can report the actual new files, not just the note changes.
+
+# gpt-5.4_2026-04-03_0808_01
+
+Created the initial in-repo black-box corpus under [testdata/README.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/README.md). The fixture sources now live in [repo-files/repo.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/repos/repo-files/repo.json), [repo-rdf/repo.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/repos/repo-rdf/repo.json), and [repo-empty/repo.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/repos/repo-empty/repo.json), with snapshot trees for the named refs. The first manifest wave is in [testdata/manifests](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/manifests/bb-001-single-case-auto-select-pass.jsonld) through [bb-302-text-report-smoke.jsonld](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/manifests/bb-302-text-report-smoke.jsonld), and the machine-readable scenario index is [black-box.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/scenarios/black-box.json).
+
+I also tightened the spec and task notes in [ac.spec.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.spec.2026.2026-04-03-accord-cli.md) and [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md) so they now define the sentinel for empty refs, full-snapshot materialization semantics, stable JSON `caseId` behavior, and mark the `testdata/` layout plus first manifest/index wave as done.
+
+Verification: all `testdata` `.json` and `.jsonld` files parse, `r4-text-crlf/note.txt` has real CRLF bytes, and `r6-text-invalid-utf8/note.txt` contains invalid UTF-8 bytes. No CLI or test harness exists yet, so no black-box tests were run.
+
+The next step is to scaffold the Deno test harness and fixture materializer, then start with a small red suite against `bb-001`, `bb-003`, `bb-101`, and `bb-201`. Also, the worktree still has non-task status outside this change: the Kato conversation note [ac.conv.2026-04-03_0709-accord-cli-codex.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.conv.2026-04-03_0709-accord-cli-codex.md) was auto-updated, and there is an unrelated untracked [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) that I did not touch.
+
+# User_2026-04-03_0808_54
+
+commit message please. What does "bb" stand for?
+
+# gpt-5.4_2026-04-03_0809_12
+
+`bb` stands for `black-box`.
+
+It works, but it is a bit opaque. If you want clearer long-term fixture names, `black-box-001...` would age better than `bb-001...`.
+
+Assuming this commit is for the spec/task/testdata work and not the unrelated [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md), I’d use:
+
+```text
+feat: add Accord CLI black-box testdata scaffold
+
+- add in-repo testdata fixtures for file, text, and RDF checker scenarios
+- add scenario-specific JSON-LD manifests and a machine-readable black-box scenario index
+- refine the CLI spec with report semantics, testdata layout, and fixture materialization rules
+- update the task note to track the initial black-box corpus and testdata plan
+```
+
+If you want, I can also give you:
+1. a shorter commit message
+2. a more conservative `docs:` message
+3. a split-commit plan instead of one combined commit

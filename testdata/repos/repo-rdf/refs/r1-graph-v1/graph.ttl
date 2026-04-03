@@ -1,0 +1,12 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://example.test/> .
+
+ex:alice
+  a ex:Person ;
+  ex:knows ex:bob ;
+  ex:name "Alice" ;
+  dcterms:updated "2026-04-03T00:00:00Z" .
+
+ex:bob
+  a ex:Person ;
+  ex:name "Bob" .

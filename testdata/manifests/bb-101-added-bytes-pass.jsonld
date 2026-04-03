@@ -1,0 +1,36 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-101-added-bytes-pass",
+  "dcterms:title": "bb-101 added bytes pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#added-bytes-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.addedBytes",
+      "fromRef": "r0-empty",
+      "toRef": "r1-bytes-a",
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-added",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "added",
+          "compareMode": "bytes"
+        }
+      ]
+    }
+  ]
+}

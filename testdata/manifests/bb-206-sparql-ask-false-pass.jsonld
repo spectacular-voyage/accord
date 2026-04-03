@@ -1,0 +1,54 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-206-sparql-ask-false-pass",
+  "dcterms:title": "bb-206 SPARQL ASK false pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#sparql-ask-false-case",
+      "fixtureRepo": "testdata/repos/repo-rdf",
+      "operationId": "test.sparqlAskFalse",
+      "fromRef": "r0-empty",
+      "toRef": "r1-graph-v1",
+      "hasFileExpectation": [
+        {
+          "id": "#graph-file",
+          "type": "FileExpectation",
+          "path": "graph.ttl",
+          "changeType": "added",
+          "compareMode": "rdfCanonical"
+        }
+      ],
+      "hasRdfExpectation": [
+        {
+          "id": "#graph-rdf",
+          "type": "RdfExpectation",
+          "targetsFileExpectation": "#graph-file",
+          "hasAskAssertion": [
+            {
+              "id": "#ask-carol-person",
+              "type": "SparqlAskAssertion",
+              "query": "ASK { <https://example.test/carol> a <https://example.test/Person> . }",
+              "expectedBoolean": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
