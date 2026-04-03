@@ -489,3 +489,360 @@ If you want, I can also give you:
 1. a shorter commit message
 2. a more conservative `docs:` message
 3. a split-commit plan instead of one combined commit
+
+# User_2026-04-03_0814_47
+
+bb is fine. Do we need to plan the Deno file layout and dependencies (other than N3 + Comunica)? I'm pretty happy with how Kato turned out so far, it's at /home/djradon/hub/spectacular-voyage/kato if you want to reference it.
+
+# gpt-5.4_2026-04-03_0814_54
+
+I’m checking `kato` for concrete Deno layout patterns before I answer. I want to distinguish what we should lock down now from what can wait until the CLI scaffold lands.
+
+# gpt-5.4_2026-04-03_0815_26
+
+Yes. We should plan both now, but keep it minimal.
+
+Kato is a useful reference for Deno hygiene, especially the root [deno.json](/home/djradon/hub/spectacular-voyage/kato/deno.json), the CLI split under [apps/cli/src](/home/djradon/hub/spectacular-voyage/kato/apps/cli/src/main.ts), and the separation between runtime code, shared contracts, and tests. But I would not copy Kato’s full monorepo shape into Accord yet. Kato has multiple apps; Accord currently has one CLI plus test fixtures.
+
+What we should lock down now for Accord:
+
+- Root `deno.json` with tasks for `fmt`, `lint`, `check`, `test`, and a focused black-box test task.
+- A single-app layout, not an `apps/` monorepo yet.
+- Production code and test-only fixture tooling separated from the start.
+
+I’d use this shape:
+
+```text
+deno.json
+src/
+  main.ts
+  mod.ts
+  cli/
+    parse_args.ts
+    router.ts
+    commands/
+      check.ts
+  manifest/
+    load_jsonld.ts
+    model.ts
+    select_case.ts
+  git/
+    repo.ts
+    refs.ts
+    blobs.ts
+  checker/
+    file_expectations.ts
+    compare_bytes.ts
+    compare_text.ts
+    compare_rdf.ts
+    sparql.ts
+  report/
+    json_report.ts
+    text_report.ts
+    codes.ts
+tests/
+  support/
+    fixture_materializer.ts
+    cli_runner.ts
+  black_box_test.ts
+  manifest_loader_test.ts
+  git_access_test.ts
+  compare_text_test.ts
+  compare_rdf_test.ts
+testdata/
+```
+
+Dependencies beyond `n3` and `Comunica` should also be planned now, because those two are not enough:
+
+- Deno std:
+  - `@std/assert`
+  - `@std/path`
+  - probably `@std/fs`
+  - likely `@std/cli` or just `parseArgs`
+- JSON-LD processor:
+  - this is the main missing dependency right now
+  - we need one because the spec now requires real JSON-LD handling, not ad hoc JSON parsing
+- RDF canonicalization:
+  - also still unresolved
+  - `n3` parses and `Comunica` queries, but neither solves canonical equivalence by itself
+
+What I would avoid:
+
+- no Cliffy unless the CLI grows materially
+- no logging framework yet
+- no workspace/shared package split yet
+- no early abstraction for plugins/runners
+
+So the short answer is: yes, we should plan both file layout and dependencies now, and Kato is a good reference for discipline, but Accord should start flatter and smaller.
+
+If you want, I can patch the task/spec notes next with:
+1. the proposed Accord Deno file layout
+2. the dependency decision table
+3. the specific unresolved spikes: JSON-LD processor and RDF canonicalization
+
+# User_2026-04-03_0817_46
+
+Sure. https://github.com/digitalbazaar/rdf-canonize might be our best bet for canonization. Is the some jsonld processing that N3 can't handle?
+
+# gpt-5.4_2026-04-03_0818_46
+
+Yes. `rdf-canonize` looks like a strong candidate for canonization.
+
+Why I think that:
+- [rdf-canonize](https://github.com/digitalbazaar/rdf-canonize) is purpose-built for RDF dataset canonicalization.
+- Its README says it supports `RDFC-1.0`, with `URDNA2015` kept as a deprecated alias, and it exposes complexity controls plus `AbortSignal`.
+- That is a better fit for `rdfCanonical` than trying to improvise equivalence from plain quad sorting.
+
+On the JSON-LD question: yes, there is a lot of JSON-LD processing that N3 cannot handle.
+
+Per the [N3.js README](https://github.com/rdfjs/N3.js), N3 covers RDF syntaxes like Turtle, TriG, N-Triples, N-Quads, and N3. It does not present itself as a JSON-LD processor. So N3 is good for RDF parsing and RDFJS stores, but not for JSON-LD semantics.
+
+What N3 does not handle:
+- `@context` processing
+- term expansion and compact IRI resolution
+- `@base` / `@vocab` handling
+- remote context loading policy
+- JSON-LD expansion, compaction, flattening, framing
+- JSON-LD-to-RDF conversion per the JSON-LD algorithms
+- safe-mode style checks for lossy JSON-LD constructs
+
+That is exactly the space covered by [jsonld.js](https://github.com/digitalbazaar/jsonld.js). Its README explicitly exposes `expand`, `flatten`, `frame`, `toRDF`, `fromRDF`, custom document loaders, and a safe mode.
+
+So the stack I’d currently plan is:
+
+- `jsonld.js` for manifest loading and JSON-LD processing
+- `n3` for Turtle/N-Quads parsing and RDFJS store work
+- `rdf-canonize` for RDF canonicalization
+- `@comunica/query-sparql` for ASK queries
+
+That separation is cleaner than asking N3 to do JSON-LD work it was not built for.
+
+One caution: `rdf-canonize` looks promising from its official docs, but I have not yet verified Deno interop for it. That still deserves a spike before we freeze the dependency choice.
+
+Sources:
+- [rdf-canonize](https://github.com/digitalbazaar/rdf-canonize)
+- [jsonld.js](https://github.com/digitalbazaar/jsonld.js)
+- [N3.js](https://github.com/rdfjs/N3.js)
+
+If you want, I can patch the task/spec next to record this provisional dependency plan and call out `jsonld.js` + `rdf-canonize` as explicit spikes.
+
+# User_2026-04-03_0822_06
+
+There's https://github.com/comunica/comunica/tree/master/packages/actor-rdf-parse-jsonld -- it's possible that's just a thin wrapper on jsonld.js.
+
+# gpt-5.4_2026-04-03_0822_08
+
+I’m checking that package directly rather than guessing. The question is whether it meaningfully replaces `jsonld.js` for our needs, or whether it only gives Comunica a JSON-LD parser hook while leaving full manifest JSON-LD handling unsolved.
+
+# gpt-5.4_2026-04-03_0822_34
+
+It does not look like a thin wrapper on `jsonld.js`.
+
+From the package docs and `package.json`, `@comunica/actor-rdf-parse-jsonld` is a Comunica RDF parse actor for JSON-LD, and its direct JSON-LD-related dependencies are `jsonld-streaming-parser` and `jsonld-context-parser`, not `jsonld.js`. It also expects Comunica engine wiring, a `mediatorHttp`, and optional custom document-loader configuration. Sources:
+- [actor README](https://github.com/comunica/comunica/tree/master/packages/actor-rdf-parse-jsonld)
+- [actor package.json](https://github.com/comunica/comunica/blob/master/packages/actor-rdf-parse-jsonld/package.json)
+
+So the practical answer is:
+
+- If we want a JSON-LD parser inside a Comunica/RDF parsing pipeline, this package is relevant.
+- If we want to load Accord manifests as JSON-LD inputs for the CLI, it is probably the wrong abstraction layer.
+
+Why I’d still hesitate to use it for manifests:
+- It is designed as a Comunica actor, not as a simple manifest-loader API.
+- It is about parsing JSON-LD into RDF, not about giving us a friendly document-processing surface for manifest validation and diagnostics.
+- Our current manifest-loading problem is “load one JSON-LD document deterministically and map it into Accord model data,” not “plug another RDF parser into a query engine.”
+
+So the cleaner options are:
+
+- `jsonld.js` if we want full document-oriented JSON-LD processing.
+- `jsonld-streaming-parser` directly if we decide “JSON-LD to RDF quads” is enough and we want to stay closer to the RDF pipeline.
+- Not the Comunica actor itself, unless we find a strong reason to reuse Comunica’s component model inside the checker.
+
+My current bias:
+- Manifest loading: probably `jsonld.js` or `jsonld-streaming-parser` directly.
+- RDF querying: `Comunica`.
+- RDF canonicalization: `rdf-canonize`.
+
+If you want, I can do a short dependency decision note next that compares:
+1. `jsonld.js`
+2. `jsonld-streaming-parser`
+3. `@comunica/actor-rdf-parse-jsonld`
+
+against our actual Accord CLI needs.
+
+# User_2026-04-03_0824_19
+
+jsonld.js is fine for now. Proceed with patching the task/spec notes with file layout, dependencies, and unresolved spikes.
+
+# gpt-5.4_2026-04-03_0824_33
+
+I’m patching both notes now. I’ll keep the spec’s new sections clearly labeled as reference implementation guidance so we don’t accidentally mix repo layout with normative checker behavior, and I’ll make the task note carry the concrete dependency choices and remaining spikes.
+
+# gpt-5.4_2026-04-03_0824_44
+
+I’ve added the reference layout and dependency baseline to the spec. I’m patching the task note next so the dependency choices are actionable and the remaining spikes are explicit work items instead of staying buried in prose.
+
+# gpt-5.4_2026-04-03_0825_09
+
+The task note now carries the dependency choices and spikes. I’m doing a quick consistency pass so the spec and task note say the same thing about `jsonld.js`, `rdf-canonize`, and the initial Deno layout.
+
+# gpt-5.4_2026-04-03_0825_18
+
+Patched both notes.
+
+In [ac.spec.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.spec.2026.2026-04-03-accord-cli.md), I added:
+- `Reference Implementation Shape` with the proposed flat Deno layout:
+  - `src/cli`
+  - `src/manifest`
+  - `src/git`
+  - `src/checker`
+  - `src/report`
+  - `tests/support`
+  - `testdata/`
+- `Dependency Baseline` with:
+  - Deno std
+  - `npm:jsonld`
+  - `npm:n3`
+  - `npm:@comunica/query-sparql`
+  - `npm:rdf-canonize` as the leading canonization candidate if the Deno spike works
+
+In [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md), I added:
+- the same dependency direction in the summary/discussion/decisions
+- a `Proposed code layout` section aligned with the spec
+- explicit unresolved spikes for:
+  - `npm:jsonld` in Deno with the no-arbitrary-remote-fetch loader policy
+  - `npm:rdf-canonize` in Deno on real RDF inputs
+  - JSON-LD mapping strategy: expanded JSON-LD objects vs RDFJS mapping
+- implementation-plan items for:
+  - the two dependency spikes
+  - creating the initial Deno project layout from the spec
+
+No tests were run; this was a planning/spec update. The next concrete move is to scaffold `deno.json` plus the `src/` and `tests/support/` layout, then run the `jsonld` and `rdf-canonize` spikes against the new `testdata/` corpus.
+
+# User_2026-04-03_0826_18
+
+Why "support" in "tests/support/"?
+
+# gpt-5.4_2026-04-03_0826_25
+
+`tests/support/` is a conventional way to say “test-only helpers that are not themselves the primary test cases.”
+
+In our case that would mean things like:
+- fixture materialization
+- CLI invocation helpers
+- temp repo setup
+- JSON report assertion helpers
+
+Why I suggested it:
+- It keeps helper code out of production `src/`
+- It distinguishes helper modules from actual test files like `black_box_test.ts`
+
+But it is only a convention, not a requirement. If you dislike the vagueness, I think you’re right to question it.
+
+Better names here might be:
+
+- `tests/helpers/`
+  - simplest and clearer than `support`
+- `tests/harness/`
+  - good if these files mainly drive end-to-end black-box execution
+- `tests/fixtures/`
+  - only if the directory mostly contains setup/materialization logic tied to fixtures
+- `tests/lib/`
+  - acceptable, but less descriptive
+
+For Accord, I would probably switch to `tests/harness/`, because the main thing we’re building is a black-box test harness around `testdata/`, not generic “support.”
+
+So I’d revise the planned layout to:
+
+```text
+tests/
+  harness/
+    fixture_materializer.ts
+    cli_runner.ts
+  black_box_test.ts
+  manifest_loader_test.ts
+  git_access_test.ts
+  compare_text_test.ts
+  compare_rdf_test.ts
+```
+
+If you want, I can patch the spec/task notes to replace `tests/support` with `tests/harness`.
+
+# User_2026-04-03_0827_55
+
+I'll leave it up to you. Then move on to scaffolding and layout.
+
+# gpt-5.4_2026-04-03_0828_04
+
+I’m renaming the planned test helper area to `tests/harness/` and then scaffolding the initial Deno project shape in the `accord` repo: `deno.json`, `src/`, and `tests/` with minimal compileable stubs wired to the current spec.
+
+# gpt-5.4_2026-04-03_0828_14
+
+The notes only still mention `tests/support/` in the task note. I’m switching that to `tests/harness/` before I scaffold the filesystem so the repo shape and notes match.
+
+# gpt-5.4_2026-04-03_0828_59
+
+I’m choosing a pragmatic scaffold: a minimal working CLI/parser plus a couple of real utility modules and smoke tests, while leaving manifest loading, git access, fixture materialization, and RDF execution clearly stubbed. That keeps the layout honest without pretending the checker exists yet.
+
+# gpt-5.4_2026-04-03_0829_37
+
+I’m taking a slightly stronger step than a pure skeleton: the repo will get a real fixture materializer and real CLI arg parsing, because those are foundational and small enough to build correctly now instead of leaving dead stubs everywhere. The checker itself will still remain explicitly unimplemented.
+
+# gpt-5.4_2026-04-03_0830_39
+
+I’m writing the scaffold now: real parser, real fixture materializer, real git helpers, and minimal report utilities. The RDF-specific checker pieces will stay as explicit placeholders until we do the `jsonld.js` and `rdf-canonize` spikes.
+
+# gpt-5.4_2026-04-03_0832_10
+
+The scaffold is in place. I’m running `fmt`, `check`, and `test` now to shake out the inevitable issues in the initial layout before we move on to dependency spikes.
+
+# gpt-5.4_2026-04-03_0832_14
+
+Formatting passed. `check` and `test` are still running; I’m polling for any type or runtime issues now.
+
+# gpt-5.4_2026-04-03_0833_12
+
+I’ve moved past the note work and into the actual Deno scaffold. The first pass is in place; I’m checking the current layout and fixing the immediate harness issues so the project can run red tests cleanly instead of failing on permissions and arg parsing.
+
+# gpt-5.4_2026-04-03_0833_26
+
+The scaffold is present. The immediate blockers are exactly what the first run suggested: the test tasks don’t grant the file/run permissions the harness needs, and the CLI parser is rejecting positional subcommands too early.
+
+# gpt-5.4_2026-04-03_0833_39
+
+I’m patching three small but important pieces now: the test task permissions, the parser’s positional handling, and the harness path resolution so it stays correct under Deno’s file-URL semantics.
+
+# gpt-5.4_2026-04-03_0833_55
+
+The harness is now at least running with the permissions it actually needs. I’m waiting on the full test pass to see what the next real failures are after that noise is removed.
+
+# gpt-5.4_2026-04-03_0834_18
+
+I kept `tests/harness/` rather than `tests/support/`. In this repo the directory is specifically driving black-box execution and fixture materialization, so `harness` is the less vague name.
+
+The Deno scaffold and layout are now in place. The root config is in [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json), the CLI entry/router/parser live under [src/main.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/main.ts), [src/cli/router.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/router.ts), and [src/cli/parse_args.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/parse_args.ts), and the black-box harness sits under [tests/harness/fixture_materializer.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/harness/fixture_materializer.ts) and [tests/harness/cli_runner.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/harness/cli_runner.ts). I also fixed the two immediate scaffold issues: the test tasks now grant the permissions the harness actually needs, and the parser no longer rejects positional subcommands as “unknown arguments.”
+
+Verification is clean: `deno task fmt:check`, `deno task check`, and `deno task test` all pass. The current baseline is intentional: the project structure, fixture materializer, parser, git helpers, and text comparison tests are working, while the actual `accord check` behavior is still only scaffolded in [src/cli/commands/check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts). The next useful step is to implement the first real end-to-end slice against the existing black-box corpus: manifest loading, case selection, and simple file expectation execution for the `bb-001`/`bb-101` path.
+
+# User_2026-04-03_0834_24
+
+commit message please
+
+# gpt-5.4_2026-04-03_0834_30
+
+Recommended:
+
+```text
+feat: scaffold Accord CLI and black-box test harness
+
+- add Deno project layout, CLI entrypoint, and core module structure
+- add fixture materializer and initial parser/git/text comparison tests
+- add in-repo black-box testdata and scenario index
+- refine CLI task/spec notes for layout, dependencies, and TDD-driven execution
+```
+
+Shorter version:
+
+```text
+feat: scaffold Accord CLI and black-box harness
+```

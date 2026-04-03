@@ -36,6 +36,8 @@ The current best implementation direction is a Deno CLI in this repository. A sm
 - `deno 2.7.8` runs successfully here
 - `npm:n3` works for Turtle parsing and RDFJS store creation under Deno
 - `npm:@comunica/query-sparql` loads under Deno and can evaluate `ASK` queries successfully against an RDFJS `n3` store
+- `jsonld.js` is the preferred first JSON-LD dependency for manifest loading
+- `rdf-canonize` is the leading candidate for RDF canonicalization, pending a real Deno compatibility spike
 
 That is enough to justify a thin-checker prototype in Deno, but not yet enough to assume every required RDF and JSON-LD edge case is solved.
 
@@ -106,17 +108,35 @@ That already covers the current `mesh-alice-bio` manifests.
 
 For RDF execution, the promising Deno-first split is:
 
+- `jsonld.js` for JSON-LD manifest loading and document-loader control
 - `n3` for parsing Turtle/N-Quads and building RDFJS stores
 - `Comunica` for SPARQL `ASK`
-- a separate canonicalization strategy for graph equivalence
+- `rdf-canonize` as the first canonicalization candidate for graph equivalence
 
 The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comunica`, but robust RDF canonical comparison is the harder part, especially once blank nodes matter.
 
+### Proposed code layout
+
+The first Accord CLI should stay flatter than Kato. The current recommended layout is captured in [[ac.spec.2026.2026-04-03-accord-cli]] and centers on:
+
+- `src/cli` for argument parsing and command routing
+- `src/manifest` for JSON-LD loading and case selection
+- `src/git` for git-backed fixture reads
+- `src/checker` for file, text, RDF, and ASK evaluation
+- `src/report` for JSON and text report generation
+- `tests/harness` for fixture materialization and CLI helpers
+- `testdata/` for black-box fixture repos, manifests, and scenario indexes
+
 ## Open Issues
 
+- Confirm Deno interoperability for `npm:jsonld` on real local manifests with the intended document-loader policy.
 - Decide how strict `rdfCanonical` must be in v1:
   - true RDF dataset canonicalization, including blank nodes
   - or a narrower initial implementation that is explicitly limited and documented
+- Confirm Deno interoperability and performance characteristics for `npm:rdf-canonize` on real local RDF inputs.
+- Decide whether manifest loading should map JSON-LD by:
+  - expanding and then reading normalized JSON-LD objects
+  - or converting to RDF quads and mapping from RDFJS data
 - Decide whether generated HTML should remain `text`-compared, or whether the CLI should normalize line endings and other trivial text differences.
 - Decide whether the first version should stop on first failure or accumulate all failures for the selected case.
 - Decide how much dependency weight is acceptable if `Comunica` stays in the stack, since its transitive npm graph is large even though the Deno interop itself appears workable.
@@ -136,6 +156,8 @@ The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comuni
 - The initial reporting shape should be human-readable text by default with optional machine-readable JSON via `--format json`.
 - The first fixture access implementation should read git objects directly with targeted commands such as `git cat-file -e` and `git show <ref>:<path>`, not temporary worktrees.
 - The first manifest loader should handle JSON-LD from the start rather than treating manifests as plain JSON with familiar keys.
+- Prefer `jsonld.js` as the first JSON-LD dependency for manifest loading.
+- Prefer `rdf-canonize` as the first RDF canonicalization candidate, subject to a Deno compatibility spike.
 - Scope the first useful checker to the features the current corpus actually needs:
   - file change types `added`, `updated`, `unchanged`, and `absent`
   - compare modes `bytes`, `text`, and `rdfCanonical`
@@ -180,8 +202,11 @@ This task is about executable tooling for the existing Accord contract, not abou
   - optional `--fixture-repo-path <path>`
   - optional `--format json`
 - [ ] Spike Deno package compatibility more thoroughly with real local manifest and RDF inputs, not just trivial in-memory examples.
+- [ ] Spike `npm:jsonld` with real local manifests, including inline context handling and the intended no-arbitrary-remote-fetch document-loader policy.
+- [ ] Spike `npm:rdf-canonize` with real local RDF inputs and confirm whether its Deno behavior is acceptable for `rdfCanonical`.
 - [x] Decide the first-pass fixture access strategy: direct `git show` and `git cat-file` access rather than temporary worktree materialization.
 - [ ] Bootstrap the Deno CLI and test scaffold for this repository.
+- [ ] Create the initial Deno project layout from [[ac.spec.2026.2026-04-03-accord-cli]], including `src/cli`, `src/manifest`, `src/git`, `src/checker`, `src/report`, and `tests/harness`.
 - [x] Create the in-repo `testdata/` layout and a test-only fixture materializer plan that turns source trees into temporary git repositories with the named refs required by [[ac.spec.2026.2026-04-03-accord-cli]].
 - [ ] Prototype manifest loading and case selection for JSON-LD inputs using a deterministic local document-loader policy.
 - [ ] Prototype file expectation checking for `added`, `updated`, `unchanged`, and `absent`.

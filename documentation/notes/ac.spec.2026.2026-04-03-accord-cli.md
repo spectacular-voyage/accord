@@ -34,6 +34,69 @@ Supported v1 options:
 
 No additional top-level command is required for the first usable checker.
 
+## Reference Implementation Shape
+
+This section is implementation guidance for the first Deno CLI in this repository. It is not part of the black-box checker contract, but it should constrain the initial code layout enough to keep the project coherent.
+
+The first implementation should remain flatter and smaller than a multi-app monorepo such as Kato. Accord currently needs one CLI, test support, and `testdata/`.
+
+The recommended initial layout is:
+
+```text
+deno.json
+deno.lock
+src/
+  main.ts
+  mod.ts
+  cli/
+    parse_args.ts
+    router.ts
+    commands/
+      check.ts
+  manifest/
+    load_jsonld.ts
+    model.ts
+    select_case.ts
+  git/
+    repo.ts
+    refs.ts
+    blobs.ts
+  checker/
+    file_expectations.ts
+    compare_bytes.ts
+    compare_text.ts
+    compare_rdf.ts
+    sparql.ts
+  report/
+    json_report.ts
+    text_report.ts
+    codes.ts
+tests/
+  support/
+    fixture_materializer.ts
+    cli_runner.ts
+  black_box_test.ts
+  manifest_loader_test.ts
+  git_access_test.ts
+  compare_text_test.ts
+  compare_rdf_test.ts
+testdata/
+```
+
+The first implementation should not introduce an `apps/` split, shared package layer, plugin model, or web service abstraction unless the initial checker work proves they are necessary.
+
+## Dependency Baseline
+
+The current best-fit dependency baseline is:
+
+- Deno standard library for assertions, path handling, filesystem helpers, and CLI parsing
+- `npm:jsonld` for JSON-LD processing and deterministic document-loader control
+- `npm:n3` for Turtle or N-Quads parsing and RDFJS store work
+- `npm:@comunica/query-sparql` for SPARQL ASK evaluation
+- `npm:rdf-canonize` for RDF dataset canonicalization if the Deno spike confirms it is workable in practice
+
+The current preferred JSON-LD direction is `jsonld.js`, not the Comunica JSON-LD parse actor. Manifest loading needs direct JSON-LD document processing more than it needs another RDF parse actor abstraction.
+
 ## Exit Codes
 
 The checker should use stable exit codes so it can back black-box tests cleanly:
