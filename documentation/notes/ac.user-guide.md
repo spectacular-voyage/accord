@@ -176,7 +176,6 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 - Accord does not yet support `.jsonld` as an RDF artifact format in `rdfCanonical` or SPARQL `ASK`.
 - Accord does not yet support `json` compare mode.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.
-- The checker has strong synthetic black-box coverage, but the full `mesh-alice-bio` corpus validation pass is still a follow-up task.
 
 ## Where to look next
 

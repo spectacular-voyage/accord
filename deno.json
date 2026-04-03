@@ -6,6 +6,7 @@
     "check": "deno check src/**/*.ts tests/**/*.ts",
     "test": "deno test --allow-read --allow-write --allow-run --allow-env tests",
     "test:black-box": "deno test --allow-read --allow-write --allow-run --allow-env tests/black_box_test.ts",
+    "test:mesh-alice-bio": "deno test --allow-read --allow-write --allow-run --allow-env tests/mesh_alice_bio_smoke_test.ts",
     "test:coverage": "deno test --allow-read --allow-write --allow-run --allow-env --coverage=coverage tests",
     "coverage:lcov": "deno coverage coverage --lcov > coverage/lcov.info"
   },

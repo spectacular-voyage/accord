@@ -30,7 +30,7 @@ That initial implementation now exists in this repository. The current checker s
 - text and JSON reports
 - unit and black-box coverage against the in-repo `testdata/` corpus
 
-The main remaining work for this task is no longer scaffolding. It is validating the checker against the real `mesh-alice-bio` corpus, tightening documentation, and recording the gaps that emerge from those real manifests and fixture refs.
+The main remaining work for this task is now follow-up rather than first-use scaffolding. The checker has passed the current real `mesh-alice-bio` corpus, so the remaining questions are how to keep that integration signal healthy, how much rerun automation to add, and when to pick up broader format support such as JSON-LD RDF artifacts.
 
 The behavioral specification for the checker now lives in [[ac.spec.2026.2026-04-03-accord-cli]]. This task note should stay focused on planning, implementation, and follow-up decisions.
 
@@ -144,9 +144,8 @@ The first Accord CLI should stay flatter than Kato. The current recommended layo
 
 ## Open Issues
 
-- Run `accord check` against a representative subset of the real `mesh-alice-bio` manifests and record any gaps between the synthetic black-box corpus and real repository behavior.
-- Run the checker against the full current `mesh-alice-bio` manifest set and decide which failures indicate implementation bugs versus missing or underspecified behavior.
-- Decide whether a small committed integration suite based on real `mesh-alice-bio` manifests should live alongside the synthetic black-box suite.
+- Keep the committed `mesh-alice-bio` smoke subset representative as the real manifest corpus evolves.
+- Decide whether the full `mesh-alice-bio` corpus rerun should become a dedicated scripted task in this repository or remain an explicit ad hoc integration check.
 - Decide how much dependency weight is acceptable if `Comunica` stays in the stack, since its transitive npm graph is large even though the Deno interop itself appears workable.
 - Decide whether generated HTML should remain `text`-compared, or whether the CLI should normalize line endings and other trivial text differences.
 - Decide whether the first version should stop on first failure or accumulate all failures for the selected case.
@@ -177,6 +176,7 @@ The first Accord CLI should stay flatter than Kato. The current recommended layo
 - Keep SHACL and manifest execution conceptually separate; full SHACL validation should not block the first `accord check` implementation.
 - Keep JSON-LD manifest support in the main checker scope, but track JSON-LD RDF artifact support separately in [[ac.task.2026.2026-04-03-jsonld-support]].
 - Keep the current RDF artifact syntax scope intentionally limited to the formats parsed directly by `n3` until the JSON-LD RDF artifact ingestion work lands.
+- Prefer fixing malformed fixture RDF in `mesh-alice-bio` over teaching Accord to coerce bad IRIs implicitly.
 
 ## Contract Changes
 
@@ -187,9 +187,20 @@ This task is about executable tooling for the existing Accord contract, not abou
 ## Testing
 
 - Keep the existing unit and synthetic black-box suite green as the baseline validator for new checker work.
-- Add integration tests against at least a representative subset of the real `mesh-alice-bio` manifests.
+- Keep a committed smoke suite against at least a representative subset of the real `mesh-alice-bio` manifests.
 - Continue to include intentionally failing scenarios so the failure report format is exercised, not just the happy path.
 - If SHACL preflight is ever wired into the CLI, test both valid and invalid manifests explicitly.
+
+## Mesh-alice-bio validation
+
+The current integration validation state is now concrete rather than speculative:
+
+- a committed smoke subset covers `01-source-only`, `05-alice-knop-created-woven`, `09-alice-bio-referenced-woven`, `11-alice-bio-v2-woven`, and `13-bob-extracted-woven`
+- a full local rerun against all 13 current manifests under `semantic-flow-framework/examples/alice-bio/conformance/` is green
+
+The gap exposed during the first full-corpus pass turned out not to be an Accord runtime bug. The late-ladder failures were all `sparql_ask_mismatch` checks against `alice/_knop/_references/references.ttl`, `alice/_knop/_references/_history001/_s0001/references-ttl/references.ttl`, `bob/_knop/_references/references.ttl`, and `bob/_knop/_references/_history001/_s0001/references-ttl/references.ttl`.
+
+Those files had authored `sflo:hasReferenceRole` values like `<sflo:ReferenceRole/Canonical>` and `<sflo:ReferenceRole/Supplemental>`. In Turtle, those are base-relative IRIs, not ontology IRIs. The fix belonged in the `mesh-alice-bio` fixture branches, and after correcting those role IRIs to the full ontology IRIs, all current manifests passed.
 
 ## Non-Goals
 
@@ -223,8 +234,8 @@ This task is about executable tooling for the existing Accord contract, not abou
 - [x] Design the failure report structure for both humans and automation.
 - [x] Author the first black-box manifests and scenario index under `testdata/` before relying on the larger `mesh-alice-bio` corpus.
 - [x] Add unit tests for manifest loading, git-backed file access, change classification, and compare modes.
-- [ ] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
-- [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
+- [x] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
+- [x] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
 - [ ] Revisit `json`, JSON-LD RDF artifact support, and separate SHACL preflight only after the thin checker passes the current corpus.
 - [x] compose user documentation into [[ac.user-guide]]
 - [x] compose development documentation into [[ac.dev.general-guidance]]

@@ -100,10 +100,17 @@ The current testing strategy has two layers:
 
 - focused unit tests for parsing, git access, comparisons, and report behavior
 - black-box tests driven by `testdata/scenarios/black-box.json`
+- `mesh-alice-bio` smoke tests driven by the real sibling `semantic-flow-framework` manifests and `mesh-alice-bio` fixture checkout when those repositories are present
 
 The black-box suite is important because it asserts the CLI contract instead of implementation details. Prefer extending that suite when adding observable behavior.
 
-The next major testing step is real-corpus validation against the `mesh-alice-bio` manifests. That should be treated as integration validation, not as a replacement for the synthetic black-box corpus.
+Real-corpus validation against the `mesh-alice-bio` manifests is now part of the expected integration surface. Treat it as integration validation, not as a replacement for the synthetic black-box corpus.
+
+The current baseline is:
+
+- `deno task test:black-box` for the synthetic CLI contract
+- `deno task test:mesh-alice-bio` for a representative real-corpus smoke subset when the sibling `semantic-flow` repositories are available
+- an explicit full-corpus rerun against all 13 current `mesh-alice-bio` manifests when the fixture ladder or real manifests change materially
 
 When changing logic:
 
@@ -129,7 +136,7 @@ The current order of work should be:
 
 1. keep the current checker and black-box suite stable
 2. complete user and development documentation for the current implementation
-3. validate the checker against the real `mesh-alice-bio` corpus
+3. keep the `mesh-alice-bio` smoke subset and full-corpus reruns healthy as the real fixture ladder evolves
 4. only then expand format support such as JSON-LD RDF artifacts
 
 That order matters. It is better to validate the current checker against its intended real corpus before broadening the format surface.
