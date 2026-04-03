@@ -1,5 +1,6 @@
 export interface SparqlAskAssertion {
   id?: string;
+  resolvedId?: string;
   type?: string;
   query?: string;
   expectedBoolean?: boolean;
@@ -8,6 +9,7 @@ export interface SparqlAskAssertion {
 
 export interface RdfExpectation {
   id?: string;
+  resolvedId?: string;
   type?: string;
   targetsFileExpectation?: string;
   ignorePredicate?: string[];
@@ -17,6 +19,7 @@ export interface RdfExpectation {
 
 export interface FileExpectation {
   id?: string;
+  resolvedId?: string;
   type?: string;
   path?: string;
   changeType?: string;
@@ -26,6 +29,7 @@ export interface FileExpectation {
 
 export interface TransitionCase {
   id?: string;
+  resolvedId?: string;
   type?: string;
   fixtureRepo?: string;
   operationId?: string;
@@ -40,6 +44,8 @@ export interface TransitionCase {
 export interface ManifestDocument {
   "@context"?: unknown;
   id?: string;
+  resolvedId?: string;
+  documentUrl?: string;
   type?: string;
   hasCase?: TransitionCase[];
   [key: string]: unknown;

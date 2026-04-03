@@ -51,16 +51,8 @@ export function selectTransitionCase(
 }
 
 function resolveCaseIdentifier(
-  manifest: ManifestDocument,
+  _manifest: ManifestDocument,
   transitionCase: TransitionCase,
 ): string | undefined {
-  if (transitionCase.id === undefined) {
-    return undefined;
-  }
-
-  if (transitionCase.id.startsWith("#") && manifest.id !== undefined) {
-    return `${manifest.id}${transitionCase.id}`;
-  }
-
-  return transitionCase.id;
+  return transitionCase.resolvedId ?? transitionCase.id;
 }

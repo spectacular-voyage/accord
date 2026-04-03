@@ -1,0 +1,25 @@
+{
+  "@context": "./accord-context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:local-file-context",
+  "dcterms:title": "local file context manifest",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#local-context-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.localContext",
+      "fromRef": "r0-empty",
+      "toRef": "r1-bytes-a",
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-added",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "added",
+          "compareMode": "bytes"
+        }
+      ]
+    }
+  ]
+}

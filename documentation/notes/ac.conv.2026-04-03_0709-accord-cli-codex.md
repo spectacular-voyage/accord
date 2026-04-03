@@ -1091,3 +1091,192 @@ Verification passed:
 - `deno task check`
 
 The only unrelated worktree change I saw was the auto-updated Kato conversation note.
+
+# User_2026-04-03_0911_47
+
+Should we proceed on main with your "challenging" next steps? Or cut a branch?
+
+# gpt-5.4_2026-04-03_0911_58
+
+Cut a branch.
+
+You now have enough real surface area that continuing on `main` is the wrong tradeoff. The next steps are no longer harmless scaffolding; they touch:
+- real JSON-LD loading behavior
+- document-loader policy
+- RDF canonicalization
+- SPARQL execution
+- likely new npm dependencies
+- possibly CI soon after
+
+That is exactly the point where branch-based development starts paying for itself. It gives you:
+- a clean review boundary for the `jsonld.js`/RDF work
+- a place for CodeRabbit once the PR baseline lands
+- less risk of destabilizing `main` while the RDF path is still being discovered
+
+I would not wait for the CI baseline to start branching. Start branching now, even if enforcement is still manual.
+
+A sensible sequence is:
+1. commit the current Accord CLI/file-expectation slice on `main` if it is not already committed
+2. create a feature branch for the next slice
+3. do the JSON-LD loader and RDF/SPARQL work there
+4. separately land the PR-baseline/CI work, either first or in parallel
+
+Branch names I’d consider:
+- `feat/accord-jsonld-rdf-checker`
+- `feat/accord-rdf-conformance`
+- `feat/accord-pr-baseline` for the CI branch
+
+So: don’t proceed on `main` for the challenging next steps. Branch now.
+
+# User_2026-04-03_0913_08
+
+CI baseline is in, fyi. I switched to feat/accord-jsonld-rdf-checker
+
+# gpt-5.4_2026-04-03_0913_17
+
+Working on `feat/accord-jsonld-rdf-checker` is the right shape.
+
+With the CI baseline already in, the next slice on that branch should be:
+
+1. Replace the transport-level loader in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts) with real `jsonld.js` handling plus the explicit local-only document-loader policy.
+2. Add black-box scenarios that prove the loader behavior, especially remote-context rejection and any allowlisted/local context path we decide to support.
+3. Implement RDF comparison in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) with `n3` + `rdf-canonize`.
+4. Implement ASK execution in [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts) with Comunica.
+5. Expand [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts) to turn the RDF scenarios green.
+
+If you want, I’ll proceed in that order and start with the `jsonld.js` integration first.
+
+# User_2026-04-03_0914_20
+
+Yes, proceed
+
+# gpt-5.4_2026-04-03_0914_25
+
+I’m starting with the current branch state and the loader/test surface around JSON-LD. The first goal is to replace the transport-level manifest read with real `jsonld.js` handling without breaking the file/text checker path that is already green.
+
+# gpt-5.4_2026-04-03_0915_34
+
+I’m checking the actual `jsonld.js` behavior in this environment before I freeze the loader shape. The important unknowns are Deno interop and what the library actually hands back for relative contexts and fragment ids.
+
+# gpt-5.4_2026-04-03_0916_37
+
+I’m checking the expanded shape of a real Accord manifest before I choose the mapping strategy. If the expanded graph is simple enough, I’d rather map from semantics once than keep hand-parsing compact JSON forever.
+
+# gpt-5.4_2026-04-03_0917_56
+
+I’m editing the loader, model, and case selection together because they’re coupled: once the loader starts resolving JSON-LD properly, the case-selection code should stop pretending fragment ids resolve against the manifest’s `id`.
+
+# gpt-5.4_2026-04-03_0918_54
+
+I’ve replaced the old assert-inline-context scaffold with a real loader path. Now I’m adding tests that prove the new behavior instead of trusting the library integration on faith.
+
+# gpt-5.4_2026-04-03_0919_18
+
+The integration compiles so far. I’m waiting on the full suite because the meaningful question is whether the new loader semantics still leave the existing CLI black-box matrix intact.
+
+# gpt-5.4_2026-04-03_0919_32
+
+There are two real issues, not one: `jsonld.js` pulls in an npm path that wants `process.env`, so the test harness needs `--allow-env`, and the remote-context error is getting wrapped on the way out of the loader instead of preserving the specific diagnostic code. I’m fixing both directly.
+
+# gpt-5.4_2026-04-03_0919_35
+
+`deno eval` is restricted in a way that isn’t useful here, so I’m probing the loader with a tiny `deno run` snippet instead. The only thing I need from that is the actual error shape coming back from `jsonld.js`.
+
+# gpt-5.4_2026-04-03_0920_08
+
+I’ve confirmed `jsonld.js` is calling the custom loader, but it wraps loader failures in its own generic dereference error. That means the right fix is a preflight context-policy check before expansion, with the custom loader still handling local files and any future allowlisted remotes.
+
+# gpt-5.4_2026-04-03_0920_21
+
+The loader policy is now explicit instead of depending on how `jsonld.js` chooses to wrap loader errors. I’m rerunning the suite with `--allow-env` in place because the npm stack now legitimately needs that during tests.
+
+# gpt-5.4_2026-04-03_0920_25
+
+The code compiles again. I’m waiting on the runtime suite; the important cases here are the remote-context regression and the new local-file-context loader test.
+
+# gpt-5.4_2026-04-03_0920_49
+
+The JSON-LD loader slice is in. [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts) now uses `jsonld.js` with `safe: true`, an explicit local-only context policy, and a custom document loader for local file contexts. I also added resolved-id support in [model.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/model.ts) and fixed case selection in [select_case.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/select_case.ts) so a case can be selected by authored `id` or fully resolved document-base IRI.
+
+The tests now cover the important loader behaviors in [manifest_loader_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/manifest_loader_test.ts): normal manifest load, resolved case-id selection, local file context support, and remote context rejection. I added a small local-context fixture under [testdata/manifests/support/local-file-context-manifest.jsonld](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/testdata/manifests/support/local-file-context-manifest.jsonld), updated [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json) to include `jsonld` plus `--allow-env` for npm-backed tests, and added `manifest_load_error` in [codes.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/report/codes.ts).
+
+Verification passed:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task test`
+
+Next step is the RDF half: implement [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) with `n3` + `rdf-canonize`, then wire ASK execution in [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts).
+
+Reference used for the loader shape: [jsonld.js README](https://github.com/digitalbazaar/jsonld.js).
+
+# User_2026-04-03_0920_59
+
+commit message
+
+# gpt-5.4_2026-04-03_0921_04
+
+```text
+feat: add JSON-LD manifest loading with local context support
+
+- integrate jsonld.js for manifest expansion and safe-mode processing
+- enforce a local-only document-loader policy and reject non-allowlisted remote contexts
+- track resolved manifest and case identifiers for stable selection behavior
+- add loader tests for resolved ids, local file contexts, and remote context rejection
+```
+
+# User_2026-04-03_0921_36
+
+"npm-backed tests"? Are we using deno+vitest?
+
+# gpt-5.4_2026-04-03_0921_41
+
+No. We’re using Deno’s test runner, not Vitest.
+
+“npm-backed tests” was shorthand for: the Deno tests now import an npm package, `npm:jsonld`, and that package’s transitive Node-oriented code path touches `process.env` during module load. That is why [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json) now needs `--allow-env` for `deno test`.
+
+So the stack is:
+- test runner: `deno test`
+- package source: Deno std + npm packages via Deno’s npm interop
+- not: Vitest
+
+If you want stricter wording for commit messages or notes, I’d call them:
+- `Deno tests that import npm packages`
+- or `Deno tests with npm interop`
+
+That’s more precise than “npm-backed tests.”
+
+# User_2026-04-03_0923_11
+
+I believe Kato uses Deno+Vitest. Is it worth adopting for Accord?
+
+# gpt-5.4_2026-04-03_0923_18
+
+I’m checking Kato’s actual test setup rather than relying on memory. The question isn’t just “does Kato use Vitest,” it’s whether its reasons for doing so apply to Accord’s much smaller CLI/test surface.
+
+# gpt-5.4_2026-04-03_0923_23
+
+Kato does not look like a Vitest-first repo. It’s primarily a `deno test` repo with a Vite-based web app living inside it, which is different. I’m checking the web subproject just to make sure there isn’t a hidden Vitest pocket that would change the answer.
+
+# gpt-5.4_2026-04-03_0923_37
+
+Not as a default, no.
+
+Kato is not really a `Deno + Vitest` repo. It uses Deno tasks and `Deno.test` throughout:
+- root test orchestration is in [deno.json](/home/djradon/hub/spectacular-voyage/kato/deno.json)
+- the web subproject is Vite-based, but its tests still use `Deno.test`, e.g. [header_status_test.tsx](/home/djradon/hub/spectacular-voyage/kato/apps/web/tests/header_status_test.tsx) and [recordings_live_test.tsx](/home/djradon/hub/spectacular-voyage/kato/apps/web/tests/recordings_live_test.tsx)
+- [apps/web/deno.json](/home/djradon/hub/spectacular-voyage/kato/apps/web/deno.json) has Vite tasks, not Vitest tasks
+
+For Accord, adopting Vitest now would be the wrong abstraction. The current surface is:
+- CLI behavior
+- local git access
+- JSON-LD/RDF processing
+- black-box file fixtures
+
+Deno’s runner is already a better fit for that than Vitest. Vitest would add another toolchain without solving a current problem.
+
+I’d only consider Vitest later if Accord grows a real Node/Vite-facing package surface that needs:
+- jsdom/browser-style component tests
+- Vite plugin/module mocking features
+- package-level Node test ergonomics that Deno is fighting
+
+Even then, I would add it narrowly for that subproject, not replace the repo’s main Deno test runner.
