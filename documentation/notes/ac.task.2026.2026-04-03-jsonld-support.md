@@ -2,7 +2,7 @@
 id: 1lk0vc8sqw74hen1v35ud8n
 title: 2026 04 03 Jsonld Support
 desc: ''
-updated: 1775236929174
+updated: 1775260157487
 created: 1775236929174
 ---
 
@@ -156,3 +156,109 @@ The testdata plan landed as a new `repo-rdf-jsonld` fixture family rather than o
 - [x] Add black-box scenarios for `.jsonld` `rdfCanonical` and SPARQL ASK behavior.
 - [x] Re-run the full Accord validation suite after the JSON-LD ingestion path is added.
 - [x] Revisit whether RDF/XML support deserves its own follow-up task rather than being bundled into this one.
+
+## coderabbit review
+
+Verify each finding against the current code and only fix it if needed.
+
+Inline comments:
+In `@documentation/notes/ac.spec.2026.2026-04-03-accord-cli.md`:
+- [c] Around line 280-289: The code in src/jsonld/documents.ts currently
+unconditionally rejects http/https JSON‑LD contexts (the document-loading path
+that checks URL schemes); implement an allowlist check so remote contexts are
+only rejected when not present in a configurable allowlist: add a configurable
+allowlist (env/config option passed into the JSON‑LD loader or a new
+JsonLdOptions parameter), change the HTTP/HTTPS rejection logic to consult that
+allowlist before throwing, and ensure the loader still enforces the fail‑closed
+local-only default; update associated tests and documentation to show the new
+allowlist config and its default (empty) behavior.
+
+In `@documentation/notes/ac.user-guide.md`:
+- [x] Around line 154-160: The phrasing in the "The JSON-LD document-loading policy
+for RDF artifacts..." paragraph incorrectly implies a remote-context allowlist
+exists; update that sentence to state the current behavior: remote http/https
+JSON-LD contexts are rejected (not allowlistable today), and adjust the matching
+"manifest loader" wording to mirror this exact policy; locate the paragraph that
+begins "The JSON-LD document-loading policy for RDF artifacts matches the
+manifest loader" and the sentence referencing "arbitrary remote contexts are
+rejected unless explicitly allowlisted" and replace it with language that
+explicitly says remote http/https contexts are hard-rejected and that local
+contexts for checked `.jsonld` artifacts are loaded from the same checked ref.
+
+In `@src/checker/compare_rdf.ts`:
+- [c] Around line 186-200: The inline JSON-LD document loader function
+createInlineJsonLdDocumentLoader is declared async but contains no await; remove
+the unnecessary async so the returned loader is a synchronous function (change
+"return async (url: string) => { ... }" to "return (url: string) => { ... }"),
+keeping the existing RdfCompareError throws and
+CHECK_CODES.REMOTE_CONTEXT_DISALLOWED / CHECK_CODES.RDF_PARSE_ERROR usage
+unchanged.
+
+In `@src/cli/commands/check.ts`:
+- [x] Around line 543-551: The catch currently only maps GitAccessError to
+RdfCompareError, letting other errors (including RdfCompareError rethrown from
+decodeGitJsonLdDocument or unexpected failures from
+readGitBlob/command.output()) escape; update the catch around the read/decode
+calls so any non-RdfCompareError is wrapped as a new RdfCompareError with
+CHECK_CODES.RDF_PARSE_ERROR and a message like "Failed to read JSON-LD artifact
+document at ${documentPath} from ${ref}: ${error.message}", while rethrowing
+existing RdfCompareError unchanged; specifically handle errors coming from
+readGitBlob and decodeGitJsonLdDocument by checking error instanceof
+RdfCompareError before wrapping and include the original error details in the
+new RdfCompareError to preserve context.
+
+In `@src/manifest/load_jsonld.ts`:
+- [x] Around line 43-56: The call to Deno.readTextFile(manifestPath) can throw a raw
+filesystem error and must be normalized to a ManifestLoadError like parse/expand
+failures; wrap the read in a try/catch around the Deno.readTextFile call in
+load_jsonld so that any thrown error is passed into createManifestLoadError
+(using CHECK_CODES.MANIFEST_LOAD_ERROR and the
+manifestPath/documentContext.documentUrl context) and rethrown, ensuring
+subsequent parseJsonSource still receives a normalized error path; keep
+createFileJsonLdDocumentContext, createManifestLoadError,
+CHECK_CODES.MANIFEST_LOAD_ERROR, manifestPath and documentContext.documentUrl as
+the referenced symbols to locate the change.
+
+---
+
+Nitpick comments:
+In `@src/checker/sparql.ts`:
+- [x] Around line 29-35: The parseRdfContent call and new Store(...) are currently
+executed outside the try/catch and can throw raw errors; wrap the
+parseRdfContent invocation and Store construction inside the same try block that
+handles the SPARQL query processing so all parse and query failures are caught
+and converted to RdfCompareError. Specifically, move or include the
+parseRdfContent(...) call and the Store(...) creation into the existing try that
+handles the subsequent query logic (the block around the SPARQL handling), and
+ensure any thrown error is caught and rethrown or normalized as an
+RdfCompareError before being returned.
+
+In `@src/jsonld/documents.ts`:
+- [x] Around line 88-106: The function assertContextReferencesAllowed currently
+ignores object contexts; update it to detect and validate embedded `@import`
+directives and nested `@context` objects within object contexts. Inside
+assertContextReferencesAllowed, when context is a non-null object, check for an
+"@import" property (if present, call assertContextReferenceAllowed on its value
+or each entry if it's an array) and check for a "@context" property (recursively
+call assertContextReferencesAllowed on that value). Also recursively walk object
+property values that may themselves be arrays/objects to ensure any nested
+context references are validated using assertContextReferenceAllowed and the
+provided errorFactory.
+
+In `@testdata/repos/repo-rdf-jsonld/refs/r0-empty/.accord-empty-ref`:
+- [c] Line 1: The `.accord-empty-ref` marker file is fine as-is; keep the single
+blank line to ensure the r0-empty reference fixture is tracked, or optionally
+add a one-line comment at the top of the `.accord-empty-ref` file explaining its
+purpose (e.g., "marker for r0-empty test fixture") to aid future maintainers
+while preserving the file name `.accord-empty-ref`.
+
+In `@tests/compare_rdf_test.ts`:
+- [x] Around line 121-140: The test should check the error.code as well as the
+message: replace the current assertRejects usage with an explicit try/catch (or
+await the promise and catch the thrown error) when calling compareRdfContent,
+assert the caught error is an instance of RdfCompareError, assert the
+error.message contains "Remote JSON-LD context is not allowlisted" (or keep the
+existing message check), and assert error.code ===
+CHECK_CODES.REMOTE_CONTEXT_DISALLOWED; refer to compareRdfContent,
+RdfCompareError, and CHECK_CODES.REMOTE_CONTEXT_DISALLOWED to locate the
+relevant symbols.

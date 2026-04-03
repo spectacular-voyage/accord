@@ -151,11 +151,11 @@ The current RDF artifact syntax support is intentionally limited to a small expl
 
 For `.jsonld` RDF artifacts, Accord converts JSON-LD to quads before canonical comparison or SPARQL evaluation.
 
-The JSON-LD document-loading policy for RDF artifacts matches the manifest loader:
+The JSON-LD document-loading policy for RDF artifacts matches the manifest loader's current fail-closed behavior:
 
 - inline contexts are supported
 - local file contexts are supported
-- arbitrary remote contexts are rejected unless explicitly allowlisted in the implementation
+- remote `http` and `https` JSON-LD contexts are rejected today
 
 When a `.jsonld` artifact is checked from git refs, its local context documents are loaded from the same checked ref, not from the current working tree.
 

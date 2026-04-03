@@ -126,18 +126,30 @@ Deno.test("compareRdfContent rejects disallowed remote JSON-LD contexts", async 
   const left = await Deno.readFile(leftPath);
   const right = await Deno.readFile(rightPath);
 
-  await assertRejects(
-    () =>
-      compareRdfContent({
-        left,
-        right,
-        path: "graph.jsonld",
-        leftDocumentContext: createTestJsonLdDocumentContext(leftPath),
-        rightDocumentContext: createTestJsonLdDocumentContext(rightPath),
-      }),
-    RdfCompareError,
-    "Remote JSON-LD context is not allowlisted",
-  );
+  try {
+    await compareRdfContent({
+      left,
+      right,
+      path: "graph.jsonld",
+      leftDocumentContext: createTestJsonLdDocumentContext(leftPath),
+      rightDocumentContext: createTestJsonLdDocumentContext(rightPath),
+    });
+  } catch (error) {
+    assertEquals(error instanceof RdfCompareError, true);
+
+    if (!(error instanceof RdfCompareError)) {
+      throw error;
+    }
+
+    assertEquals(
+      error.message.includes("Remote JSON-LD context is not allowlisted"),
+      true,
+    );
+    assertEquals(error.code, CHECK_CODES.REMOTE_CONTEXT_DISALLOWED);
+    return;
+  }
+
+  throw new Error("Expected compareRdfContent to reject the remote context.");
 });
 
 Deno.test("compareRdfContent reports RDF parse errors", async () => {

@@ -45,7 +45,7 @@ export async function readManifestSource(
     createManifestLoadError,
     CHECK_CODES.MANIFEST_LOAD_ERROR,
   );
-  const sourceText = await Deno.readTextFile(manifestPath);
+  const sourceText = await readManifestText(manifestPath, documentContext);
   const rawDocument = parseJsonSource(
     sourceText,
     manifestPath,
@@ -70,6 +70,21 @@ export async function readManifestSource(
     documentUrl: documentContext.documentUrl,
     document,
   };
+}
+
+async function readManifestText(
+  manifestPath: string,
+  documentContext: JsonLdDocumentContext,
+): Promise<string> {
+  try {
+    return await Deno.readTextFile(manifestPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw createManifestLoadError(
+      CHECK_CODES.MANIFEST_LOAD_ERROR,
+      `Failed to read JSON manifest document at ${manifestPath} (${documentContext.documentUrl}): ${message}`,
+    );
+  }
 }
 
 async function expandManifest(

@@ -26,15 +26,15 @@ export interface RunAskAssertionOptions {
 export async function runAskAssertion(
   options: RunAskAssertionOptions,
 ): Promise<boolean> {
-  const store = new Store(
-    await parseRdfContent({
-      bytes: options.dataset,
-      path: options.path,
-      documentContext: options.documentContext,
-    }),
-  );
-
   try {
+    const store = new Store(
+      await parseRdfContent({
+        bytes: options.dataset,
+        path: options.path,
+        documentContext: options.documentContext,
+      }),
+    );
+
     return await queryEngine.queryBoolean(options.query, {
       sources: [store],
     });

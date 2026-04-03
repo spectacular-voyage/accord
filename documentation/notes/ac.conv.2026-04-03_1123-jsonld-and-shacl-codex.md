@@ -108,3 +108,87 @@ feat(accord): support JSON-LD RDF artifacts in accord check
 - add `repo-rdf-jsonld` fixtures plus unit and black-box coverage for equivalence, ASK, parse, and remote-context error cases
 - update the CLI spec, user guide, README, and task notes to record JSON-LD support and keep SHACL preflight as separate future work
 ```
+
+# User_2026-04-03_1650_18
+
+I've added a "coderabbit review" section to [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md) . Please add markdown checkboxes for each item, and mark those that are not worth doing as [c].
+
+# gpt-5.4_2026-04-03_1650_26
+
+I’m checking the updated task note and the current worktree state first so I can add checkboxes without trampling any of your recent edits.
+
+# gpt-5.4_2026-04-03_1650_32
+
+I’ve got the new review section. I’m checking the rest of it now so I can mark each item consistently and only cancel the ones that are actually low-value or wrong for this repo.
+
+# gpt-5.4_2026-04-03_1650_55
+
+I’ve triaged the review items. I’m only changing the note itself: actionable items will get `[ ]`, and the suggestions that would broaden scope or amount to cosmetic churn are going to `[c]`.
+
+# gpt-5.4_2026-04-03_1651_13
+
+The note content shifted a bit under the wrapped review text, so I’m reopening just that section and patching against the exact lines rather than guessing around the wraps.
+
+# gpt-5.4_2026-04-03_1651_34
+
+Updated the review section in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md).
+
+I marked these as cancelled with `[c]`:
+- configurable remote-context allowlist
+- removing the unnecessary `async` in `createInlineJsonLdDocumentLoader`
+- adding a comment to `.accord-empty-ref`
+
+The remaining items are marked `[ ]` as actionable follow-up. No tests were needed for this note-only edit.
+
+# User_2026-04-03_1652_15
+
+OK, please implement all that are worth implementing
+
+# gpt-5.4_2026-04-03_1652_29
+
+I’m implementing the actionable CodeRabbit items from the JSON-LD follow-up note. First I’m reading the affected files and current repo state so I can patch only the real gaps and avoid touching the cancelled suggestions.
+
+# gpt-5.4_2026-04-03_1652_44
+
+I’ve isolated the actual work: one docs wording fix, three error-path hardenings, one JSON-LD context-validation improvement, and a test update. I’m patching those together so the behavior and the review checklist stay in sync.
+
+# gpt-5.4_2026-04-03_1653_15
+
+I’m editing the implementation now. The main nuance is the JSON-LD context walker: it needs to catch nested `@import` and nested `@context`, but it must not start treating ordinary remote IRIs like `dcterms` namespace values as forbidden context URLs.
+
+# gpt-5.4_2026-04-03_1653_57
+
+I’m adding direct tests for the context walker instead of hiding this behind manifest fixtures. That makes the behavior explicit: nested `@context` and `@import` should be checked, but ordinary term IRIs must remain legal.
+
+# gpt-5.4_2026-04-03_1654_26
+
+The patches are in. I’m running formatting and the full Accord validation loop now, because these changes are all about edge-case error handling and it’s easy to miss a branch if I only spot-check one test file.
+
+# gpt-5.4_2026-04-03_1654_49
+
+The broad suite is still green so far. I’m waiting on the rest, with the new focus on the added direct JSON-LD helper tests and the manifest-read normalization path.
+
+# gpt-5.4_2026-04-03_1655_37
+
+Implemented the actionable CodeRabbit items and marked their checkboxes `[x]` in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md). The substantive changes are in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts), [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts), [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts), and [documents.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/jsonld/documents.ts). That includes normalizing manifest read failures to `ManifestLoadError`, wrapping git-backed JSON-LD artifact document read failures consistently as `RdfCompareError`, moving RDF parse/store setup inside the SPARQL error-handling path, and teaching the JSON-LD context validator to catch nested `@import` and nested `@context` usage without rejecting ordinary remote IRIs in term definitions.
+
+I also fixed the user-guide wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) so it matches the actual hard-reject behavior for remote `http`/`https` contexts, updated the remote-context RDF test in [compare_rdf_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/compare_rdf_test.ts), added manifest read-failure coverage in [manifest_loader_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/manifest_loader_test.ts), and added direct JSON-LD helper coverage in [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts).
+
+Verification: `deno task fmt:check`, `deno task check`, and `deno task test` all passed in `dependencies/github.com/spectacular-voyage/accord` (`68` tests).
+
+# User_2026-04-03_1657_11
+
+commit message please
+
+# gpt-5.4_2026-04-03_1657_17
+
+```text
+fix(accord): harden JSON-LD loader and error-path handling
+
+- normalize manifest read failures into ManifestLoadError with manifest path and document URL context
+- wrap git-backed JSON-LD artifact document read failures consistently as rdf_parse_error while preserving existing RdfCompareError cases
+- move SPARQL RDF parsing and Store construction inside the query error-handling path
+- validate nested JSON-LD object contexts for @import and nested @context references without rejecting ordinary term IRIs
+- tighten JSON-LD remote-context tests and add direct coverage for manifest read errors and context-validation edge cases
+- correct the user-guide wording to reflect the current hard-reject policy for remote http/https JSON-LD contexts
+```

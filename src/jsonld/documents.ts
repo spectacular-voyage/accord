@@ -102,6 +102,12 @@ export function assertContextReferencesAllowed(
     for (const entry of context) {
       assertContextReferencesAllowed(entry, errorFactory);
     }
+
+    return;
+  }
+
+  if (isRecord(context)) {
+    validateObjectContextReferences(context, errorFactory);
   }
 }
 
@@ -208,6 +214,54 @@ function assertContextReferenceAllowed(
       CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
       `Remote JSON-LD context is not allowlisted: ${contextUrl}`,
     );
+  }
+}
+
+function validateObjectContextReferences(
+  context: Record<string, unknown>,
+  errorFactory: JsonLdErrorFactory,
+): void {
+  const importedContext = context["@import"];
+
+  if (typeof importedContext === "string") {
+    assertContextReferenceAllowed(importedContext, errorFactory);
+  } else if (Array.isArray(importedContext)) {
+    for (const entry of importedContext) {
+      if (typeof entry === "string") {
+        assertContextReferenceAllowed(entry, errorFactory);
+      }
+    }
+  }
+
+  const nestedContext = context["@context"];
+
+  if (nestedContext !== undefined) {
+    assertContextReferencesAllowed(nestedContext, errorFactory);
+  }
+
+  for (const [key, value] of Object.entries(context)) {
+    if (key === "@import" || key === "@context") {
+      continue;
+    }
+
+    walkNestedContextContainers(value, errorFactory);
+  }
+}
+
+function walkNestedContextContainers(
+  value: unknown,
+  errorFactory: JsonLdErrorFactory,
+): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      walkNestedContextContainers(entry, errorFactory);
+    }
+
+    return;
+  }
+
+  if (isRecord(value)) {
+    validateObjectContextReferences(value, errorFactory);
   }
 }
 

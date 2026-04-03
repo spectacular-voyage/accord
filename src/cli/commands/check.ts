@@ -541,14 +541,15 @@ function createGitJsonLdDocumentContext(
         const bytes = await readGitBlob(repoPath, ref, documentPath);
         return decodeGitJsonLdDocument(bytes, documentPath, ref);
       } catch (error) {
-        if (error instanceof GitAccessError) {
-          throw new RdfCompareError(
-            CHECK_CODES.RDF_PARSE_ERROR,
-            `Failed to read JSON-LD artifact document at ${documentPath} from ${ref}: ${error.message}`,
-          );
+        if (error instanceof RdfCompareError) {
+          throw error;
         }
 
-        throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        throw new RdfCompareError(
+          CHECK_CODES.RDF_PARSE_ERROR,
+          `Failed to read JSON-LD artifact document at ${documentPath} from ${ref}: ${message}`,
+        );
       }
     },
   });
