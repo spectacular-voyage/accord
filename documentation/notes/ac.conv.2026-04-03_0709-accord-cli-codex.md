@@ -846,3 +846,177 @@ Shorter version:
 ```text
 feat: scaffold Accord CLI and black-box harness
 ```
+
+# User_2026-04-03_0835_10
+
+What's next?
+
+# gpt-5.4_2026-04-03_0835_39
+
+Next is the first real vertical slice, not RDF yet.
+
+1. Turn [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts) into an actual CLI contract test that runs `accord check` against materialized fixture repos. Start with `bb-001`, `bb-003`, `bb-101`, and `bb-103`/`bb-104`. That gives us a real red bar instead of scaffold-only tests.
+
+2. Implement the minimal `check` pipeline in [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts): load manifest, select case, resolve the fixture repo, run file expectations, and emit reports through [json_report.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/report/json_report.ts) and [text_report.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/report/text_report.ts).
+
+3. Wire in `jsonld.js` in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts) with the local-only document-loader policy from the spec. That one is on the critical path now. `rdf-canonize` is not.
+
+4. After the bytes/text path is green, add `removed`/`absent`, then move to RDF canonical comparison and SPARQL `ASK` in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) and [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts).
+
+If you want me to proceed, I’d start by making [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts) execute the first four scenarios for real, then fill in [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts) until they pass.
+
+# User_2026-04-03_0836_47
+
+proceed
+
+# gpt-5.4_2026-04-03_0836_52
+
+I’m converting the scaffold into a real first slice now. The goal for this pass is narrow: make `accord check` actually execute the initial black-box scenarios for manifest loading, case selection, and bytes/text file expectations, without touching RDF yet.
+
+# gpt-5.4_2026-04-03_0837_30
+
+I have enough of the current shape now. The first implementation slice can stay transport-level JSON for manifests, but it still needs to honor the spec’s obvious loader rules up front: reject remote string `@context`, select the right case, resolve refs, and produce the JSON/text report contract the black-box scenarios expect.
+
+# gpt-5.4_2026-04-03_0837_32
+
+The scenario index is broader than this first slice, so I’m not trying to make the whole matrix green at once. I’m going to wire the CLI so it can already produce proper setup/file checks and stable exit/report semantics for the file/text cases, then expand the black-box tests over that subset.
+
+# gpt-5.4_2026-04-03_0838_20
+
+I’m going a little broader than the original four scenarios because the non-RDF surface hangs together: once the setup and file/text paths exist, it’s cheap to cover the whole file-only matrix instead of stopping halfway. RDF and SPARQL will stay stubbed for now.
+
+# gpt-5.4_2026-04-03_0840_25
+
+I’m editing the core path now: loader, case selection, diagnostic codes, `check` execution, and the black-box tests. This is the point where the scaffold starts behaving like a real tool rather than just a shaped repository.
+
+# gpt-5.4_2026-04-03_0841_23
+
+The first implementation pass is in and formatted. I’m running the full suite now to see whether the behavior actually lines up with the scenario catalog or whether I still have semantic mismatches to close.
+
+# gpt-5.4_2026-04-03_0841_41
+
+The first real vertical slice is working.
+
+`accord check` now loads manifests, rejects remote string `@context` values, selects the case, resolves the fixture repo from `--fixture-repo-path` or `cwd`, verifies `fromRef`/`toRef`, evaluates file presence plus `bytes`/`text` comparisons, and emits either JSON or text reports from [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts). I also added stable pass codes in [codes.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/report/codes.ts), tightened the manifest loader in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts), and made case selection accept authored ids plus resolved fragment ids in [select_case.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/select_case.ts).
+
+The black-box harness now executes the whole non-RDF matrix in [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts): setup errors, `added`/`updated`/`unchanged`/`removed`/`absent`, CRLF-normalized text equality, invalid UTF-8 as an `error`, JSON report shape, and text report smoke. Verification passed with `deno task fmt`, `deno task check`, and `deno task test`.
+
+What’s next is the real remaining hard part: replace the transport-level manifest read in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts) with actual `jsonld.js` processing and the explicit local document-loader policy, then implement the RDF/SPARQL path in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) and [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts).
+
+# User_2026-04-03_0852_35
+
+I've created [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md) -- basically I want to implement kato-style codecov reporting, CodeQL, OSV-Scanner, and eventually the "Release Manual" stuff with an npm install for @spectacular-voyage/accord. I don't want to get ahead of ourselves, but I do want to start doing branch-based development with coderabbit review of PRs.
+
+# gpt-5.4_2026-04-03_0852_48
+
+I’m reviewing the new CI task note and checking the current official integration paths for Codecov, CodeQL, OSV-Scanner, and CodeRabbit so the plan reflects the actual setup surface rather than stale assumptions.
+
+# gpt-5.4_2026-04-03_0853_50
+
+The note is blank, so I’m turning it into a concrete phased task instead of leaving the intent only in chat. I’m going to bias the plan toward the smallest change that gets you onto PR-based development quickly, then layer the heavier security/release pieces after that.
+
+# User_2026-04-03_0854_11
+
+Do review what we've got defined for github actions in kato too.
+
+# gpt-5.4_2026-04-03_0854_21
+
+I’m reviewing Kato’s existing GitHub Actions and adjacent config now so we can reuse the patterns that actually fit Accord and avoid copying the parts that only make sense for a packaged app.
+
+# gpt-5.4_2026-04-03_0855_31
+
+**Findings**
+
+1. [release-manual.yml](/home/djradon/hub/spectacular-voyage/kato/.github/workflows/release-manual.yml) is not a starter template for Accord. It assumes Kato already has multi-OS binary builds, bundle packaging, npm package assembly, and smoke-install scripts. Copying that into Accord now would be premature and mostly dead weight.
+
+2. [osv-scanner.yml](/home/djradon/hub/spectacular-voyage/kato/.github/workflows/osv-scanner.yml) is advisory, not gating. Both reusable jobs set `fail-on-vuln: false`, so it reports findings but does not block PRs or pushes. That may be fine for early adoption, but it is not a merge gate.
+
+3. [.coderabbit.yaml](/home/djradon/hub/spectacular-voyage/kato/.coderabbit.yaml) should not be copied verbatim. Its filters are Kato-specific and it has a duplicated `!dev-docs/notes/task.*` entry. Accord needs either a much smaller config or no repo config at first.
+
+**What To Reuse**
+
+[ci.yml](/home/djradon/hub/spectacular-voyage/kato/.github/workflows/ci.yml) is the best model. The shape is right:
+- one baseline CI job
+- checkout + Deno setup
+- quality gates
+- test coverage generation
+- coverage artifact upload
+- optional Codecov upload
+
+[.codecov.yml](/home/djradon/hub/spectacular-voyage/kato/.codecov.yml) is also a good reference. It is simple and avoids overfitting.
+
+I would not copy [codeql.yml](/home/djradon/hub/spectacular-voyage/kato/.github/workflows/codeql.yml) into Accord yet. For Accord, GitHub’s current guidance still favors CodeQL default setup first for eligible repos, because advanced setup costs more to maintain and is mainly for customization-heavy cases: https://docs.github.com/code-security/code-scanning/enabling-code-scanning/configuring-default-setup-for-code-scanning and https://docs.github.com/en/code-security/tutorials/customize-code-scanning/evaluating-default-setup-for-code-scanning
+
+For Codecov, Kato’s OIDC pattern is worth copying if you want “Kato-style” coverage publishing. The current `codecov/codecov-action@v5` docs explicitly support `use_oidc: true`, and that requires `id-token: write`: https://github.com/codecov/codecov-action
+
+For CodeRabbit, Kato confirms the repo-local config route works, but CodeRabbit also supports central or per-repo configuration, so Accord can start smaller: https://docs.coderabbit.ai/configuration/central-configuration
+
+**Recommendation For Accord**
+
+Use Kato as the model for:
+- `ci.yml`
+- coverage artifact generation
+- optional Codecov OIDC upload
+
+Do not use Kato as the model for:
+- release workflow
+- CodeQL workflow
+- `.coderabbit.yaml` contents
+
+So the right next step for Accord is still Phase 1:
+- add a minimal [ci.yml](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/.github/workflows/ci.yml)
+- install CodeRabbit
+- enable branch protection
+- optionally add a very small Accord-specific `.coderabbit.yaml`
+
+If you want, I can patch [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md) with a short “Kato reference” section, then scaffold Accord’s initial `ci.yml`.
+
+# User_2026-04-03_0855_31
+
+Eventually accord will be packaged. 
+
+please provide a commit message for the accord changes.
+
+# gpt-5.4_2026-04-03_0855_34
+
+```text
+feat: implement Accord check scaffold with black-box file expectations
+
+- add Deno CLI scaffold, test harness, and fixture materializer
+- add black-box scenario coverage for setup, bytes, text, and report behavior
+- implement manifest loading, case selection, fixture repo resolution, and file expectation checks
+- refine Accord CLI/task/spec notes and CI planning notes
+```
+
+# User_2026-04-03_0859_51
+
+For codecov, I dont think we need OIDC for coverage OR their new "test" functionality, they have a unified approach now that doesn't require OIDC.
+
+I do want to exclude ac.conv.*/ac.completed.* from coderabbit coverage.
+
+# gpt-5.4_2026-04-03_0859_57
+
+That’s reasonable.
+
+For Codecov, if you don’t want to lean on OIDC or their test-results product, don’t. Kato’s OIDC setup is just one valid path, not something Accord needs to inherit. For Accord I’d plan the simpler route first:
+- generate `lcov`
+- upload with `codecov/codecov-action`
+- use the repo token if Codecov still requires one for your repo/account setup
+- skip test-results/report-type extras unless we later have a real use for them
+
+On CodeRabbit, yes, we should exclude those note classes. The filter should be Accord-specific, not copied from Kato. I’d use something like:
+
+```yaml
+reviews:
+  path_filters:
+    - "!documentation/notes/ac.conv.*"
+    - "!documentation/notes/ac.completed.*"
+  auto_review:
+    enabled: true
+```
+
+That does what you want without muting review on the task/spec notes that still matter during implementation.
+
+If you want, I can patch [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md) to reflect:
+- Codecov without OIDC as the default assumption
+- CodeRabbit exclusions for `ac.conv.*` and `ac.completed.*`
