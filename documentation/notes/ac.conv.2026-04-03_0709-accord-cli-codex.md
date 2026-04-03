@@ -1487,3 +1487,80 @@ If you want a version that reads more like a review-followup commit:
 ```text
 fix: address JSON-LD loader review feedback
 ```
+
+# User_2026-04-03_0940_02
+
+It guess CI is running twice, once for the PR and once for the push. Maybe we just do once? 
+
+Also, please fix:
+
+./tests/manifest_loader_test.ts (uncaught error)
+error: (in promise) NotCapable: Requires env access to "NODE_V8_COVERAGE", run again with the --allow-env flag
+error: Test failed
+if (global.FinalizationRegistry && !process.env.NODE_V8_COVERAGE) {
+                                                ^
+    at Object.getEnv [as get] (ext:deno_os/30_os.js:124:10)
+    at denoEnvGet (ext:deno_node/_process/process.ts:30:21)
+    at Object.get (ext:deno_node/_process/process.ts:47:22)
+    at Object.<anonymous> (file:///home/runner/.cache/deno/npm/registry.npmjs.org/undici/5.29.0/lib/core/connect.js:18:49)
+    at Module._compile (node:module:803:34)
+    at loadMaybeCjs (node:module:828:10)
+    at Object..js (node:module:813:12)
+    at Module.load (node:module:680:32)
+    at Module._load (node:module:538:12)
+    at Module.require (node:module:699:19)
+This error was not caught from a test and caused the test runner to fail on the referenced module.
+It most likely originated from a dangling promise, event/timeout handler or top-level code.
+
+ FAILURES 
+
+./tests/manifest_loader_test.ts (uncaught error)
+
+FAILED | 26 passed | 1 failed (6s)
+
+# gpt-5.4_2026-04-03_0940_12
+
+I’m checking the current workflow and test commands before patching. There are really two issues here: the CI test step is bypassing the local `deno task test` permissions, and the workflow trigger pattern is causing duplicate runs on branch pushes that already have an open PR.
+
+# gpt-5.4_2026-04-03_0940_23
+
+I’m patching this in the smallest coherent way: make CI use the same permissions model as local coverage runs, and stop running the workflow twice for every branch update that already has a PR.
+
+# gpt-5.4_2026-04-03_0940_37
+
+I’ve moved the coverage path into Deno tasks so CI and local runs stop diverging. I’m running the local checks now, including the coverage path that was failing in GitHub Actions.
+
+# gpt-5.4_2026-04-03_0940_41
+
+The coverage-enabled test path is running cleanly so far. I’m waiting for the full run plus `lcov` generation, because that is the exact path CI was failing on.
+
+# gpt-5.4_2026-04-03_0940_57
+
+Yes. I changed it to run once per branch update in the common case:
+
+- `pull_request` for review-time validation
+- `push` only on `main` for post-merge validation
+
+That avoids the duplicate branch-push + PR-run pattern while still keeping `main` protected by CI.
+
+I also fixed the CI failure. The problem was that [ci.yml](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/.github/workflows/ci.yml) was calling `deno test` directly without `--allow-env`, while the local task in [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json) already knew `jsonld` needed it. I added:
+- `test:coverage`
+- `coverage:lcov`
+
+and updated CI to use those tasks, so local and CI coverage runs now use the same permissions and command shape.
+
+Verification passed:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task test:coverage`
+- `deno task coverage:lcov`
+
+If you want a commit message for this CI follow-up:
+
+```text
+fix: align Accord CI coverage runs with local Deno tasks
+
+- run ci on pull requests and pushes to main only
+- add coverage-specific Deno tasks for tests and lcov generation
+- use the shared tasks in GitHub Actions so npm-interoperable tests get allow-env
+```

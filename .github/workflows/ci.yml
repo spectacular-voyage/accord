@@ -3,6 +3,8 @@ name: ci
 on:
   pull_request:
   push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -31,10 +33,10 @@ jobs:
         run: deno task check
 
       - name: Run tests with coverage
-        run: deno test --allow-read --allow-write --allow-run --coverage=coverage tests
+        run: deno task test:coverage
 
       - name: Generate coverage artifacts
-        run: deno coverage coverage --lcov > coverage/lcov.info
+        run: deno task coverage:lcov
 
       - name: Upload coverage artifacts
         if: ${{ always() }}
