@@ -1777,3 +1777,50 @@ I would not pile more onto it before review. Validation is green:
 - `deno task test`
 
 So: open the PR on this branch, let CodeRabbit review it, then start the next branch from there if needed.
+
+# User_2026-04-03_1010_05
+
+coderabbit:
+
+Verify each finding against the current code and only fix it if needed.
+
+Nitpick comments:
+In `@src/checker/compare_rdf.ts`:
+- Around line 133-154: The file ends without a trailing newline; add a single
+newline character at the end of the file containing the writeNQuads function so
+the file terminates with a newline (i.e., ensure the final line after the
+closing brace of async function writeNQuads(...) ends with a newline character).
+- Around line 53-69: detectRdfSyntax currently maps file extensions to MIME
+types but omits RDF/XML and JSON-LD; update the function detectRdfSyntax to
+handle ".rdf" and ".xml" by returning "application/rdf+xml" and add ".jsonld"
+returning "application/ld+json" (or, if you intentionally want to exclude those
+formats, add a clear comment above detectRdfSyntax stating that only
+Turtle/NT/NQ/TRIG are supported and why). Ensure you reference the same
+RdfCompareError fallback for truly unsupported extensions so behavior stays
+consistent.
+
+# gpt-5.4_2026-04-03_1010_24
+
+I’m verifying both comments against the current file before changing anything. The newline one is mechanical; the syntax one needs a judgment call because adding `.jsonld` or RDF/XML support would be incorrect if the current parser stack can’t actually honor it.
+
+# gpt-5.4_2026-04-03_1010_33
+
+The newline comment is not actionable: the file already ends with a newline. The syntax comment is valuable, but I’m not going to fake support for `.jsonld` or RDF/XML because this code path is still using `n3`’s parser. I’m adding an explicit comment to make that limitation intentional and visible.
+
+# gpt-5.4_2026-04-03_1010_40
+
+I’ve taken the only useful part of that review. Now I’m rerunning formatter and typecheck so we don’t leave this branch with a comment-only regression.
+
+# gpt-5.4_2026-04-03_1010_52
+
+I verified both comments.
+
+The trailing-newline comment was stale. [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) already ended with a newline, so I did not change anything for that.
+
+The syntax comment was directionally useful, but the proposed code change was not. This RDF assertion path is still using `n3` directly, so adding `.rdf`, `.xml`, or `.jsonld` here would falsely advertise support we have not implemented. I added an explicit comment above `detectRdfSyntax` in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) explaining that v1 intentionally limits RDF assertions to the syntaxes parsed directly by `n3`, and that JSON-LD/RDF/XML would require different parser integration.
+
+Validation is clean:
+- `deno task fmt:check`
+- `deno task check`
+
+So there’s nothing else in those CodeRabbit nitpicks I’d take.

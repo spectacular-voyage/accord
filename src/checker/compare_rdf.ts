@@ -50,6 +50,9 @@ export function parseRdfContent(
   return parseRdf(text, format, options.path);
 }
 
+// v1 intentionally limits RDF assertions to syntaxes parsed directly by n3.
+// JSON-LD manifest loading follows a different code path, and RDF/XML or
+// JSON-LD graph assertions would require a different RDF parser integration.
 export function detectRdfSyntax(path: string): string {
   switch (extname(path).toLowerCase()) {
     case ".ttl":
