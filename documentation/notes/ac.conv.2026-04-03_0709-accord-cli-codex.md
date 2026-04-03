@@ -1053,3 +1053,41 @@ Implement Phase 1 PR baseline for Accord:
 - keep Codecov out for now unless coverage artifact generation is trivial
 - assume branch protection and app installs will be done in GitHub settings, not in-repo
 ```
+
+# User_2026-04-03_0909_48
+
+Can you fix the two lint issues:
+
+ci: add Phase 1 PR baseline
+
+- add a GitHub Actions ci workflow for push and pull_request validation
+- run deno fmt:check, lint, check, and coverage-enabled tests in CI
+- generate lcov and upload coverage artifacts without enabling Codecov yet
+- add a minimal .coderabbit.yaml with ac.conv.* and ac.completed.* exclusions
+- keep branch protection and GitHub app installation in GitHub settings, not in-repo
+
+# User_2026-04-03_0910_19
+
+oops, wrong paste. you probably don't need me to provide the lint errors. ;)
+
+# gpt-5.4_2026-04-03_0910_27
+
+I’m checking the current Accord worktree and running the local lint target first. That should surface the actual issues faster than guessing from the pasted commit text.
+
+# gpt-5.4_2026-04-03_0910_33
+
+The lint failure is exactly the low-value scaffold problem I expected: two stub functions are marked `async` even though they don’t await anything. I’m patching those stubs directly rather than adding fake awaits.
+
+# gpt-5.4_2026-04-03_0910_42
+
+I’ve patched the stubs. I’m rerunning lint now to make sure there isn’t a second layer hidden behind those obvious two.
+
+# gpt-5.4_2026-04-03_0910_47
+
+Fixed the two lint issues by removing unnecessary `async` from the RDF/SPARQL stubs in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) and [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts).
+
+Verification passed:
+- `deno task lint`
+- `deno task check`
+
+The only unrelated worktree change I saw was the auto-updated Kato conversation note.
