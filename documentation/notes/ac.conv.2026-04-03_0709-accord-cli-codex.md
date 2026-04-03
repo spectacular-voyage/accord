@@ -1824,3 +1824,296 @@ Validation is clean:
 - `deno task check`
 
 So there’s nothing else in those CodeRabbit nitpicks I’d take.
+
+# User_2026-04-03_1018_05
+
+Why not add jsonld support using npm:jsonld
+
+# gpt-5.4_2026-04-03_1018_15
+
+Because that would be a different parser stack than the one this function is actually using, and mixing them casually would create correctness risk.
+
+Right now [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) has a simple, coherent contract:
+- detect syntax from file extension
+- parse with `n3`
+- serialize to N-Quads
+- canonicalize with `rdf-canonize`
+
+That works for the syntaxes `n3` actually parses well in this path: Turtle, N-Triples, N-Quads, TriG.
+
+Adding `.jsonld` support is possible, but not by just extending `detectRdfSyntax`. To do it correctly we’d need to:
+- branch parsing behavior by syntax, not just MIME string
+- use `jsonld` to convert JSON-LD to RDF quads or N-Quads
+- apply the same local-only document-loader policy used for manifests
+- decide whether graph assertions on JSON-LD should allow remote contexts at all
+- add black-box fixtures for JSON-LD graph equivalence, context handling, and failure modes
+
+So the issue is not “can’t”; it’s “not a one-line MIME addition.” The CodeRabbit suggestion implied that adding `.jsonld` in `detectRdfSyntax` would be enough. It would not.
+
+If you want JSON-LD graph assertion support, I think that is a legitimate next task, but it should be explicit:
+- parse `.jsonld` via `jsonld.toRDF(...)` or equivalent
+- preserve the same deterministic local document-loader policy
+- extend tests and the spec accordingly
+
+I would support that as a separate slice. I would not sneak it into this function as if it were equivalent to another `n3` format.
+
+# User_2026-04-03_1020_49
+
+But all the manifests are currently in jsonld, right? So we need jsonld support. In my other project we did:
+
+We add JSON-LD support as an ingestion layer in front of the N3 store.
+
+The backend selection is separate from the file format. createStoreAdapter() picks the n3 adapter, and that adapter only knows how to store RDF/JS quads via addQuads(); it does not parse JSON-LD itself. See createStoreAdapter.ts (line 22) and N3StoreAdapter.ts (line 23).
+
+The store load path is hard-wired to JSON-LD today. SemanticStore.loadData() loops the sources and calls loadJsonLdFile() for each one. That method asks the adapter for its DataFactory, parses the JSON-LD into quad batches, and inserts those batches into the adapter. See SemanticStore.ts (line 252) and SemanticStore.ts (line 322).
+
+The actual JSON-LD support lives in parseJsonLdToBatches(). It:
+
+fetches or reads the file,
+JSON.parses it,
+runs jsonld.toRDF(...),
+normalizes terms to the adapter’s DataFactory so N3/Quadstore term instances are compatible,
+remaps the default graph to <source>#default,
+preserves named graphs,
+adds provenance triples in urn:upub:control,
+yields batches for insertion.
+See jsonld-parser.ts (line 181).
+After that, N3 is just the quad store that Comunica queries. See N3StoreAdapter.ts (line 55) and N3StoreAdapter.ts (line 108).
+
+That sounds similar to what you suggested we'd need to do. Don't we need to add this support soon?
+
+# gpt-5.4_2026-04-03_1020_57
+
+I’m checking the actual manifest shape and current target files before answering, because the key distinction here is “manifest format” versus “RDF file-under-test format,” and I don’t want to blur them.
+
+# gpt-5.4_2026-04-03_1021_12
+
+Yes, but there are two different kinds of “JSON-LD support,” and Accord already has one of them.
+
+We already support JSON-LD for manifests in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts). That is how files like [01-source-only.jsonld](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/semantic-flow/semantic-flow-framework/examples/alice-bio/conformance/01-source-only.jsonld) are loaded today.
+
+What we do not support yet is JSON-LD as the RDF file being checked by `rdfCanonical` or queried by SPARQL in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) and [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts). That path currently expects RDF syntaxes parsed directly by `n3`.
+
+Your other project’s design is basically the right model:
+- ingest JSON-LD with `jsonld.toRDF(...)`
+- normalize into RDF/JS quads
+- load those quads into the store/backend
+- let N3/Comunica operate on quads, not raw JSON-LD
+
+That said, we do not need it for the current `alice-bio` corpus yet. I checked the current manifests, and their `rdfCanonical` targets are `.ttl` files like `alice-bio.ttl`, `inventory.ttl`, `meta.ttl`, `references.ttl`, not `.jsonld` payload files.
+
+So my recommendation is:
+
+- Yes, we should add JSON-LD RDF-ingestion support soon.
+- No, it should not be smuggled in as “just add `.jsonld` to `detectRdfSyntax`.”
+- It should be a separate slice that adds a real ingestion layer in front of the current quad-based comparison/query path.
+
+And one important pushback: I would not blindly copy your old project’s `#default` graph remap or provenance triples. Those may have been right there, but Accord should only add graph remapping/provenance if the Accord spec actually needs it. For v1, the cleaner approach is probably:
+- `.ttl` / `.nt` / `.nq` / `.trig` parsed with `n3`
+- `.jsonld` parsed with `jsonld.toRDF(...)` under the same local-only document-loader policy as manifests
+- both paths normalized to quads
+- then reused by RDF canonical comparison and SPARQL ASK
+
+So: yes, we should add it, but as an explicit feature with tests and spec updates, not as a MIME switch hack.
+
+# User_2026-04-03_1022_23
+
+OK, we'll do it later. Can you fill out [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md)
+
+# gpt-5.4_2026-04-03_1022_31
+
+I’m reading the new task note and the adjacent Accord task style first, then I’ll fill it in as a concrete future task rather than leaving it as a placeholder.
+
+# gpt-5.4_2026-04-03_1022_37
+
+I’ve got the shape. I’m writing this as a future task for JSON-LD-as-RDF-input support, distinct from the manifest loader we already have, and I’m keeping the scope tight so it doesn’t accidentally re-open ontology or reporting questions.
+
+# gpt-5.4_2026-04-03_1023_23
+
+Filled out [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md).
+
+The note now makes the key distinction explicit:
+- manifests already have JSON-LD support
+- this follow-up task is about JSON-LD as an RDF artifact format for `rdfCanonical` and SPARQL `ASK`
+
+It also records the intended design:
+- JSON-LD as an ingestion layer to RDF/JS quads via `jsonld.js`
+- backend/store kept separate from file format
+- same local-only document-loader policy as manifest loading
+- no synthetic provenance triples or default-graph remapping unless the spec later requires them
+
+No code or tests changed; this was a task-note update only.
+
+# User_2026-04-03_1023_57
+
+OK, what's our next branch name?
+
+# gpt-5.4_2026-04-03_1024_01
+
+`feat/accord-jsonld-rdf-artifacts`
+
+That is specific to the next real gap without being too verbose. It also distinguishes this from the branch you just finished, which was about JSON-LD manifests plus RDF/ASK over non-JSON-LD RDF files.
+
+Other acceptable options:
+- `feat/accord-jsonld-rdf-support`
+- `feat/accord-jsonld-ingestion`
+- `feat/accord-jsonld-graph-inputs`
+
+My preference is still `feat/accord-jsonld-rdf-artifacts`, because it makes the scope boundary clear: RDF artifact ingestion, not manifest loading again.
+
+# User_2026-04-03_1024_41
+
+You want to do accord-jsonld-rdf-artifacts first, or "SPARQL ASK execution and full RDF black-box matrix"
+
+# gpt-5.4_2026-04-03_1024_44
+
+`SPARQL ASK execution and full RDF black-box matrix` is already done on the branch you just finished.
+
+So the next branch should be `accord-jsonld-rdf-artifacts`.
+
+That is the next actual gap:
+- `.jsonld` as RDF artifact input for `rdfCanonical`
+- `.jsonld` as RDF artifact input for SPARQL `ASK`
+- shared quad ingestion in front of the current N3/Comunica/canonization path
+
+In other words:
+- previous branch: finish RDF/ASK over current non-JSON-LD RDF files
+- next branch: add JSON-LD RDF artifact ingestion
+
+So don’t branch for “SPARQL ASK execution and full RDF black-box matrix” again unless you’re reopening that PR for fixes. Otherwise, branch for `feat/accord-jsonld-rdf-artifacts`.
+
+# User_2026-04-03_1025_56
+
+Ah, gotcha we combined SPARQL and full matrix with rdf canonical comparison.
+
+OK, new chat for accord-jsonld-rdf-artifacts?
+
+# gpt-5.4_2026-04-03_1026_02
+
+Yes. Start a new chat for `feat/accord-jsonld-rdf-artifacts`.
+
+That keeps the next slice clean:
+- JSON-LD RDF artifact ingestion
+- shared quad conversion path
+- local-only loader policy for RDF artifacts
+- new `.jsonld` fixture/test matrix
+
+A good opener would be:
+
+```text
+On branch feat/accord-jsonld-rdf-artifacts, implement JSON-LD RDF artifact support for Accord:
+- support .jsonld as an RDF artifact format for rdfCanonical and SPARQL ASK
+- reuse the existing local-only JSON-LD document-loader policy
+- normalize all RDF artifact formats into a shared quad ingestion path before canonization/query
+- add focused testdata and black-box coverage for .jsonld RDF artifacts
+```
+
+# User_2026-04-03_1026_21
+
+Can you update [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md) ?
+
+# gpt-5.4_2026-04-03_1026_27
+
+I’m updating the main Accord CLI task note to reflect the work that is actually finished and to push JSON-LD RDF artifact support into its separate follow-up task, rather than leaving the task plan stale.
+
+# gpt-5.4_2026-04-03_1026_45
+
+I’ve got the stale parts isolated. I’m patching the note now to reflect the implemented checker, the completed spikes, and the fact that JSON-LD RDF artifact support is now its own follow-up task instead of an implicit “later” under the main CLI note.
+
+# gpt-5.4_2026-04-03_1027_19
+
+Updated [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md).
+
+The main changes are:
+- marked the core checker work as implemented instead of still “planned”
+- updated the summary to reflect the current Deno CLI, file checks, RDF canonical comparison, SPARQL `ASK`, reporting, and test harness
+- marked the `jsonld` and `rdf-canonize` spikes as done
+- marked the scaffold/layout, manifest loading, file expectation, text/bytes, RDF, reporting, and unit-test work as done
+- moved JSON-LD RDF artifact support out of the main task and pointed to [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md)
+- refocused the remaining open work on real `mesh-alice-bio` integration, documentation, and later follow-ups
+
+No code or tests changed; this was a task-note update only.
+
+# User_2026-04-03_1029_13
+
+Shouldn't we finish out the [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md) before moving on?
+
+# gpt-5.4_2026-04-03_1029_19
+
+Yes, probably.
+
+The strongest reason not to jump immediately to `accord-jsonld-rdf-artifacts` is that the main CLI task still has the most important unfinished validation step: run the checker against the real `mesh-alice-bio` corpus and see what breaks.
+
+That is higher priority than new format support because:
+- it validates the actual v1 target, not just synthetic fixtures
+- it may expose spec gaps or implementation bugs we should fix before broadening scope
+- it gives us a better baseline before adding more parser complexity
+
+So my revised recommendation is:
+
+- finish the main CLI task enough to run:
+  - a representative subset of real `mesh-alice-bio` manifests
+  - then the full current manifest set
+- record the gaps and either:
+  - fix small ones inside the CLI task, or
+  - spin out clearly separate follow-up tasks if they are larger
+
+Only after that would I move to `feat/accord-jsonld-rdf-artifacts`.
+
+So yes: the better next branch is not the JSON-LD artifact branch yet. It should be something like:
+- `feat/accord-mesh-alice-bio-integration`
+- or `feat/accord-real-corpus-validation`
+
+That is the more defensible next step.
+
+# User_2026-04-03_1031_24
+
+What about the user and development documentation? I feel like we should do that in this chat, and then I can start a new task for real-corpus-validation.
+
+# gpt-5.4_2026-04-03_1031_30
+
+Yes. That is the right split.
+
+User and development documentation still belong to the main CLI task, and they are much better handled here than mixed into a future real-corpus-validation branch. Real-corpus validation is a separate execution/testing task; docs should describe the checker we actually have now.
+
+So I would do this order:
+
+1. finish `ac.user-guide`
+2. finish `ac.dev.general-guidance`
+3. then open a new task/chat for real corpus validation
+
+That keeps the current task cleaner:
+- this chat closes out the “what is Accord CLI and how do you work on it” documentation
+- the next chat focuses on “does it actually pass the intended corpus”
+
+And it avoids a common mistake: broadening implementation scope before the docs for the current behavior exist.
+
+So yes, stay in this chat and do the user/development docs next.
+
+# User_2026-04-03_1031_39
+
+ok, proceed with the docs.
+
+# gpt-5.4_2026-04-03_1031_52
+
+I’m gathering the current Accord docs state first so I can write the user and developer notes to match the implementation that actually exists, not the older plan.
+
+# gpt-5.4_2026-04-03_1032_01
+
+The two note stubs are empty, and the README is still partly aspirational. I’m reading the actual CLI surface and a few implementation details now so the docs describe what the checker can do today and where the current boundaries are.
+
+# gpt-5.4_2026-04-03_1032_33
+
+I’m writing the docs now. The user guide will focus on how to run the current checker and what results mean; the developer note will focus on architecture boundaries, workflow, and the next priorities so the repo guidance matches the implementation.
+
+# gpt-5.4_2026-04-03_1033_17
+
+The docs are written. I’m doing a quick read-back now to catch anything inaccurate or too aspirational before I hand it back.
+
+# gpt-5.4_2026-04-03_1033_22
+
+Updated the docs in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) and [ac.dev.general-guidance.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.dev.general-guidance.md), and marked the documentation items complete in [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md).
+
+The user guide now covers the current `accord check` command surface, inputs, output formats, exit codes, supported compare modes, RDF limits, and current gaps. The development guidance now captures the current architecture, dependency stance, implementation boundaries, testing expectations, and the recommended order of next work.
+
+No code changed. I did a read-back of the docs and confirmed the task note checkboxes were updated.

@@ -19,9 +19,22 @@ This task is to design and then prototype a minimal Accord CLI that can load a m
 
 The intended shape is a thin checker, not a workflow engine. It should not attempt to perform operations, create fixtures, or replace repository-native tests. It should simply answer: does this manifest describe what actually changed between these refs?
 
-The repository currently contains ontology, SHACL, and documentation only. There is no Deno scaffold yet, so the first implementation step is bootstrapping a small CLI and test skeleton rather than jumping straight to checker logic.
+That initial implementation now exists in this repository. The current checker supports:
+
+- JSON-LD manifest loading with a deterministic local-only document-loader policy
+- case selection and git-backed fixture repo resolution
+- file expectations for `added`, `updated`, `unchanged`, `removed`, and `absent`
+- `bytes` and `text` comparison
+- `rdfCanonical` graph comparison using `n3` plus `rdf-canonize`
+- SPARQL `ASK` assertions using Comunica against an in-memory `n3` store
+- text and JSON reports
+- unit and black-box coverage against the in-repo `testdata/` corpus
+
+The main remaining work for this task is no longer scaffolding. It is validating the checker against the real `mesh-alice-bio` corpus, tightening documentation, and recording the gaps that emerge from those real manifests and fixture refs.
 
 The behavioral specification for the checker now lives in [[ac.spec.2026.2026-04-03-accord-cli]]. This task note should stay focused on planning, implementation, and follow-up decisions.
+
+JSON-LD support for manifests is part of this task and is done. JSON-LD support for RDF artifact files under `rdfCanonical` and SPARQL `ASK` has been split into [[ac.task.2026.2026-04-03-jsonld-support]] so that follow-up can be scoped and reviewed separately.
 
 The first likely command is:
 
@@ -31,15 +44,15 @@ accord check examples/alice-bio/conformance/13-bob-extracted-woven.jsonld
 
 with optional flags for selecting a case, overriding the fixture checkout path, or emitting JSON output for automation.
 
-The current best implementation direction is a Deno CLI in this repository. A small local spike on this machine showed:
+The current implementation direction has held up well in practice. Local work on this machine has now shown:
 
 - `deno 2.7.8` runs successfully here
 - `npm:n3` works for Turtle parsing and RDFJS store creation under Deno
 - `npm:@comunica/query-sparql` loads under Deno and can evaluate `ASK` queries successfully against an RDFJS `n3` store
-- `jsonld.js` is the preferred first JSON-LD dependency for manifest loading
-- `rdf-canonize` is the leading candidate for RDF canonicalization, pending a real Deno compatibility spike
+- `jsonld.js` works for manifest loading under Deno with the intended local-only loader policy
+- `rdf-canonize` works under Deno for RDF canonicalization
 
-That is enough to justify a thin-checker prototype in Deno, but not yet enough to assume every required RDF and JSON-LD edge case is solved.
+That is enough to justify the Deno checker architecture already in place, but not enough to assume every required RDF syntax and corpus-level edge case is solved.
 
 ## Discussion
 
@@ -85,7 +98,7 @@ Those facts should drive the implementation order:
 - `--case` should remain available, but only as an override for future multi-case manifests
 - v1 should prioritize `added`, `updated`, `unchanged`, and `absent`
 - v1 should prioritize `bytes`, `text`, and `rdfCanonical`
-- `removed` is cheap enough to add later, but it should not block the first usable checker
+- `removed` was easy enough to include once the file-state engine was in place, even though the current corpus does not require it
 - `json` comparison should stay out of the critical path until a real manifest needs it
 
 The simplest repository access model is probably local-git-only:
@@ -115,6 +128,8 @@ For RDF execution, the promising Deno-first split is:
 
 The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comunica`, but robust RDF canonical comparison is the harder part, especially once blank nodes matter.
 
+At this point, both RDF canonical comparison and SPARQL `ASK` execution are implemented for the RDF artifact syntaxes parsed directly by `n3`. The next RDF-related expansion is JSON-LD RDF artifact ingestion, which is tracked separately in [[ac.task.2026.2026-04-03-jsonld-support]].
+
 ### Proposed code layout
 
 The first Accord CLI should stay flatter than Kato. The current recommended layout is captured in [[ac.spec.2026.2026-04-03-accord-cli]] and centers on:
@@ -129,18 +144,14 @@ The first Accord CLI should stay flatter than Kato. The current recommended layo
 
 ## Open Issues
 
-- Confirm Deno interoperability for `npm:jsonld` on real local manifests with the intended document-loader policy.
-- Decide how strict `rdfCanonical` must be in v1:
-  - true RDF dataset canonicalization, including blank nodes
-  - or a narrower initial implementation that is explicitly limited and documented
-- Confirm Deno interoperability and performance characteristics for `npm:rdf-canonize` on real local RDF inputs.
-- Decide whether manifest loading should map JSON-LD by:
-  - expanding and then reading normalized JSON-LD objects
-  - or converting to RDF quads and mapping from RDFJS data
+- Run `accord check` against a representative subset of the real `mesh-alice-bio` manifests and record any gaps between the synthetic black-box corpus and real repository behavior.
+- Run the checker against the full current `mesh-alice-bio` manifest set and decide which failures indicate implementation bugs versus missing or underspecified behavior.
+- Decide whether a small committed integration suite based on real `mesh-alice-bio` manifests should live alongside the synthetic black-box suite.
+- Decide how much dependency weight is acceptable if `Comunica` stays in the stack, since its transitive npm graph is large even though the Deno interop itself appears workable.
 - Decide whether generated HTML should remain `text`-compared, or whether the CLI should normalize line endings and other trivial text differences.
 - Decide whether the first version should stop on first failure or accumulate all failures for the selected case.
-- Decide how much dependency weight is acceptable if `Comunica` stays in the stack, since its transitive npm graph is large even though the Deno interop itself appears workable.
 - Decide whether a separate `accord validate` command should exist later for SHACL-oriented manifest validation, rather than folding that work into `accord check`.
+- Decide when to pick up JSON-LD RDF artifact support from [[ac.task.2026.2026-04-03-jsonld-support]].
 
 ## Decisions
 
@@ -157,13 +168,15 @@ The first Accord CLI should stay flatter than Kato. The current recommended layo
 - The first fixture access implementation should read git objects directly with targeted commands such as `git cat-file -e` and `git show <ref>:<path>`, not temporary worktrees.
 - The first manifest loader should handle JSON-LD from the start rather than treating manifests as plain JSON with familiar keys.
 - Prefer `jsonld.js` as the first JSON-LD dependency for manifest loading.
-- Prefer `rdf-canonize` as the first RDF canonicalization candidate, subject to a Deno compatibility spike.
+- Prefer `rdf-canonize` as the RDF canonicalization dependency for the current checker implementation.
 - Scope the first useful checker to the features the current corpus actually needs:
   - file change types `added`, `updated`, `unchanged`, and `absent`
   - compare modes `bytes`, `text`, and `rdfCanonical`
-- `removed` may be added once the basic file-state engine is in place, but it is not part of the critical path for the first usable checker.
+- Include `removed` once the file-state engine is in place, even though it is not part of the current corpus-critical path.
 - `json` compare mode is explicitly out of scope for the first checker until a real manifest requires it.
 - Keep SHACL and manifest execution conceptually separate; full SHACL validation should not block the first `accord check` implementation.
+- Keep JSON-LD manifest support in the main checker scope, but track JSON-LD RDF artifact support separately in [[ac.task.2026.2026-04-03-jsonld-support]].
+- Keep the current RDF artifact syntax scope intentionally limited to the formats parsed directly by `n3` until the JSON-LD RDF artifact ingestion work lands.
 
 ## Contract Changes
 
@@ -173,15 +186,10 @@ This task is about executable tooling for the existing Accord contract, not abou
 
 ## Testing
 
-- Keep a small Deno compatibility spike for `n3` and `Comunica` in mind as the initial feasibility gate.
-- Add unit tests for path/ref resolution and change-type evaluation.
-- Add focused tests for compare modes:
-  - `bytes`
-  - `text`
-  - `rdfCanonical`
-- Add CLI smoke tests against at least a subset of the `mesh-alice-bio` manifests.
-- Add at least one intentionally failing test case so the failure report format is exercised, not just the happy path.
-- If SHACL preflight is wired into the CLI, test both valid and invalid manifests explicitly.
+- Keep the existing unit and synthetic black-box suite green as the baseline validator for new checker work.
+- Add integration tests against at least a representative subset of the real `mesh-alice-bio` manifests.
+- Continue to include intentionally failing scenarios so the failure report format is exercised, not just the happy path.
+- If SHACL preflight is ever wired into the CLI, test both valid and invalid manifests explicitly.
 
 ## Non-Goals
 
@@ -201,22 +209,22 @@ This task is about executable tooling for the existing Accord contract, not abou
   - optional `--case <case-id>`
   - optional `--fixture-repo-path <path>`
   - optional `--format json`
-- [ ] Spike Deno package compatibility more thoroughly with real local manifest and RDF inputs, not just trivial in-memory examples.
-- [ ] Spike `npm:jsonld` with real local manifests, including inline context handling and the intended no-arbitrary-remote-fetch document-loader policy.
-- [ ] Spike `npm:rdf-canonize` with real local RDF inputs and confirm whether its Deno behavior is acceptable for `rdfCanonical`.
+- [x] Spike Deno package compatibility more thoroughly with real local manifest and RDF inputs, not just trivial in-memory examples.
+- [x] Spike `npm:jsonld` with real local manifests, including inline context handling and the intended no-arbitrary-remote-fetch document-loader policy.
+- [x] Spike `npm:rdf-canonize` with real local RDF inputs and confirm whether its Deno behavior is acceptable for `rdfCanonical`.
 - [x] Decide the first-pass fixture access strategy: direct `git show` and `git cat-file` access rather than temporary worktree materialization.
-- [ ] Bootstrap the Deno CLI and test scaffold for this repository.
-- [ ] Create the initial Deno project layout from [[ac.spec.2026.2026-04-03-accord-cli]], including `src/cli`, `src/manifest`, `src/git`, `src/checker`, `src/report`, and `tests/harness`.
+- [x] Bootstrap the Deno CLI and test scaffold for this repository.
+- [x] Create the initial Deno project layout from [[ac.spec.2026.2026-04-03-accord-cli]], including `src/cli`, `src/manifest`, `src/git`, `src/checker`, `src/report`, and `tests/harness`.
 - [x] Create the in-repo `testdata/` layout and a test-only fixture materializer plan that turns source trees into temporary git repositories with the named refs required by [[ac.spec.2026.2026-04-03-accord-cli]].
-- [ ] Prototype manifest loading and case selection for JSON-LD inputs using a deterministic local document-loader policy.
-- [ ] Prototype file expectation checking for `added`, `updated`, `unchanged`, and `absent`.
-- [ ] Prototype `text` and `bytes` comparison.
-- [ ] Prototype `rdfCanonical` handling with ignored-predicate filtering and SPARQL ASK execution.
-- [ ] Design the failure report structure for both humans and automation.
+- [x] Prototype manifest loading and case selection for JSON-LD inputs using a deterministic local document-loader policy.
+- [x] Prototype file expectation checking for `added`, `updated`, `unchanged`, `removed`, and `absent`.
+- [x] Prototype `text` and `bytes` comparison.
+- [x] Prototype `rdfCanonical` handling with ignored-predicate filtering and SPARQL ASK execution.
+- [x] Design the failure report structure for both humans and automation.
 - [x] Author the first black-box manifests and scenario index under `testdata/` before relying on the larger `mesh-alice-bio` corpus.
-- [ ] Add unit tests for manifest loading, git-backed file access, change classification, and compare modes.
+- [x] Add unit tests for manifest loading, git-backed file access, change classification, and compare modes.
 - [ ] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
 - [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
-- [ ] Revisit `removed`, `json`, and separate SHACL preflight only after the thin checker passes the current corpus.
-- [ ] compose user documentation into [[ac.user-guide]]
-- [ ] compose development documentation into [[ac.dev.general-guidance]]
+- [ ] Revisit `json`, JSON-LD RDF artifact support, and separate SHACL preflight only after the thin checker passes the current corpus.
+- [x] compose user documentation into [[ac.user-guide]]
+- [x] compose development documentation into [[ac.dev.general-guidance]]
