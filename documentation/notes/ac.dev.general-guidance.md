@@ -18,7 +18,7 @@ When changing behavior, keep these notes aligned:
 
 - [[ac.spec.2026.2026-04-03-accord-cli]] is the normative checker spec
 - [[ac.task.2026.2026-04-03-accord-cli]] tracks implementation status and remaining work
-- [[ac.task.2026.2026-04-03-jsonld-support]] tracks JSON-LD RDF artifact follow-up work
+- [[ac.task.2026.2026-04-03-jsonld-support]] records the JSON-LD RDF artifact implementation and remaining format follow-up in that area
 - [[ac.task.2026.2026-04-03-accord-ci]] tracks CI, PR, and release-process follow-up work
 
 If runtime behavior changes and the spec is affected, update the spec and then the relevant task note. Do not let code drift away from the documented checker contract.
@@ -51,6 +51,7 @@ Keep this model explicit and debuggable. Avoid layering in framework abstraction
 Accord is Deno-first, but the current implementation deliberately uses a few npm packages where they are the most practical RDF/JSON-LD tools:
 
 - `jsonld.js` for manifest JSON-LD loading
+- `jsonld.js` for `.jsonld` RDF artifact ingestion
 - `n3` for RDF parsing and the in-memory RDFJS store
 - `rdf-canonize` for RDF canonicalization
 - `@comunica/query-sparql` for SPARQL `ASK`
@@ -59,17 +60,20 @@ That stack is acceptable because it is working under Deno today. It is still hea
 
 ## Important implementation boundaries
 
-### Manifest JSON-LD support is not the same as RDF artifact JSON-LD support
+### Manifest JSON-LD loading and RDF artifact JSON-LD loading share policy, not storage access
 
-Accord already supports JSON-LD for manifests.
+Accord now supports JSON-LD for both manifests and `.jsonld` RDF artifacts.
 
-That does not mean the RDF checker path automatically supports `.jsonld` artifact files under `rdfCanonical` or SPARQL `ASK`. That follow-up work is intentionally separated in [[ac.task.2026.2026-04-03-jsonld-support]].
+The shared rule is the fail-closed local-only JSON-LD document-loading policy. The local document wrappers are intentionally different:
 
-Do not "add JSON-LD support" by merely extending a file-extension switch in the RDF checker. If `.jsonld` RDF artifact support is implemented, it should arrive as a real JSON-LD-to-quads ingestion layer with tests and spec updates.
+- manifests load local JSON-LD documents from the filesystem
+- `.jsonld` RDF artifacts load local JSON-LD documents from the checked git ref, not from the working tree
+
+Do not collapse that distinction. If the RDF checker consults the working tree for local JSON-LD artifact contexts, it will read the wrong data for historical refs.
 
 ### Local-only JSON-LD document loading is intentional
 
-Manifest loading is fail-closed:
+Manifest loading and `.jsonld` RDF artifact loading are fail-closed:
 
 - inline contexts are fine
 - local file contexts are fine
@@ -83,16 +87,19 @@ The current checker reads refs and blobs directly with git commands. That is sim
 
 Keep temporary git repo materialization inside tests and `testdata/` harness code, not in the runtime checker.
 
-### RDF artifact syntax support is intentionally narrow today
+### RDF artifact syntax support is intentionally limited
 
-The current RDF checker path only supports syntaxes parsed directly by `n3`:
+The current RDF checker path supports:
 
 - `.ttl`
 - `.nt`
 - `.nq`
 - `.trig`
+- `.jsonld`
 
-Do not pretend `.jsonld` or RDF/XML are supported until they have a real parser path and black-box coverage.
+The `.jsonld` path is a real JSON-LD-to-quads ingestion layer using `jsonld.js`, not an `n3` parser shortcut.
+
+RDF/XML is still not supported. Do not pretend it is until there is a real parser path and black-box coverage.
 
 ## Testing guidance
 
@@ -137,6 +144,6 @@ The current order of work should be:
 1. keep the current checker and black-box suite stable
 2. complete user and development documentation for the current implementation
 3. keep the `mesh-alice-bio` smoke subset and full-corpus reruns healthy as the real fixture ladder evolves
-4. only then expand format support such as JSON-LD RDF artifacts
+4. only then expand the remaining format surface such as `json` compare mode or RDF/XML support
 
 That order matters. It is better to validate the current checker against its intended real corpus before broadening the format surface.

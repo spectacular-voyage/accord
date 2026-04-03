@@ -15,6 +15,7 @@ import {
 import { gitBlobExists, readGitBlob } from "../../git/blobs.ts";
 import { gitRefExists } from "../../git/refs.ts";
 import { GitAccessError, resolveGitRepositoryRoot } from "../../git/repo.ts";
+import { createPathMappedJsonLdDocumentContext } from "../../jsonld/documents.ts";
 import {
   FileExpectation,
   RdfExpectation,
@@ -390,6 +391,16 @@ async function evaluateRdfComparison(
       right: toBytes,
       path,
       ignorePredicates: rdfExpectation.ignorePredicate,
+      leftDocumentContext: createGitJsonLdDocumentContext(
+        repoPath,
+        fromRef,
+        path,
+      ),
+      rightDocumentContext: createGitJsonLdDocumentContext(
+        repoPath,
+        toRef,
+        path,
+      ),
     });
     const passed = changeType === "updated" ? !contentsEqual : contentsEqual;
 
@@ -454,6 +465,7 @@ async function evaluateSparqlAskAssertion(
       dataset,
       path,
       query: askAssertion.query,
+      documentContext: createGitJsonLdDocumentContext(repoPath, toRef, path),
     });
     const passed = actual === askAssertion.expectedBoolean;
 
@@ -513,6 +525,49 @@ function describeComparisonExpectation(
   }
 
   return `Expected contents to match under ${compareMode} comparison.`;
+}
+
+function createGitJsonLdDocumentContext(
+  repoPath: string,
+  ref: string,
+  path: string,
+) {
+  return createPathMappedJsonLdDocumentContext({
+    documentPath: path,
+    errorFactory: (code, message) => new RdfCompareError(code, message),
+    loadErrorCode: CHECK_CODES.RDF_PARSE_ERROR,
+    readDocumentText: async (documentPath) => {
+      try {
+        const bytes = await readGitBlob(repoPath, ref, documentPath);
+        return decodeGitJsonLdDocument(bytes, documentPath, ref);
+      } catch (error) {
+        if (error instanceof GitAccessError) {
+          throw new RdfCompareError(
+            CHECK_CODES.RDF_PARSE_ERROR,
+            `Failed to read JSON-LD artifact document at ${documentPath} from ${ref}: ${error.message}`,
+          );
+        }
+
+        throw error;
+      }
+    },
+  });
+}
+
+function decodeGitJsonLdDocument(
+  bytes: Uint8Array,
+  documentPath: string,
+  ref: string,
+): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new RdfCompareError(
+      CHECK_CODES.RDF_PARSE_ERROR,
+      `Failed to decode JSON-LD artifact document at ${documentPath} from ${ref} as UTF-8: ${message}`,
+    );
+  }
 }
 
 function buildReport(

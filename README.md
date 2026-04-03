@@ -160,6 +160,7 @@ The next useful steps for Accord are likely:
 
 - a published JSON-LD context
 - one or two example manifests
-- a tiny reference validator that loads a manifest, applies SHACL, and reports failures clearly
+- keep the current `accord check` validator small, deterministic, and well-documented
+- if SHACL-oriented manifest validation lands, expose it as a separate command surface rather than an implicit preflight inside `accord check`
 - a small round-trip example that maps cleanly to fixture repo, branch/ref, target path, and per-file RDF assertions
 - later, optional runner adapters for specific ecosystems

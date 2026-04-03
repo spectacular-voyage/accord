@@ -1,0 +1,14 @@
+{
+  "@context": {
+    "id": "@id",
+    "type": "@type",
+    "dcterms": "http://purl.org/dc/terms/",
+    "ex": "https://example.test/",
+    "knows": {
+      "@id": "ex:knows",
+      "@type": "@id"
+    },
+    "name": "ex:name",
+    "updated": "dcterms:updated"
+  }
+}

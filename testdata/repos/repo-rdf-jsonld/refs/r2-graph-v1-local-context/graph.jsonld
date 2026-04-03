@@ -1,0 +1,17 @@
+{
+  "@context": "./graph.context.jsonld",
+  "@graph": [
+    {
+      "id": "ex:bob",
+      "type": "ex:Person",
+      "name": "Bob"
+    },
+    {
+      "id": "ex:alice",
+      "type": "ex:Person",
+      "updated": "2026-04-03T00:00:00Z",
+      "name": "Alice",
+      "knows": "ex:bob"
+    }
+  ]
+}

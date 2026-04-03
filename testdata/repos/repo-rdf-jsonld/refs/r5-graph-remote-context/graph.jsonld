@@ -1,0 +1,10 @@
+{
+  "@context": "https://example.test/contexts/graph.context.jsonld",
+  "@graph": [
+    {
+      "id": "https://example.test/alice",
+      "type": "https://example.test/Person",
+      "name": "Alice"
+    }
+  ]
+}

@@ -267,10 +267,25 @@ The v1 behavior should be:
 
 - parse the `fromRef` and `toRef` blobs as RDF when the change type requires both sides
 - parse the `toRef` blob when the change type is `added`
-- support the RDF syntaxes actually needed by the current corpus from the start
+- support these RDF artifact syntaxes:
+  - `.ttl`
+  - `.nt`
+  - `.nq`
+  - `.trig`
+  - `.jsonld`
 - fail with an evaluation error when the syntax is unsupported or parsing fails
 
 `ignorePredicate` affects graph-equivalence comparison only. It does not suppress or rewrite the graph seen by explicit SPARQL ASK assertions.
+
+For `.jsonld` RDF artifacts, the checker must:
+
+- parse the blob as UTF-8 JSON-LD
+- convert JSON-LD to RDF quads before canonical comparison or ASK execution
+- apply the same fail-closed local-only document-loading policy used for manifests
+- allow inline contexts and local file contexts
+- reject remote contexts or linked JSON-LD documents unless explicitly allowlisted in the implementation
+- when evaluating repository blobs, resolve local JSON-LD documents from the same git ref and repository-relative path as the artifact being checked, not from the current working tree
+- preserve the default-graph and named-graph semantics produced by JSON-LD to RDF conversion
 
 ## RDF Expectation Semantics
 
@@ -380,6 +395,8 @@ The minimum black-box matrix should cover:
 - CRLF-versus-LF equivalence under `text`
 - RDF comparison with ignored predicates
 - RDF ASK success and failure
+- `.jsonld` RDF comparison with local file contexts
+- `.jsonld` RDF remote-context rejection
 - manifest JSON-LD expansion success and failure
 - parse errors and unsupported-feature errors
 - exit-code behavior for pass, fail, and error
@@ -412,6 +429,15 @@ testdata/
         r3-graph-v1-ignored-only/
         r4-graph-v2/
         r5-graph-invalid/
+    repo-rdf-jsonld/
+      repo.json
+      refs/
+        r0-empty/
+        r1-graph-v1-inline/
+        r2-graph-v1-local-context/
+        r3-graph-v2-local-context/
+        r4-graph-invalid/
+        r5-graph-remote-context/
     repo-empty/
       repo.json
       refs/
@@ -482,6 +508,15 @@ The minimum TDD corpus should use small reusable local git repositories rather t
 - `r4-graph-v2`: a meaningfully different RDF graph
 - `r5-graph-invalid`: `graph.ttl` is syntactically invalid
 
+`testdata/repos/repo-rdf-jsonld/` should provide these named refs:
+
+- `r0-empty`: no tracked files
+- `r1-graph-v1-inline`: `graph.jsonld` contains a small valid baseline graph with an inline context
+- `r2-graph-v1-local-context`: same RDF graph as `r1-graph-v1-inline`, but `graph.jsonld` loads a sibling local context file
+- `r3-graph-v2-local-context`: a meaningfully different RDF graph expressed through the same local-context pattern
+- `r4-graph-invalid`: `graph.jsonld` is invalid JSON or invalid JSON-LD
+- `r5-graph-remote-context`: `graph.jsonld` references a non-allowlisted remote context
+
 `testdata/repos/repo-empty/` should be a minimal valid repository fixture with at least one resolvable ref and no fixture content assumptions beyond that.
 
 ### Manifest Fixture Families
@@ -492,6 +527,7 @@ The minimum TDD corpus should include manifest fixtures in these families:
 - multi-case manifests that require `--case`
 - manifests with inline JSON-LD context
 - manifests with disallowed remote context
+- manifests that exercise `.jsonld` RDF artifacts with local file contexts
 - manifests for each file change type
 - manifests for each compare mode in scope
 - manifests with RDF ASK assertions expecting both `true` and `false`
@@ -612,6 +648,36 @@ Expected: exit `0`, status `pass`, `summary = { "pass": 2, "fail": 0, "error": 0
 Manifest: `added` expectation for `graph.ttl` from `r0-empty` to `r1-graph-v1` using `rdfCanonical` with one ASK assertion whose expected boolean does not match the query result.
 Command: `accord check <manifest> --fixture-repo-path <repo-rdf> --format json`
 Expected: exit `1`, status `fail`, `summary = { "pass": 1, "fail": 1, "error": 0 }`, one `sparql_ask` fail with code `sparql_ask_mismatch`.
+
+`bb-208-unchanged-rdf-jsonld-pass-equivalent-serialization`
+Manifest: `unchanged` expectation for `graph.jsonld` from `r1-graph-v1-inline` to `r2-graph-v1-local-context` using `rdfCanonical`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `0`, status `pass`, `summary = { "pass": 2, "fail": 0, "error": 0 }`, one `file_presence` pass and one `rdf_compare` pass.
+
+`bb-209-unchanged-rdf-jsonld-fail-meaningful-change`
+Manifest: `unchanged` expectation for `graph.jsonld` from `r1-graph-v1-inline` to `r3-graph-v2-local-context` using `rdfCanonical`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `1`, status `fail`, `summary = { "pass": 1, "fail": 1, "error": 0 }`, one `rdf_compare` fail with code `rdf_graph_mismatch`.
+
+`bb-210-sparql-ask-jsonld-true-pass`
+Manifest: `added` expectation for `graph.jsonld` from `r0-empty` to `r2-graph-v1-local-context` using `rdfCanonical` with one ASK assertion whose expected boolean is `true`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `0`, status `pass`, `summary = { "pass": 2, "fail": 0, "error": 0 }`, one `file_presence` pass and one `sparql_ask` pass.
+
+`bb-211-sparql-ask-jsonld-mismatch-fail`
+Manifest: `added` expectation for `graph.jsonld` from `r0-empty` to `r2-graph-v1-local-context` using `rdfCanonical` with one ASK assertion whose expected boolean does not match the query result.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `1`, status `fail`, `summary = { "pass": 1, "fail": 1, "error": 0 }`, one `sparql_ask` fail with code `sparql_ask_mismatch`.
+
+`bb-212-rdf-jsonld-remote-context-error`
+Manifest: `unchanged` expectation for `graph.jsonld` from `r1-graph-v1-inline` to `r5-graph-remote-context` using `rdfCanonical`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `2`, status `error`, `summary = { "pass": 1, "fail": 0, "error": 1 }`, one `rdf_compare` error with code `remote_context_disallowed`.
+
+`bb-213-rdf-jsonld-parse-error`
+Manifest: `unchanged` expectation for `graph.jsonld` from `r1-graph-v1-inline` to `r4-graph-invalid` using `rdfCanonical`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
+Expected: exit `2`, status `error`, `summary = { "pass": 1, "fail": 0, "error": 1 }`, one `rdf_compare` error with code `rdf_parse_error`.
 
 #### Report Surface
 

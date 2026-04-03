@@ -1,5 +1,11 @@
-import { dirname, fromFileUrl, resolve, toFileUrl } from "@std/path";
 import jsonld from "jsonld";
+import {
+  assertContextReferencesAllowed,
+  createFileJsonLdDocumentContext,
+  getTopLevelContext,
+  JsonLdDocumentContext,
+  parseJsonSource,
+} from "../jsonld/documents.ts";
 import { CHECK_CODES, CheckCode } from "../report/codes.ts";
 import {
   FileExpectation,
@@ -10,7 +16,6 @@ import {
 } from "./model.ts";
 
 const ACCORD_NS = "https://spectacular-voyage.github.io/accord/ns#";
-const REMOTE_CONTEXT_ALLOWLIST = new Map<string, string>();
 
 export interface LoadedManifestSource {
   path: string;
@@ -28,34 +33,54 @@ export class ManifestLoadError extends Error {
   }
 }
 
+function createManifestLoadError(code: CheckCode, message: string): Error {
+  return new ManifestLoadError(code, message);
+}
+
 export async function readManifestSource(
   manifestPath: string,
 ): Promise<LoadedManifestSource> {
-  const resolvedPath = resolve(manifestPath);
-  const documentUrl = toFileUrl(resolvedPath).href;
-  const sourceText = await Deno.readTextFile(resolvedPath);
-  const rawDocument = parseJsonText(sourceText, manifestPath, documentUrl);
-  assertContextReferencesAllowed(getTopLevelContext(rawDocument));
-  const expandedDocument = await expandManifest(rawDocument, resolvedPath);
-  const document = mapSourceShapeDocument(rawDocument, documentUrl) ??
-    mapExpandedDocument(expandedDocument, documentUrl);
+  const documentContext = createFileJsonLdDocumentContext(
+    manifestPath,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+  );
+  const sourceText = await Deno.readTextFile(manifestPath);
+  const rawDocument = parseJsonSource(
+    sourceText,
+    manifestPath,
+    documentContext.documentUrl,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+    "JSON manifest document",
+  );
+  assertContextReferencesAllowed(
+    getTopLevelContext(rawDocument),
+    createManifestLoadError,
+  );
+  const expandedDocument = await expandManifest(rawDocument, documentContext);
+  const document = mapSourceShapeDocument(
+    rawDocument,
+    documentContext.documentUrl,
+  ) ??
+    mapExpandedDocument(expandedDocument, documentContext.documentUrl);
 
   return {
     path: manifestPath,
-    documentUrl,
+    documentUrl: documentContext.documentUrl,
     document,
   };
 }
 
 async function expandManifest(
   rawDocument: unknown,
-  manifestPath: string,
+  documentContext: JsonLdDocumentContext,
 ): Promise<unknown[]> {
   try {
     const expanded = await jsonld.expand(rawDocument, {
-      base: toFileUrl(manifestPath).href,
+      base: documentContext.documentUrl,
       safe: true,
-      documentLoader: createDocumentLoader(dirname(manifestPath)),
+      documentLoader: documentContext.documentLoader,
     });
     return Array.isArray(expanded) ? expanded : [expanded];
   } catch (error) {
@@ -67,91 +92,6 @@ async function expandManifest(
     throw new ManifestLoadError(
       CHECK_CODES.MANIFEST_LOAD_ERROR,
       `Failed to load JSON-LD manifest: ${message}`,
-    );
-  }
-}
-
-function getTopLevelContext(rawDocument: unknown): unknown {
-  return isRecord(rawDocument) ? rawDocument["@context"] : undefined;
-}
-
-function assertContextReferencesAllowed(context: unknown): void {
-  if (context === undefined || context === null) {
-    return;
-  }
-
-  if (typeof context === "string") {
-    assertContextReferenceAllowed(context);
-    return;
-  }
-
-  if (Array.isArray(context)) {
-    for (const entry of context) {
-      assertContextReferencesAllowed(entry);
-    }
-  }
-}
-
-function assertContextReferenceAllowed(contextUrl: string): void {
-  if (contextUrl.startsWith("http://") || contextUrl.startsWith("https://")) {
-    if (!REMOTE_CONTEXT_ALLOWLIST.has(contextUrl)) {
-      throw new ManifestLoadError(
-        CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
-        `Remote JSON-LD context is not allowlisted: ${contextUrl}`,
-      );
-    }
-  }
-}
-
-function createDocumentLoader(manifestDir: string) {
-  return async (url: string) => {
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      const allowlistedPath = REMOTE_CONTEXT_ALLOWLIST.get(url);
-
-      if (allowlistedPath === undefined) {
-        throw new ManifestLoadError(
-          CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
-          `Remote JSON-LD context is not allowlisted: ${url}`,
-        );
-      }
-
-      return await loadJsonDocument(
-        toFileUrl(resolve(manifestDir, allowlistedPath)).href,
-      );
-    }
-
-    if (url.startsWith("file://")) {
-      return await loadJsonDocument(url);
-    }
-
-    throw new ManifestLoadError(
-      CHECK_CODES.MANIFEST_LOAD_ERROR,
-      `Unsupported JSON-LD document URL: ${url}`,
-    );
-  };
-}
-
-async function loadJsonDocument(url: string) {
-  const sourceText = await Deno.readTextFile(fromFileUrl(url));
-  return {
-    contextUrl: null,
-    documentUrl: url,
-    document: parseJsonText(sourceText, fromFileUrl(url), url),
-  };
-}
-
-function parseJsonText(
-  sourceText: string,
-  sourcePath: string,
-  documentUrl: string,
-): unknown {
-  try {
-    return JSON.parse(sourceText) as unknown;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new ManifestLoadError(
-      CHECK_CODES.MANIFEST_LOAD_ERROR,
-      `Failed to parse JSON manifest document at ${sourcePath} (${documentUrl}): ${message}`,
     );
   }
 }

@@ -141,14 +141,23 @@ For `rdfCanonical` expectations, Accord currently supports:
 - ignored predicate filtering
 - SPARQL `ASK` assertions attached through `RdfExpectation`
 
-The current RDF artifact syntax support is intentionally limited to formats parsed directly by `n3`:
+The current RDF artifact syntax support is intentionally limited to a small explicit set:
 
 - `.ttl`
 - `.nt`
 - `.nq`
 - `.trig`
+- `.jsonld`
 
-JSON-LD manifests are supported. JSON-LD RDF artifact files are not yet supported in the RDF checker path. That follow-up is tracked in [[ac.task.2026.2026-04-03-jsonld-support]].
+For `.jsonld` RDF artifacts, Accord converts JSON-LD to quads before canonical comparison or SPARQL evaluation.
+
+The JSON-LD document-loading policy for RDF artifacts matches the manifest loader:
+
+- inline contexts are supported
+- local file contexts are supported
+- arbitrary remote contexts are rejected unless explicitly allowlisted in the implementation
+
+When a `.jsonld` artifact is checked from git refs, its local context documents are loaded from the same checked ref, not from the current working tree.
 
 ## Examples
 
@@ -173,12 +182,12 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 ## Current limitations
 
 - Accord does not yet auto-locate the fixture repository from `fixtureRepo`.
-- Accord does not yet support `.jsonld` as an RDF artifact format in `rdfCanonical` or SPARQL `ASK`.
 - Accord does not yet support `json` compare mode.
+- Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.
 
 ## Where to look next
 
 - [[ac.spec.2026.2026-04-03-accord-cli]] for the normative checker behavior
 - [[ac.task.2026.2026-04-03-accord-cli]] for implementation status and remaining work
-- [[ac.task.2026.2026-04-03-jsonld-support]] for planned JSON-LD RDF artifact support
+- [[ac.task.2026.2026-04-03-jsonld-support]] for the JSON-LD RDF artifact implementation record and remaining format follow-up
