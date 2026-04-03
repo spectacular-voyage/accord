@@ -44,7 +44,7 @@ export async function compareRdfContent(
 
 export function parseRdfContent(
   options: ParseRdfContentOptions,
-): ReturnType<Parser["parse"]> {
+): Quad[] {
   const format = detectRdfSyntax(options.path);
   const text = decodeRdfText(options.bytes);
   return parseRdf(text, format, options.path);
@@ -103,7 +103,7 @@ function decodeRdfText(bytes: Uint8Array): string {
   }
 }
 
-function parseRdf(text: string, format: string, path: string) {
+function parseRdf(text: string, format: string, path: string): Quad[] {
   try {
     return new Parser({
       format,
@@ -119,9 +119,9 @@ function parseRdf(text: string, format: string, path: string) {
 }
 
 function filterQuadsByPredicate(
-  quads: ReturnType<Parser["parse"]>,
+  quads: Quad[],
   ignorePredicates: string[],
-) {
+): Quad[] {
   if (ignorePredicates.length === 0) {
     return quads;
   }
@@ -131,7 +131,7 @@ function filterQuadsByPredicate(
 }
 
 async function writeNQuads(
-  quads: ReturnType<Parser["parse"]>,
+  quads: Quad[],
 ): Promise<string> {
   const writer = new Writer({ format: "N-Quads" });
   writer.addQuads(quads);

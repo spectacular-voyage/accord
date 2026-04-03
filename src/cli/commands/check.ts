@@ -7,10 +7,7 @@ import {
   compareTextContents,
   TextDecodeError,
 } from "../../checker/compare_text.ts";
-import {
-  runAskAssertion,
-  SparqlAskError,
-} from "../../checker/sparql.ts";
+import { runAskAssertion, SparqlAskError } from "../../checker/sparql.ts";
 import {
   evaluatePresenceExpectation,
   FileChangeType,

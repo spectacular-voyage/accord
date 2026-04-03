@@ -1732,3 +1732,48 @@ feat: add RDF canonical and SPARQL ASK evaluation
 - wire RDF and ASK checks into accord check with stable report codes
 - expand unit and black-box coverage for RDF equivalence, parse errors, and ASK outcomes
 ```
+
+# User_2026-04-03_0958_25
+
+OK, anything else on this branch, or do we do another PR?
+
+# gpt-5.4_2026-04-03_0958_32
+
+I need one quick validation pass on the latest ASK integration before calling this branch PR-ready. I’m running `fmt`, `check`, and `test` on the current tree so the recommendation is based on the actual state, not where we left off mid-edit.
+
+# gpt-5.4_2026-04-03_0958_35
+
+The branch is close, but not PR-ready yet. `fmt:check` caught two formatting deltas from the ASK slice; I’m letting `check` and `test` finish so I can tell you whether it’s just formatting or if there’s any real behavioral cleanup left.
+
+# gpt-5.4_2026-04-03_0958_41
+
+There’s still one real issue on this branch: the ASK patch introduced a type regression in the RDF parser helpers, so this branch should not go to PR yet. I’m fixing that now and rerunning the full local validation so the answer is concrete.
+
+# gpt-5.4_2026-04-03_0958_49
+
+I’ve fixed the type hole. Now I’m running formatter and the full validation stack again; if this comes back green, my recommendation is to open a PR on this branch rather than start another one first.
+
+# gpt-5.4_2026-04-03_0958_58
+
+The branch still has one narrow TypeScript problem: `n3`’s `Parser["parse"]` typing is not giving us a usable array type in the helper signatures. I’m correcting those helper signatures directly rather than guessing around it, then I’ll rerun validation once more.
+
+# gpt-5.4_2026-04-03_0959_08
+
+I’ve narrowed it to the helper signatures and corrected them. Running the validation stack again now; if this passes, the branch is ready for a PR and I would not start another feature branch first.
+
+# gpt-5.4_2026-04-03_0959_18
+
+The ASK path is executing through the black-box suite now. I’m waiting out the rest of the integration tests; if they stay green, this branch is at a good PR boundary and I’d stop there rather than pile on another slice.
+
+# gpt-5.4_2026-04-03_0959_52
+
+Do a PR from this branch.
+
+It’s a clean review boundary now: RDF canonical comparison in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts), SPARQL `ASK` execution in [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts), CLI/report wiring in [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts), and the expanded black-box/unit coverage in [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts) and [sparql_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/sparql_test.ts).
+
+I would not pile more onto it before review. Validation is green:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task test`
+
+So: open the PR on this branch, let CodeRabbit review it, then start the next branch from there if needed.

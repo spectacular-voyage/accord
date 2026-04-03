@@ -9,7 +9,8 @@ Deno.test("runAskAssertion returns true for a matching ASK query", async () => {
   const result = await runAskAssertion({
     dataset,
     path: "graph.ttl",
-    query: "ASK { <https://example.test/alice> a <https://example.test/Person> . }",
+    query:
+      "ASK { <https://example.test/alice> a <https://example.test/Person> . }",
   });
 
   assertEquals(result, true);
@@ -23,7 +24,8 @@ Deno.test("runAskAssertion returns false for a non-matching ASK query", async ()
   const result = await runAskAssertion({
     dataset,
     path: "graph.ttl",
-    query: "ASK { <https://example.test/carol> a <https://example.test/Person> . }",
+    query:
+      "ASK { <https://example.test/carol> a <https://example.test/Person> . }",
   });
 
   assertEquals(result, false);
