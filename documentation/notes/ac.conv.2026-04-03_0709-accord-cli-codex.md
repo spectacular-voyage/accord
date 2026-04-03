@@ -1564,3 +1564,263 @@ fix: align Accord CI coverage runs with local Deno tasks
 - add coverage-specific Deno tasks for tests and lcov generation
 - use the shared tasks in GitHub Actions so npm-interoperable tests get allow-env
 ```
+
+# User_2026-04-03_0944_25
+
+OK, I switched to a new branch. Let's use the latest rdf-canonize, and try upgrading jsonld.js to 9.0.0.
+
+# gpt-5.4_2026-04-03_0944_33
+
+I’m checking the new branch state, the current dependency pins, and the actual published versions for `rdf-canonize` and `jsonld` before changing anything. Then I’ll update the pins and run the full Accord test matrix against the new stack.
+
+# gpt-5.4_2026-04-03_0944_51
+
+I’ve confirmed the branch state and the current loader surface. Next I’m checking the actual npm metadata for `jsonld` and `rdf-canonize`, then I’ll try the upgrade in place and let the test suite tell us whether Deno interop survives it.
+
+# gpt-5.4_2026-04-03_0945_05
+
+I’ve confirmed the published versions: `jsonld` `9.0.0` and `rdf-canonize` `5.0.0`, both with a Node `>=18` engine floor. I’m upgrading the pins and adding a small direct `rdf-canonize` compatibility test so this branch proves more than just “the dependency resolved.”
+
+# gpt-5.4_2026-04-03_0945_09
+
+The probe is still downloading the new npm graph. Once that settles I’ll know whether the imports are viable under Deno before I touch the project pins.
+
+# gpt-5.4_2026-04-03_0945_25
+
+I’m making this concrete by adding a direct `rdf-canonize` test, not just bumping the pins. That way the branch proves two things: `jsonld` `9.0.0` still works under Deno for Accord’s loader path, and `rdf-canonize` `5.0.0` is actually usable here for the next RDF slice.
+
+# gpt-5.4_2026-04-03_0945_36
+
+The upgrade compiles. I’m waiting on the full test suite now; the critical checks are the manifest loader under `jsonld` `9.0.0` and the direct `rdf-canonize` `5.0.0` compatibility test.
+
+# gpt-5.4_2026-04-03_0945_47
+
+The upgrade is green on the normal suite. I’m running the coverage path too, because npm-interoperable deps are exactly where CI tends to diverge if we stop at plain `deno task test`.
+
+# gpt-5.4_2026-04-03_0946_01
+
+The lockfile moved as expected and the new RDF test is in place. I’m just waiting for the coverage run to finish and emit `lcov`, since that’s the last thing likely to catch npm-runtime differences.
+
+# gpt-5.4_2026-04-03_0946_11
+
+Upgraded and validated.
+
+Changes:
+- [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json) now pins:
+  - `jsonld` to `npm:jsonld@9.0.0`
+  - `rdf-canonize` to `npm:rdf-canonize@5.0.0`
+- added [compare_rdf_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/compare_rdf_test.ts) to prove `rdf-canonize` works under Deno and canonizes equivalent blank-node datasets consistently
+
+Verification passed:
+- `deno task fmt`
+- `deno task check`
+- `deno task test`
+- `deno task test:coverage`
+- `deno task coverage:lcov`
+
+So the upgrade is green on this branch, including the existing JSON-LD loader path and the new direct `rdf-canonize` smoke test. The next step can be actual RDF comparison implementation in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts).
+
+Sources:
+- https://www.npmjs.com/package/jsonld/v/9.0.0
+- https://www.npmjs.com/package/rdf-canonize
+- https://github.com/digitalbazaar/jsonld.js
+- https://github.com/digitalbazaar/rdf-canonize
+
+# User_2026-04-03_0946_51
+
+ok, proceed
+
+# gpt-5.4_2026-04-03_0947_04
+
+I’m moving into the actual RDF slice now. The next step is to wire canonical RDF comparison end-to-end for the existing `bb-201` to `bb-204` scenarios, while keeping ASK execution separate until the graph-compare path is solid.
+
+# gpt-5.4_2026-04-03_0947_28
+
+I have enough context now. The practical shape is: keep this branch focused on canonical graph comparison only, add the RDF black-box scenarios to the executable set, and leave ASK for a follow-up once the graph path is stable.
+
+# gpt-5.4_2026-04-03_0947_55
+
+I’m going one step broader than a bare library function: the useful unit here is “canonical RDF comparison works through `accord check`.” That means `compare_rdf.ts`, the checker integration, and the RDF black-box scenarios need to land together.
+
+# gpt-5.4_2026-04-03_0948_46
+
+I’m patching the RDF path now. The main integration points are: add `n3`, implement canonical RDF comparison with predicate filtering, and make `accord check` produce `rdf_compare` checks instead of treating `rdfCanonical` like an unsupported file-compare mode.
+
+# gpt-5.4_2026-04-03_0949_50
+
+The RDF compare path is patched. I’m running the full suite now because the important question is whether the new `rdf_compare` checks line up with the existing black-box catalog, not just whether the unit helper works in isolation.
+
+# gpt-5.4_2026-04-03_0949_57
+
+The code compiles. I’m waiting on the runtime suite; the likely failure surface is the RDF black-box scenarios, because they’re the first place where the helper semantics meet the report contract.
+
+# gpt-5.4_2026-04-03_0950_00
+
+TypeScript is only complaining about missing callback and quad annotations, not the RDF logic itself. I’m patching those explicit types and rerunning the suite.
+
+# gpt-5.4_2026-04-03_0951_00
+
+I’m continuing on the RDF checker branch. First I’m reloading the repo guidance the workspace expects, then I’ll rerun typecheck/tests on the current RDF comparison slice and push forward from the actual failures.
+
+# gpt-5.4_2026-04-03_0951_06
+
+I’ve reloaded the repo guidance and confirmed the current worktree state. Next I’m running typecheck and the test suite against the RDF comparison changes so I can fix what’s actually broken before expanding scope.
+
+# gpt-5.4_2026-04-03_0951_10
+
+The type surface looks good so far; both commands are past initial compilation. I’m polling the remaining output now to see whether the failures are behavioral in the RDF checks or still just harness issues.
+
+# gpt-5.4_2026-04-03_0951_25
+
+The RDF canonical comparison slice is green: `deno task check` and `deno task test` both pass. I’m moving straight into the next missing piece, which is SPARQL `ASK` execution and the remaining RDF black-box scenarios.
+
+# gpt-5.4_2026-04-03_0951_41
+
+I have the current integration points. Next I’m reading the remaining RDF scenarios and the installed package surface so I can wire ASK execution to the existing spec instead of guessing at the shape.
+
+# gpt-5.4_2026-04-03_0951_48
+
+The remaining scenarios are exactly the simple ASK cases the spec promised. I’m checking the actual `@comunica/query-sparql` export surface next so the implementation lands with the package’s real API, not a guessed wrapper.
+
+# gpt-5.4_2026-04-03_0953_16
+
+I’ve got the missing behavior isolated. The implementation pass I’m making now is:
+
+1. add explicit `@comunica/query-sparql` pinning in `deno.json`
+2. replace the ASK stub with a real RDFJS-store-backed `queryBoolean` path
+3. wire `sparql_ask` checks into `accord check`, using the target file’s `toRef` graph and stable assertion identifiers
+4. gate RDF/ASK checks on a successful file-presence pass so missing blobs don’t explode into raw git errors
+5. add direct ASK unit tests and turn on the `bb-205`/`bb-206`/`bb-207` black-box scenarios
+
+That keeps this slice narrowly about RDF assertions, not more ontology/spec churn.
+
+# gpt-5.4_2026-04-03_0953_51
+
+I’m editing the checker now. The main code change is to replace the ASK stub with a real Comunica path and to make RDF/ASK evaluation depend on a successful file-presence check, which closes a raw-error hole in the current flow.
+
+# User_2026-04-03_0954_30
+
+Is comunica using N3 as the "backend"?
+
+# gpt-5.4_2026-04-03_0954_42
+
+Not as a fixed universal backend.
+
+Comunica is a query engine over multiple source types. Its docs explicitly say `sources` can be URLs, typed source records, or an RDF/JS source object such as `new N3Store()`: https://comunica.dev/docs/query/advanced/context/ and https://comunica.dev/docs/query/advanced/source_types/
+
+So:
+
+- In general: Comunica is not “built on N3” in the sense of always using N3 underneath.
+- For Accord’s current in-memory ASK path: yes, effectively we are using N3 as the local RDF parser/store, and then handing that RDF/JS store to Comunica to run `ASK` queries.
+- For other source types, Comunica can use different parsers/actors, including its N3 parser actor and separate JSON-LD handling. It is modular, not N3-only.
+
+So “Comunica uses N3 as the backend” is too broad, but “Accord is using an N3 store as the source that Comunica queries” is accurate.
+
+# User_2026-04-03_0957_52
+
+OK, gotcha. In another project I worked on, we compared using N3 and Quadstore for the Comunica store, and Quadstore was slower and had a query bug.
+
+commit message please?
+
+# gpt-5.4_2026-04-03_0957_58
+
+```text
+feat: add RDF canonical and SPARQL ASK evaluation
+
+- implement rdfCanonical graph comparison with n3 and rdf-canonize
+- execute SPARQL ASK assertions against in-memory RDFJS stores via Comunica
+- wire RDF and ASK checks into accord check with stable report codes
+- expand unit and black-box coverage for RDF equivalence, parse errors, and ASK outcomes
+```
+
+# User_2026-04-03_0958_25
+
+OK, anything else on this branch, or do we do another PR?
+
+# gpt-5.4_2026-04-03_0958_32
+
+I need one quick validation pass on the latest ASK integration before calling this branch PR-ready. I’m running `fmt`, `check`, and `test` on the current tree so the recommendation is based on the actual state, not where we left off mid-edit.
+
+# gpt-5.4_2026-04-03_0958_35
+
+The branch is close, but not PR-ready yet. `fmt:check` caught two formatting deltas from the ASK slice; I’m letting `check` and `test` finish so I can tell you whether it’s just formatting or if there’s any real behavioral cleanup left.
+
+# gpt-5.4_2026-04-03_0958_41
+
+There’s still one real issue on this branch: the ASK patch introduced a type regression in the RDF parser helpers, so this branch should not go to PR yet. I’m fixing that now and rerunning the full local validation so the answer is concrete.
+
+# gpt-5.4_2026-04-03_0958_49
+
+I’ve fixed the type hole. Now I’m running formatter and the full validation stack again; if this comes back green, my recommendation is to open a PR on this branch rather than start another one first.
+
+# gpt-5.4_2026-04-03_0958_58
+
+The branch still has one narrow TypeScript problem: `n3`’s `Parser["parse"]` typing is not giving us a usable array type in the helper signatures. I’m correcting those helper signatures directly rather than guessing around it, then I’ll rerun validation once more.
+
+# gpt-5.4_2026-04-03_0959_08
+
+I’ve narrowed it to the helper signatures and corrected them. Running the validation stack again now; if this passes, the branch is ready for a PR and I would not start another feature branch first.
+
+# gpt-5.4_2026-04-03_0959_18
+
+The ASK path is executing through the black-box suite now. I’m waiting out the rest of the integration tests; if they stay green, this branch is at a good PR boundary and I’d stop there rather than pile on another slice.
+
+# gpt-5.4_2026-04-03_0959_52
+
+Do a PR from this branch.
+
+It’s a clean review boundary now: RDF canonical comparison in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts), SPARQL `ASK` execution in [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts), CLI/report wiring in [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts), and the expanded black-box/unit coverage in [black_box_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/black_box_test.ts) and [sparql_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/sparql_test.ts).
+
+I would not pile more onto it before review. Validation is green:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task test`
+
+So: open the PR on this branch, let CodeRabbit review it, then start the next branch from there if needed.
+
+# User_2026-04-03_1010_05
+
+coderabbit:
+
+Verify each finding against the current code and only fix it if needed.
+
+Nitpick comments:
+In `@src/checker/compare_rdf.ts`:
+- Around line 133-154: The file ends without a trailing newline; add a single
+newline character at the end of the file containing the writeNQuads function so
+the file terminates with a newline (i.e., ensure the final line after the
+closing brace of async function writeNQuads(...) ends with a newline character).
+- Around line 53-69: detectRdfSyntax currently maps file extensions to MIME
+types but omits RDF/XML and JSON-LD; update the function detectRdfSyntax to
+handle ".rdf" and ".xml" by returning "application/rdf+xml" and add ".jsonld"
+returning "application/ld+json" (or, if you intentionally want to exclude those
+formats, add a clear comment above detectRdfSyntax stating that only
+Turtle/NT/NQ/TRIG are supported and why). Ensure you reference the same
+RdfCompareError fallback for truly unsupported extensions so behavior stays
+consistent.
+
+# gpt-5.4_2026-04-03_1010_24
+
+I’m verifying both comments against the current file before changing anything. The newline one is mechanical; the syntax one needs a judgment call because adding `.jsonld` or RDF/XML support would be incorrect if the current parser stack can’t actually honor it.
+
+# gpt-5.4_2026-04-03_1010_33
+
+The newline comment is not actionable: the file already ends with a newline. The syntax comment is valuable, but I’m not going to fake support for `.jsonld` or RDF/XML because this code path is still using `n3`’s parser. I’m adding an explicit comment to make that limitation intentional and visible.
+
+# gpt-5.4_2026-04-03_1010_40
+
+I’ve taken the only useful part of that review. Now I’m rerunning formatter and typecheck so we don’t leave this branch with a comment-only regression.
+
+# gpt-5.4_2026-04-03_1010_52
+
+I verified both comments.
+
+The trailing-newline comment was stale. [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) already ended with a newline, so I did not change anything for that.
+
+The syntax comment was directionally useful, but the proposed code change was not. This RDF assertion path is still using `n3` directly, so adding `.rdf`, `.xml`, or `.jsonld` here would falsely advertise support we have not implemented. I added an explicit comment above `detectRdfSyntax` in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts) explaining that v1 intentionally limits RDF assertions to the syntaxes parsed directly by `n3`, and that JSON-LD/RDF/XML would require different parser integration.
+
+Validation is clean:
+- `deno task fmt:check`
+- `deno task check`
+
+So there’s nothing else in those CodeRabbit nitpicks I’d take.
