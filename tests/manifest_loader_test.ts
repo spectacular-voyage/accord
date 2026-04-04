@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
-import { toFileUrl } from "@std/path";
+import { join, toFileUrl } from "@std/path";
 import {
   ManifestLoadError,
   readManifestSource,
@@ -99,5 +99,26 @@ Deno.test("readManifestSource wraps JSON parse failures as ManifestLoadError", a
     );
   } finally {
     await Deno.remove(tempPath);
+  }
+});
+
+Deno.test("readManifestSource wraps manifest read failures as ManifestLoadError", async () => {
+  const tempDir = await Deno.makeTempDir();
+  const missingPath = join(tempDir, "missing-manifest.jsonld");
+
+  try {
+    const error = await assertRejects(
+      () => readManifestSource(missingPath),
+      ManifestLoadError,
+    );
+
+    assertEquals(error.code, "manifest_load_error");
+    assertEquals(error.message.includes(missingPath), true);
+    assertEquals(
+      error.message.includes("Failed to read JSON manifest document"),
+      true,
+    );
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
   }
 });

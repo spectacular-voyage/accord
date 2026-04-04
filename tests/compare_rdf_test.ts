@@ -1,8 +1,11 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import {
   compareRdfContent,
+  parseRdfContent,
   RdfCompareError,
 } from "../src/checker/compare_rdf.ts";
+import { createFileJsonLdDocumentContext } from "../src/jsonld/documents.ts";
+import { CHECK_CODES } from "../src/report/codes.ts";
 import * as rdfCanonize from "rdf-canonize";
 
 Deno.test("rdf-canonize canonizes equivalent blank-node datasets consistently", async () => {
@@ -82,6 +85,73 @@ Deno.test("compareRdfContent detects meaningful RDF graph changes", async () => 
   assertEquals(equal, false);
 });
 
+Deno.test("parseRdfContent loads JSON-LD RDF artifacts through local file contexts", async () => {
+  const datasetPath =
+    "testdata/repos/repo-rdf-jsonld/refs/r2-graph-v1-local-context/graph.jsonld";
+  const dataset = await Deno.readFile(datasetPath);
+
+  const quads = await parseRdfContent({
+    bytes: dataset,
+    path: "graph.jsonld",
+    documentContext: createTestJsonLdDocumentContext(datasetPath),
+  });
+
+  assertEquals(quads.length, 6);
+});
+
+Deno.test("compareRdfContent treats equivalent JSON-LD artifacts as equal", async () => {
+  const leftPath =
+    "testdata/repos/repo-rdf-jsonld/refs/r1-graph-v1-inline/graph.jsonld";
+  const rightPath =
+    "testdata/repos/repo-rdf-jsonld/refs/r2-graph-v1-local-context/graph.jsonld";
+  const left = await Deno.readFile(leftPath);
+  const right = await Deno.readFile(rightPath);
+
+  const equal = await compareRdfContent({
+    left,
+    right,
+    path: "graph.jsonld",
+    leftDocumentContext: createTestJsonLdDocumentContext(leftPath),
+    rightDocumentContext: createTestJsonLdDocumentContext(rightPath),
+  });
+
+  assertEquals(equal, true);
+});
+
+Deno.test("compareRdfContent rejects disallowed remote JSON-LD contexts", async () => {
+  const leftPath =
+    "testdata/repos/repo-rdf-jsonld/refs/r1-graph-v1-inline/graph.jsonld";
+  const rightPath =
+    "testdata/repos/repo-rdf-jsonld/refs/r5-graph-remote-context/graph.jsonld";
+  const left = await Deno.readFile(leftPath);
+  const right = await Deno.readFile(rightPath);
+
+  try {
+    await compareRdfContent({
+      left,
+      right,
+      path: "graph.jsonld",
+      leftDocumentContext: createTestJsonLdDocumentContext(leftPath),
+      rightDocumentContext: createTestJsonLdDocumentContext(rightPath),
+    });
+  } catch (error) {
+    assertEquals(error instanceof RdfCompareError, true);
+
+    if (!(error instanceof RdfCompareError)) {
+      throw error;
+    }
+
+    assertEquals(
+      error.message.includes("Remote JSON-LD context is not allowlisted"),
+      true,
+    );
+    assertEquals(error.code, CHECK_CODES.REMOTE_CONTEXT_DISALLOWED);
+    return;
+  }
+
+  throw new Error("Expected compareRdfContent to reject the remote context.");
+});
+
 Deno.test("compareRdfContent reports RDF parse errors", async () => {
   const left = await Deno.readFile(
     "testdata/repos/repo-rdf/refs/r1-graph-v1/graph.ttl",
@@ -101,3 +171,11 @@ Deno.test("compareRdfContent reports RDF parse errors", async () => {
     "Failed to parse RDF input",
   );
 });
+
+function createTestJsonLdDocumentContext(documentPath: string) {
+  return createFileJsonLdDocumentContext(
+    documentPath,
+    (code, message) => new RdfCompareError(code, message),
+    CHECK_CODES.RDF_PARSE_ERROR,
+  );
+}

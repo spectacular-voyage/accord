@@ -1,5 +1,6 @@
 import { QueryEngine } from "@comunica/query-sparql";
 import { Store } from "n3";
+import { JsonLdDocumentContext } from "../jsonld/documents.ts";
 import { CHECK_CODES, CheckCode } from "../report/codes.ts";
 import { parseRdfContent, RdfCompareError } from "./compare_rdf.ts";
 
@@ -19,17 +20,21 @@ export interface RunAskAssertionOptions {
   dataset: Uint8Array;
   path: string;
   query: string;
+  documentContext?: JsonLdDocumentContext;
 }
 
 export async function runAskAssertion(
   options: RunAskAssertionOptions,
 ): Promise<boolean> {
-  const store = new Store(parseRdfContent({
-    bytes: options.dataset,
-    path: options.path,
-  }));
-
   try {
+    const store = new Store(
+      await parseRdfContent({
+        bytes: options.dataset,
+        path: options.path,
+        documentContext: options.documentContext,
+      }),
+    );
+
     return await queryEngine.queryBoolean(options.query, {
       sources: [store],
     });

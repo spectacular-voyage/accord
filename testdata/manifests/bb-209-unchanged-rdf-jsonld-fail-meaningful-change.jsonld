@@ -1,0 +1,46 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-209-unchanged-rdf-jsonld-fail-meaningful-change",
+  "dcterms:title": "bb-209 unchanged RDF JSON-LD fail meaningful change",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#unchanged-rdf-jsonld-changed-case",
+      "fixtureRepo": "testdata/repos/repo-rdf-jsonld",
+      "operationId": "test.unchangedRdfJsonldChanged",
+      "fromRef": "r1-graph-v1-inline",
+      "toRef": "r3-graph-v2-local-context",
+      "hasFileExpectation": [
+        {
+          "id": "#graph-file",
+          "type": "FileExpectation",
+          "path": "graph.jsonld",
+          "changeType": "unchanged",
+          "compareMode": "rdfCanonical"
+        }
+      ],
+      "hasRdfExpectation": [
+        {
+          "id": "#graph-rdf",
+          "type": "RdfExpectation",
+          "targetsFileExpectation": "#graph-file"
+        }
+      ]
+    }
+  ]
+}

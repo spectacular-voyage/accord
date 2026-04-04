@@ -41,6 +41,12 @@ const executableScenarioIds = [
   "bb-205-sparql-ask-true-pass",
   "bb-206-sparql-ask-false-pass",
   "bb-207-sparql-ask-mismatch-fail",
+  "bb-208-unchanged-rdf-jsonld-pass-equivalent-serialization",
+  "bb-209-unchanged-rdf-jsonld-fail-meaningful-change",
+  "bb-210-sparql-ask-jsonld-true-pass",
+  "bb-211-sparql-ask-jsonld-mismatch-fail",
+  "bb-212-rdf-jsonld-remote-context-error",
+  "bb-213-rdf-jsonld-parse-error",
   "bb-301-json-report-shape",
   "bb-302-text-report-smoke",
 ] as const;

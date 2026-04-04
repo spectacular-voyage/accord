@@ -1,0 +1,28 @@
+{
+  "@context": {
+    "id": "@id",
+    "type": "@type",
+    "dcterms": "http://purl.org/dc/terms/",
+    "ex": "https://example.test/",
+    "knows": {
+      "@id": "ex:knows",
+      "@type": "@id"
+    },
+    "name": "ex:name",
+    "updated": "dcterms:updated"
+  },
+  "@graph": [
+    {
+      "id": "ex:alice",
+      "type": "ex:Person",
+      "knows": "ex:bob",
+      "name": "Alice",
+      "updated": "2026-04-03T00:00:00Z"
+    },
+    {
+      "id": "ex:bob",
+      "type": "ex:Person",
+      "name": "Bob"
+    }
+  ]
+}

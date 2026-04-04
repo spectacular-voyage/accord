@@ -1,7 +1,15 @@
 import { extname } from "@std/path";
+import jsonld from "jsonld";
 import { Parser, Writer } from "n3";
 import type { Quad } from "n3";
 import * as rdfCanonize from "rdf-canonize";
+import {
+  assertContextReferencesAllowed,
+  createSyntheticJsonLdDocumentUrl,
+  getTopLevelContext,
+  JsonLdDocumentContext,
+  parseJsonSource,
+} from "../jsonld/documents.ts";
 import { CHECK_CODES, CheckCode } from "../report/codes.ts";
 
 export class RdfCompareError extends Error {
@@ -19,11 +27,14 @@ export interface CompareRdfContentOptions {
   right: Uint8Array;
   path: string;
   ignorePredicates?: string[];
+  leftDocumentContext?: JsonLdDocumentContext;
+  rightDocumentContext?: JsonLdDocumentContext;
 }
 
 export interface ParseRdfContentOptions {
   bytes: Uint8Array;
   path: string;
+  documentContext?: JsonLdDocumentContext;
 }
 
 export async function compareRdfContent(
@@ -33,26 +44,35 @@ export async function compareRdfContent(
     options.left,
     options.path,
     options.ignorePredicates,
+    options.leftDocumentContext,
   );
   const rightNQuads = await canonicalizeRdf(
     options.right,
     options.path,
     options.ignorePredicates,
+    options.rightDocumentContext,
   );
   return leftNQuads === rightNQuads;
 }
 
-export function parseRdfContent(
+export async function parseRdfContent(
   options: ParseRdfContentOptions,
-): Quad[] {
+): Promise<Quad[]> {
   const format = detectRdfSyntax(options.path);
+
+  if (format === "application/ld+json") {
+    return await parseJsonLdRdf(options);
+  }
+
   const text = decodeRdfText(options.bytes);
-  return parseRdf(text, format, options.path);
+  return parseRdf(
+    text,
+    format,
+    options.documentContext?.documentUrl ??
+      createSyntheticJsonLdDocumentUrl(options.path),
+  );
 }
 
-// v1 intentionally limits RDF assertions to syntaxes parsed directly by n3.
-// JSON-LD manifest loading follows a different code path, and RDF/XML or
-// JSON-LD graph assertions would require a different RDF parser integration.
 export function detectRdfSyntax(path: string): string {
   switch (extname(path).toLowerCase()) {
     case ".ttl":
@@ -63,6 +83,8 @@ export function detectRdfSyntax(path: string): string {
       return "application/n-quads";
     case ".trig":
       return "application/trig";
+    case ".jsonld":
+      return "application/ld+json";
     default:
       throw new RdfCompareError(
         CHECK_CODES.RDF_PARSE_ERROR,
@@ -75,8 +97,9 @@ async function canonicalizeRdf(
   bytes: Uint8Array,
   path: string,
   ignorePredicates: string[] = [],
+  documentContext?: JsonLdDocumentContext,
 ): Promise<string> {
-  const quads = parseRdfContent({ bytes, path });
+  const quads = await parseRdfContent({ bytes, path, documentContext });
   const filteredQuads = filterQuadsByPredicate(quads, ignorePredicates);
   const nquads = await writeNQuads(filteredQuads);
 
@@ -106,11 +129,50 @@ function decodeRdfText(bytes: Uint8Array): string {
   }
 }
 
-function parseRdf(text: string, format: string, path: string): Quad[] {
+async function parseJsonLdRdf(
+  options: ParseRdfContentOptions,
+): Promise<Quad[]> {
+  const documentUrl = options.documentContext?.documentUrl ??
+    createSyntheticJsonLdDocumentUrl(options.path);
+  const rawDocument = parseJsonSource(
+    decodeRdfText(options.bytes),
+    options.path,
+    documentUrl,
+    createRdfCompareError,
+    CHECK_CODES.RDF_PARSE_ERROR,
+  );
+  assertContextReferencesAllowed(
+    getTopLevelContext(rawDocument),
+    createRdfCompareError,
+  );
+
+  try {
+    const nquads = await jsonld.toRDF(rawDocument, {
+      base: documentUrl,
+      safe: true,
+      format: "application/n-quads",
+      documentLoader: options.documentContext?.documentLoader ??
+        createInlineJsonLdDocumentLoader(),
+    });
+    return parseRdf(nquads, "application/n-quads", documentUrl);
+  } catch (error) {
+    if (error instanceof RdfCompareError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new RdfCompareError(
+      CHECK_CODES.RDF_PARSE_ERROR,
+      `Failed to parse JSON-LD RDF input: ${message}`,
+    );
+  }
+}
+
+function parseRdf(text: string, format: string, baseIri: string): Quad[] {
   try {
     return new Parser({
       format,
-      baseIRI: `accord://input/${encodeURIComponent(path)}`,
+      baseIRI: baseIri,
     }).parse(text);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -119,6 +181,26 @@ function parseRdf(text: string, format: string, path: string): Quad[] {
       `Failed to parse RDF input: ${message}`,
     );
   }
+}
+
+function createInlineJsonLdDocumentLoader() {
+  return (url: string) => {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return Promise.reject(
+        new RdfCompareError(
+          CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
+          `Remote JSON-LD context is not allowlisted: ${url}`,
+        ),
+      );
+    }
+
+    return Promise.reject(
+      new RdfCompareError(
+        CHECK_CODES.RDF_PARSE_ERROR,
+        `Unsupported JSON-LD document URL: ${url}`,
+      ),
+    );
+  };
 }
 
 function filterQuadsByPredicate(
@@ -154,4 +236,8 @@ async function writeNQuads(
       resolve(result);
     });
   });
+}
+
+function createRdfCompareError(code: CheckCode, message: string): Error {
+  return new RdfCompareError(code, message);
 }

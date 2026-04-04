@@ -288,6 +288,90 @@
       ]
     },
     {
+      "id": "bb-208-unchanged-rdf-jsonld-pass-equivalent-serialization",
+      "manifestPath": "testdata/manifests/bb-208-unchanged-rdf-jsonld-pass-equivalent-serialization.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-209-unchanged-rdf-jsonld-fail-meaningful-change",
+      "manifestPath": "testdata/manifests/bb-209-unchanged-rdf-jsonld-fail-meaningful-change.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "rdf_graph_mismatch"
+      ]
+    },
+    {
+      "id": "bb-210-sparql-ask-jsonld-true-pass",
+      "manifestPath": "testdata/manifests/bb-210-sparql-ask-jsonld-true-pass.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-211-sparql-ask-jsonld-mismatch-fail",
+      "manifestPath": "testdata/manifests/bb-211-sparql-ask-jsonld-mismatch-fail.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "sparql_ask_mismatch"
+      ]
+    },
+    {
+      "id": "bb-212-rdf-jsonld-remote-context-error",
+      "manifestPath": "testdata/manifests/bb-212-rdf-jsonld-remote-context-error.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "remote_context_disallowed"
+      ]
+    },
+    {
+      "id": "bb-213-rdf-jsonld-parse-error",
+      "manifestPath": "testdata/manifests/bb-213-rdf-jsonld-parse-error.jsonld",
+      "repoId": "repo-rdf-jsonld",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "rdf_parse_error"
+      ]
+    },
+    {
       "id": "bb-301-json-report-shape",
       "manifestPath": "testdata/manifests/bb-301-json-report-shape.jsonld",
       "repoId": "repo-files",

@@ -6,13 +6,13 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-
 jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Check out repository
@@ -37,6 +37,15 @@ jobs:
 
       - name: Generate coverage artifacts
         run: deno task coverage:lcov
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          disable_search: true
+          fail_ci_if_error: false
+          files: coverage/lcov.info
+          use_oidc: true
+          verbose: true
 
       - name: Upload coverage artifacts
         if: ${{ always() }}

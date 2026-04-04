@@ -1,0 +1,30 @@
+{
+  "id": "repo-rdf-jsonld",
+  "refs": [
+    {
+      "name": "r0-empty",
+      "empty": true,
+      "description": "No tracked files."
+    },
+    {
+      "name": "r1-graph-v1-inline",
+      "description": "Baseline RDF graph authored as JSON-LD with an inline context."
+    },
+    {
+      "name": "r2-graph-v1-local-context",
+      "description": "Equivalent RDF graph authored as JSON-LD with a local file context."
+    },
+    {
+      "name": "r3-graph-v2-local-context",
+      "description": "Meaningfully changed RDF graph authored as JSON-LD with a local file context."
+    },
+    {
+      "name": "r4-graph-invalid",
+      "description": "Invalid JSON-LD document."
+    },
+    {
+      "name": "r5-graph-remote-context",
+      "description": "JSON-LD document that references a disallowed remote context."
+    }
+  ]
+}
