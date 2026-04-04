@@ -8,7 +8,7 @@ created: 1775226153524
 
 ## Purpose
 
-This note defines the behavioral specification for the first Accord CLI checker described in [[ac.task.2026.2026-04-03-accord-cli]].
+This note defines the behavioral specification for the first Accord CLI checker described in [[ac.completed.2026.2026-04-03-accord-cli]].
 
 The task note should remain the planning and execution artifact. This note should carry the normative checker behavior that later black-box functional tests can target directly.
 

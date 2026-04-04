@@ -34,7 +34,7 @@ The main remaining work for this task is now follow-up rather than first-use sca
 
 The behavioral specification for the checker now lives in [[ac.spec.2026.2026-04-03-accord-cli]]. This task note should stay focused on planning, implementation, and follow-up decisions.
 
-JSON-LD support for manifests is part of this task and is done. JSON-LD support for RDF artifact files under `rdfCanonical` and SPARQL `ASK` has been split into [[ac.task.2026.2026-04-03-jsonld-support]] so that follow-up can be scoped and reviewed separately.
+JSON-LD support for manifests is part of this task and is done. JSON-LD support for RDF artifact files under `rdfCanonical` and SPARQL `ASK` has been split into [[ac.completed.2026.2026-04-03-jsonld-support]] so that follow-up can be scoped and reviewed separately.
 
 The first likely command is:
 
@@ -128,7 +128,7 @@ For RDF execution, the promising Deno-first split is:
 
 The last point matters. `ASK` is already viable with Deno plus `n3` plus `Comunica`, but robust RDF canonical comparison is the harder part, especially once blank nodes matter.
 
-At this point, both RDF canonical comparison and SPARQL `ASK` execution are implemented for the existing `n3`-parsed RDF syntaxes and for `.jsonld` RDF artifacts. The JSON-LD RDF artifact work is recorded in [[ac.task.2026.2026-04-03-jsonld-support]].
+At this point, both RDF canonical comparison and SPARQL `ASK` execution are implemented for the existing `n3`-parsed RDF syntaxes and for `.jsonld` RDF artifacts. The JSON-LD RDF artifact work is recorded in [[ac.completed.2026.2026-04-03-jsonld-support]].
 
 ### Proposed code layout
 
@@ -175,7 +175,7 @@ The first Accord CLI should stay flatter than Kato. The current recommended layo
 - `json` compare mode is explicitly out of scope for the first checker until a real manifest requires it.
 - Keep SHACL and manifest execution conceptually separate; full SHACL validation should not block the first `accord check` implementation.
 - If SHACL preflight is added later, keep it as a separate command surface such as `accord validate` rather than silently folding it into `accord check`.
-- Keep JSON-LD manifest support in the main checker scope, and record JSON-LD RDF artifact support separately in [[ac.task.2026.2026-04-03-jsonld-support]].
+- Keep JSON-LD manifest support in the main checker scope, and record JSON-LD RDF artifact support separately in [[ac.completed.2026.2026-04-03-jsonld-support]].
 - Support `.jsonld` RDF artifacts through a real JSON-LD-to-quads ingestion layer while keeping RDF/XML out of scope until a separate parser path is justified.
 - Prefer fixing malformed fixture RDF in `mesh-alice-bio` over teaching Accord to coerce bad IRIs implicitly.
 

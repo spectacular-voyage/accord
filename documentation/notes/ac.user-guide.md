@@ -189,5 +189,5 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 ## Where to look next
 
 - [[ac.spec.2026.2026-04-03-accord-cli]] for the normative checker behavior
-- [[ac.task.2026.2026-04-03-accord-cli]] for implementation status and remaining work
-- [[ac.task.2026.2026-04-03-jsonld-support]] for the JSON-LD RDF artifact implementation record and remaining format follow-up
+- [[ac.completed.2026.2026-04-03-accord-cli]] for implementation status and remaining work
+- [[ac.completed.2026.2026-04-03-jsonld-support]] for the JSON-LD RDF artifact implementation record and remaining format follow-up

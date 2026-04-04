@@ -46,7 +46,7 @@ The cleaner split is:
 - `accord check` answers whether the selected case conforms to the named fixture transition
 - `accord validate` answers whether the manifest itself is structurally valid against Accord’s authoring constraints
 
-That also matches the current repository direction in `README.md` and [[ac.task.2026.2026-04-03-accord-cli]], both of which already lean toward keeping SHACL separate from the execution checker.
+That also matches the current repository direction in `README.md` and [[ac.completed.2026.2026-04-03-accord-cli]], both of which already lean toward keeping SHACL separate from the execution checker.
 
 ### Current shapes-graph reality
 

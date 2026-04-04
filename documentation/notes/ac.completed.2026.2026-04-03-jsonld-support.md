@@ -27,7 +27,7 @@ For `.jsonld`, the parser path now comes from `jsonld.js`, not from `n3`.
 
 ## Why This Is Separate From The Existing CLI Task
 
-[[ac.task.2026.2026-04-03-accord-cli]] intentionally scoped the first usable checker to the formats the current corpus actually exercises. That let the first implementation land without pretending that JSON-LD RDF ingestion was "just another file extension."
+[[ac.completed.2026.2026-04-03-accord-cli]] intentionally scoped the first usable checker to the formats the current corpus actually exercises. That let the first implementation land without pretending that JSON-LD RDF ingestion was "just another file extension."
 
 Adding `.jsonld` support is a real feature, not a MIME mapping tweak. Doing it correctly requires:
 

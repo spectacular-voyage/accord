@@ -17,8 +17,8 @@ Accord is currently a thin Deno CLI checker centered on `accord check`. Developm
 When changing behavior, keep these notes aligned:
 
 - [[ac.spec.2026.2026-04-03-accord-cli]] is the normative checker spec
-- [[ac.task.2026.2026-04-03-accord-cli]] tracks implementation status and remaining work
-- [[ac.task.2026.2026-04-03-jsonld-support]] records the JSON-LD RDF artifact implementation and remaining format follow-up in that area
+- [[ac.completed.2026.2026-04-03-accord-cli]] tracks implementation status and remaining work
+- [[ac.completed.2026.2026-04-03-jsonld-support]] records the JSON-LD RDF artifact implementation and remaining format follow-up in that area
 - [[ac.task.2026.2026-04-03-accord-ci]] tracks CI, PR, and release-process follow-up work
 
 If runtime behavior changes and the spec is affected, update the spec and then the relevant task note. Do not let code drift away from the documented checker contract.
