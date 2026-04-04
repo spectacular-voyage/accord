@@ -2,7 +2,7 @@
 id: 1lk0vc8sqw74hen1v35ud8n
 title: 2026 04 03 Jsonld Support
 desc: ''
-updated: 1775260157487
+updated: 1775261702598
 created: 1775236929174
 ---
 
@@ -186,7 +186,7 @@ explicitly says remote http/https contexts are hard-rejected and that local
 contexts for checked `.jsonld` artifacts are loaded from the same checked ref.
 
 In `@src/checker/compare_rdf.ts`:
-- [c] Around line 186-200: The inline JSON-LD document loader function
+- [x] Around line 186-200: The inline JSON-LD document loader function
 createInlineJsonLdDocumentLoader is declared async but contains no await; remove
 the unnecessary async so the returned loader is a synchronous function (change
 "return async (url: string) => { ... }" to "return (url: string) => { ... }"),
@@ -262,3 +262,52 @@ existing message check), and assert error.code ===
 CHECK_CODES.REMOTE_CONTEXT_DISALLOWED; refer to compareRdfContent,
 RdfCompareError, and CHECK_CODES.REMOTE_CONTEXT_DISALLOWED to locate the
 relevant symbols.
+
+## coderabbit round 2
+
+Verify each finding against the current code and only fix it if needed.
+
+Inline comments:
+In `@src/jsonld/documents.ts`:
+- [x] Around line 161-184: The current try-catch around both Deno.readTextFile and
+loadJsonDocumentFromText in loadJsonDocumentFromFileUrl causes JSON parse errors
+(from parseJsonSource via loadJsonDocumentFromText) to be re-wrapped as "Failed
+to read" errors; change the structure so only the file read is caught: call
+Deno.readTextFile inside a small try-catch that throws the loadErrorCode-wrapped
+error on read failure, then call loadJsonDocumentFromText outside that catch so
+any parse errors propagate unchanged (or are handled by their own errorFactory)
+— refer to loadJsonDocumentFromFileUrl, Deno.readTextFile, and
+loadJsonDocumentFromText to locate the code to modify. This is worth doing because parse failures are currently mislabeled as read failures.
+
+In `@tests/jsonld_documents_test.ts`:
+- [x] Around line 1-6: Remove the unused import JsonLdErrorFactory from the import
+statement in tests/jsonld_documents_test.ts; update the import that currently
+reads "import { assertContextReferencesAllowed, JsonLdErrorFactory } from
+'../src/jsonld/documents.ts'" to only import the used symbol(s) (e.g.,
+assertContextReferencesAllowed) so the test no longer imports the unused
+JsonLdErrorFactory. This is a safe cleanup and should be done with the behavior change.
+
+---
+
+Outside diff comments:
+In `@documentation/notes/ac.user-guide.md`:
+- [x] Around line 37-44: Update the manifest context policy wording so it matches
+the artifact section: replace the phrase "rejected unless explicitly allowlisted
+in the implementation" with the consistent statement that remote contexts
+(http/https) are "rejected today" and remove any mention of an allowlist; ensure
+both the "manifest input" paragraph (the block describing inline/local/remote
+contexts) and the "artifact" section use identical wording about remote contexts
+being rejected to accurately reflect the current implementation. This is a real documentation mismatch and should be fixed.
+
+---
+
+Nitpick comments:
+In `@tests/compare_rdf_test.ts`:
+- [c] Around line 121-153: Replace the manual try/catch in the test with
+assertRejects to simplify and match other tests: call assertRejects(() =>
+compareRdfContent({...})) and in the rejection handler assert that the thrown
+value is an instance of RdfCompareError, that error.code ===
+CHECK_CODES.REMOTE_CONTEXT_DISALLOWED, and that error.message includes "Remote
+JSON-LD context is not allowlisted"; keep using createTestJsonLdDocumentContext
+for leftDocumentContext/rightDocumentContext and preserve the same inputs to
+compareRdfContent. This is mostly stylistic churn; the current test already checks the type, code, and message clearly enough.

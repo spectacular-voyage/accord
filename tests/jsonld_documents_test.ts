@@ -1,7 +1,7 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import {
   assertContextReferencesAllowed,
-  JsonLdErrorFactory,
+  createFileJsonLdDocumentContext,
 } from "../src/jsonld/documents.ts";
 import { CHECK_CODES, CheckCode } from "../src/report/codes.ts";
 
@@ -60,6 +60,36 @@ Deno.test("assertContextReferencesAllowed does not reject ordinary remote IRIs i
     },
     createTestJsonLdError,
   );
+});
+
+Deno.test("createFileJsonLdDocumentContext preserves JSON parse failures from local file loads", async () => {
+  const tempPath = await Deno.makeTempFile({ suffix: ".jsonld" });
+
+  try {
+    await Deno.writeTextFile(tempPath, "{ invalid json");
+
+    const documentContext = createFileJsonLdDocumentContext(
+      tempPath,
+      createTestJsonLdError,
+      CHECK_CODES.RDF_PARSE_ERROR,
+    );
+    const error = await assertRejects(
+      () => documentContext.documentLoader(documentContext.documentUrl),
+      TestJsonLdError,
+    );
+
+    assertEquals(error.code, CHECK_CODES.RDF_PARSE_ERROR);
+    assertEquals(
+      error.message.includes("Failed to parse JSON document"),
+      true,
+    );
+    assertEquals(
+      error.message.includes("Failed to read JSON document"),
+      false,
+    );
+  } finally {
+    await Deno.remove(tempPath);
+  }
 });
 
 function createTestJsonLdError(code: CheckCode, message: string): Error {

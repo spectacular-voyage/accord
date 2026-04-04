@@ -40,7 +40,7 @@ That means:
 
 - inline contexts are supported
 - local file contexts are supported
-- arbitrary remote contexts are rejected unless explicitly allowlisted in the implementation
+- remote `http` and `https` JSON-LD contexts are rejected today
 
 ### Fixture repository
 

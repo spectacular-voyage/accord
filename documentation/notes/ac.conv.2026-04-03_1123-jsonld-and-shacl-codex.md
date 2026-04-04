@@ -259,3 +259,117 @@ Sources:
 - `rdf-validate-shacl`: https://github.com/zazuko/rdf-validate-shacl and https://raw.githubusercontent.com/zazuko/rdf-validate-shacl/master/packages/shacl/README.md
 - `shacl-engine`: https://github.com/rdf-ext/shacl-engine
 - `shacl-processor-ts`: https://github.com/rdf-connect/shacl-processor-ts and https://raw.githubusercontent.com/rdf-connect/shacl-processor-ts/main/README.md
+
+# User_2026-04-03_1715_47
+
+okay, another round of coderabbit comments under "coderabbit round 2", please do the same checkboxes+analysis
+
+# gpt-5.4_2026-04-03_1715_57
+
+I’m reading the new `coderabbit round 2` section and the referenced code paths first so the checkboxes reflect actual triage, not blind acceptance of review comments.
+
+# gpt-5.4_2026-04-03_1716_05
+
+I’ve got the new review items. I’m checking the referenced code and docs now so I can mark what is actually actionable versus redundant or counterproductive.
+
+# gpt-5.4_2026-04-03_1716_21
+
+I’ve triaged the round-two comments. Three are real follow-up items, and the test-style suggestion looks like churn rather than an improvement, so I’m marking that one cancelled.
+
+# gpt-5.4_2026-04-03_1716_33
+
+The patch missed the exact wrapping in the note. I’m grabbing the round-two block verbatim and patching just that slice.
+
+# gpt-5.4_2026-04-03_1716_48
+
+The round-two section is updated. I’m checking the rendered block once so I can confirm the triage is readable and internally consistent.
+
+# gpt-5.4_2026-04-03_1716_54
+
+Updated the `coderabbit round 2` section in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md).
+
+I marked these as actionable `[ ]`:
+- narrow the `loadJsonDocumentFromFileUrl` catch so parse errors are not mislabeled as read errors
+- remove the unused `JsonLdErrorFactory` import in [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts)
+- align the manifest-context wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) with the actual hard-reject behavior
+
+I marked this as cancelled `[c]`:
+- rewriting the remote-context test to use `assertRejects`, because the current explicit try/catch already checks the type, code, and message clearly and the suggestion is mostly style churn
+
+No code changes or tests beyond the note edit.
+
+# User_2026-04-03_1719_23
+
+ok, implement please
+
+# gpt-5.4_2026-04-03_1719_33
+
+I’m implementing the round-two items that are actually worth doing: fix the JSON-LD file-loader error path, clean the unused import, and align the user-guide wording with the current hard-reject policy.
+
+# gpt-5.4_2026-04-03_1719_51
+
+I’m patching four places now: the loader catch boundary in `src/jsonld/documents.ts`, a focused regression test in `tests/jsonld_documents_test.ts`, the manifest wording in the user guide, and the round-two checklist state in the task note.
+
+# gpt-5.4_2026-04-03_1720_15
+
+The code changes are in. I’m formatting the touched TypeScript files and running the JSON-LD/manifest/RDF tests that cover this error path.
+
+# gpt-5.4_2026-04-03_1720_19
+
+The test run is still executing. I’m polling for the results rather than assuming the new parse-error regression test passed.
+
+# gpt-5.4_2026-04-03_1720_23
+
+The first test command failed for permission reasons, not because of the patch: these tests need env and temp-file access under Deno’s npm bridge. I’m rerunning the same coverage with `-A`.
+
+# gpt-5.4_2026-04-03_1720_35
+
+The targeted regression coverage is green. I’m checking the repo tasks once so I can decide whether a broader validation run is worth it or whether the focused test set is the right boundary here.
+
+# gpt-5.4_2026-04-03_1720_41
+
+The repo tasks exclude `documentation/notes`, so I can validate the code side cleanly without fighting markdown formatting. I’m running `lint` and `check` now.
+
+# gpt-5.4_2026-04-03_1720_50
+
+`lint` exposed one real branch-level problem outside the round-two scope: `src/checker/compare_rdf.ts` still has an `async` loader with no `await`, and Deno is treating it as a hard lint failure. I’m fixing that now so the branch validates cleanly instead of leaving a known red check behind.
+
+# gpt-5.4_2026-04-03_1720_57
+
+I’m applying the smallest safe fix for the lint failure: keep the inline loader non-`async`, but return rejected promises so the JSON-LD document-loader contract stays asynchronous.
+
+# gpt-5.4_2026-04-03_1721_07
+
+The lint fix is in. I’m reformatting that file and rerunning the repo validation tasks so I can close this out with a clean result instead of a partial one.
+
+# gpt-5.4_2026-04-03_1721_11
+
+`lint` is clean. I’m waiting on the full `check` and `test` tasks now; those are the last gates for this change set.
+
+# gpt-5.4_2026-04-03_1722_06
+
+Everything is green now: the round-two fixes passed, and the broader repo validation also came back clean after I fixed the lingering lint issue in `compare_rdf.ts`. I’m pulling the final diff/status so I can summarize exactly what changed.
+
+# gpt-5.4_2026-04-03_1722_17
+
+Implemented the actionable round-two items. In [documents.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/jsonld/documents.ts), local JSON-LD file loading now only wraps actual read failures, so JSON parse failures keep their correct `Failed to parse JSON document...` message instead of being mislabeled as read errors. In [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts), I removed the unused import and added a regression test for that parse-error path. I also aligned the manifest wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) with the current implementation: remote `http`/`https` JSON-LD contexts are rejected today.
+
+While validating the branch, `deno task lint` exposed a real existing issue in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts): the inline JSON-LD loader was `async` with no `await`. I fixed that by returning rejected promises instead, which keeps the async loader contract without tripping lint. I also updated the checklist state in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md) so the implemented items are marked `[x]`.
+
+Verification: `deno task lint`, `deno task check`, and `deno task test` all passed in `dependencies/github.com/spectacular-voyage/accord` (`69` tests).
+
+# User_2026-04-03_1722_55
+
+commit mesg
+
+# gpt-5.4_2026-04-03_1722_59
+
+```text
+fix(accord): preserve JSON-LD parse errors and align loader docs
+
+- keep local JSON-LD file loaders from rewrapping parse failures as read failures
+- add regression coverage for JSON-LD document-loader parse errors and remove the unused test import
+- align manifest JSON-LD context policy wording with the current hard-reject behavior for remote http/https contexts
+- remove the unnecessary async wrapper from the inline JSON-LD RDF document loader while preserving rejected-promise behavior
+- mark the verified coderabbit follow-up items in the JSON-LD support task note
+```

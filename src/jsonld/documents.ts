@@ -164,16 +164,10 @@ async function loadJsonDocumentFromFileUrl(
   loadErrorCode: CheckCode,
 ): Promise<LoadedJsonLdDocument> {
   const sourcePath = fromFileUrl(url);
+  let sourceText: string;
 
   try {
-    const sourceText = await Deno.readTextFile(sourcePath);
-    return loadJsonDocumentFromText({
-      sourceText,
-      sourcePath,
-      documentUrl: url,
-      errorFactory,
-      loadErrorCode,
-    });
+    sourceText = await Deno.readTextFile(sourcePath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw errorFactory(
@@ -181,6 +175,14 @@ async function loadJsonDocumentFromFileUrl(
       `Failed to read JSON document at ${sourcePath} (${url}): ${message}`,
     );
   }
+
+  return loadJsonDocumentFromText({
+    sourceText,
+    sourcePath,
+    documentUrl: url,
+    errorFactory,
+    loadErrorCode,
+  });
 }
 
 function loadJsonDocumentFromText(

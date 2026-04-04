@@ -184,17 +184,21 @@ function parseRdf(text: string, format: string, baseIri: string): Quad[] {
 }
 
 function createInlineJsonLdDocumentLoader() {
-  return async (url: string) => {
+  return (url: string) => {
     if (url.startsWith("http://") || url.startsWith("https://")) {
-      throw new RdfCompareError(
-        CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
-        `Remote JSON-LD context is not allowlisted: ${url}`,
+      return Promise.reject(
+        new RdfCompareError(
+          CHECK_CODES.REMOTE_CONTEXT_DISALLOWED,
+          `Remote JSON-LD context is not allowlisted: ${url}`,
+        ),
       );
     }
 
-    throw new RdfCompareError(
-      CHECK_CODES.RDF_PARSE_ERROR,
-      `Unsupported JSON-LD document URL: ${url}`,
+    return Promise.reject(
+      new RdfCompareError(
+        CHECK_CODES.RDF_PARSE_ERROR,
+        `Unsupported JSON-LD document URL: ${url}`,
+      ),
     );
   };
 }
