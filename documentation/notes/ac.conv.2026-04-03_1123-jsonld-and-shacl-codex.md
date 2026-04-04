@@ -192,3 +192,70 @@ fix(accord): harden JSON-LD loader and error-path handling
 - tighten JSON-LD remote-context tests and add direct coverage for manifest read errors and context-validation edge cases
 - correct the user-guide wording to reflect the current hard-reject policy for remote http/https JSON-LD contexts
 ```
+
+# User_2026-04-03_1701_26
+
+Anything else on this branch? You don't want to do the SHACL preflight? I mean, we would probably just warn anyhow. But yeah, we would need a javascript/typescript SHACL validator. One of these?
+
+rdf-validate-shacl (Zazuko): Currently one of the most active and modern implementations. It is a fork of the original shacl-js adapted to work with the RDF/JS standard. It supports SHACL Core but does not support SHACL-SPARQL constraints.
+
+shacl-engine (RDF-Ext): A high-performance SHACL engine designed for data provided as RDF/JS objects. It powers various client-side tools and can be used in both the browser and Node.js.
+
+shacl-processor-ts: A TypeScript-based library specifically for validating RDF data streams using SHACL.
+
+Fill in [ac.task.2026.2026-04-03-shacl-validation.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-shacl-validation.md) please.
+
+# gpt-5.4_2026-04-03_1701_40
+
+I’m checking the current SHACL task note, the Accord guidance, and the branch state first. Then I’ll verify the SHACL library options against their primary sources before I rewrite the note.
+
+# gpt-5.4_2026-04-03_1701_46
+
+I have the local structure. Next I’m checking the existing SHACL references in Accord and then validating the candidate libraries against their primary sources before I draft the task note.
+
+# gpt-5.4_2026-04-03_1702_25
+
+The key question is whether Accord’s own shapes already rely on `sh:sparql`. I’m checking `accord-shacl.ttl` now, because that determines whether a Core-only validator is even a serious option.
+
+# gpt-5.4_2026-04-03_1703_15
+
+I’ve got enough context to draft the task note. The main technical constraint is now clear: Accord’s own shapes already use `sh:sparql`, so a Core-only validator is not a real fit for the current shapes graph.
+
+# gpt-5.4_2026-04-03_1704_05
+
+I’m checking the current SHACL task note against the existing Accord CLI guidance and the actual shapes file, then I’ll draft the note around the command surface and validator choice rather than guessing.
+
+# gpt-5.4_2026-04-03_1704_07
+
+I’ve confirmed the current shapes graph uses `sh:sparql`, so a Core-only library is not a clean fit. I’m checking the validator projects’ current stated scope before I lock the recommendation into the task note.
+
+# gpt-5.4_2026-04-03_1704_21
+
+The validator choice is narrowing cleanly: current Accord shapes need `sh:sparql`, which makes `rdf-validate-shacl` a mismatch unless we first rewrite the shapes. I’m drafting the note around a separate `accord validate` command and using `shacl-engine` as the first spike candidate.
+
+# gpt-5.4_2026-04-03_1704_55
+
+I’m editing the task note now. The main call I’m making is that SHACL validation should be a separate `accord validate` path with failing results by default, not a warning-only preflight bolted onto `accord check`.
+
+# gpt-5.4_2026-04-03_1705_30
+
+The patch missed the exact template spacing. I’m re-reading the stub and applying the note in one clean replacement so I don’t fight the formatter.
+
+# gpt-5.4_2026-04-03_1706_10
+
+The note is in place. I’m giving it one pass for tone and consistency with the existing CLI docs, then I’ll summarize the branch-level recommendation and the other changes I still see in git.
+
+# gpt-5.4_2026-04-03_1706_15
+
+I’ve finished the note. I’m checking git status one more time so I can answer your “anything else on this branch?” question precisely instead of hand-waving.
+
+# gpt-5.4_2026-04-03_1706_29
+
+Filled in [ac.task.2026.2026-04-03-shacl-validation.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-shacl-validation.md) with the recommendation I’d actually stand behind: do not bolt SHACL onto `accord check` as warning-only preflight. The note now argues for a separate `accord validate <manifest>` command, failing by default, because the current [accord-shacl.ttl](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/accord-shacl.ttl) already uses `sh:sparql`, so a Core-only validator would not reflect the real shapes graph.
+
+I also answered the library question in the note: `shacl-engine` is the first spike candidate; `rdf-validate-shacl` is a mismatch for current Accord unless the shapes are rewritten; `shacl-processor-ts` looks more pipeline-oriented, which I called out as an inference from its documented surface. On this branch, besides the new SHACL task note, git still shows changes in `.github/workflows/ci.yml`, [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md), and the conversation note. No tests ran because this was a note-only edit.
+
+Sources:
+- `rdf-validate-shacl`: https://github.com/zazuko/rdf-validate-shacl and https://raw.githubusercontent.com/zazuko/rdf-validate-shacl/master/packages/shacl/README.md
+- `shacl-engine`: https://github.com/rdf-ext/shacl-engine
+- `shacl-processor-ts`: https://github.com/rdf-connect/shacl-processor-ts and https://raw.githubusercontent.com/rdf-connect/shacl-processor-ts/main/README.md

@@ -45,6 +45,17 @@ Add GitHub CodeQL after the PR baseline is stable.
 
 Current recommendation: start with GitHub CodeQL default setup rather than a custom workflow unless `accord` soon needs query customization or nonstandard build steps. This repository is currently simple enough that default setup should be lower-maintenance and less brittle.
 
+For `spectacular-voyage/accord`, the practical path is:
+
+1. open the repository on GitHub
+2. go to `Settings` -> `Security` -> `Advanced Security`
+3. beside `CodeQL analysis`, choose `Set up` -> `Default`
+4. keep the auto-detected language set unless there is a concrete reason to narrow it
+5. click `Enable CodeQL`
+6. review the first scan results and dismiss or fix any obvious false positives before treating alerts as strong policy signals
+
+If this is done on a fork, GitHub Actions may need to be explicitly enabled on that fork first.
+
 If we later need repo-as-code control, we can replace default setup with `.github/workflows/codeql.yml`.
 
 ### Phase 3: Dependency Vulnerability Scanning
@@ -73,9 +84,16 @@ Preferred sequence:
 Default assumption for Accord:
 
 - use the standard Codecov upload action
-- do not assume OIDC is required
+- prefer the existing Kato-style OIDC upload path over repository-token setup unless there is a concrete reason not to
 - do not assume Codecov test-results features are needed
-- prefer the ordinary repository onboarding path and only add extra auth or product features if a real need appears
+- prefer the ordinary repository onboarding path and only add extra Codecov features if a real need appears
+
+Current practical guidance:
+
+- keep generating `coverage/lcov.info` in CI
+- onboard the repository in Codecov
+- mirror Kato's GitHub Actions pattern by granting `id-token: write` and using `use_oidc: true`
+- upload only `coverage/lcov.info` first; do not add extra Codecov configuration until the baseline report is visible and useful
 
 Codecov should not be the first CI feature added. Failing PR validation and code scanning are more important than a coverage dashboard during early bring-up.
 
@@ -126,21 +144,36 @@ reviews:
 - use CodeRabbit for PR review, but do not let it replace ordinary branch protection and human review expectations
 - commit a minimal `.coderabbit.yaml` so `ac.conv.*` and `ac.completed.*` notes are excluded from review noise
 - prefer GitHub CodeQL default setup first; only move to workflow-based advanced setup if a real need appears
-- prefer the simplest Codecov integration path first rather than assuming OIDC or test-results features
+- prefer the existing Kato-style Codecov OIDC integration rather than adding a repository token by default
 - defer npm release automation until the package shape is explicit
 
 ## Open Questions
 
-- if Codecov is enabled, does the repository/account setup require a token, or is the standard unified upload flow sufficient as-is?
 - do we want OSV-Scanner findings to block PRs immediately, or report first and gate later?
 - when `accord` becomes npm-installable, do we want a pure CLI package, a library package, or a combined package with `bin`
 
-## Next Step
+## Next Steps
 
-Implement Phase 1 first:
+Finish the GitHub-side setup that is still outside the repository, then turn on the next layer:
 
-1. add `ci.yml`
-2. install CodeRabbit
-3. enable branch protection
+1. verify CodeRabbit is installed for `spectacular-voyage/accord`
+2. enable branch protection for `main` and require `ci`
+3. enable GitHub CodeQL default setup
+4. onboard Codecov and verify the Kato-style OIDC upload succeeds for `accord`
 
-That is enough to start working via short-lived branches and PRs without waiting for the rest of the security and release stack.
+That keeps the repo on the low-maintenance path: GitHub-native scanning first, then simple coverage publishing, without prematurely introducing bespoke release or security workflow code.
+
+## To-Do
+
+- [x] add `.github/workflows/ci.yml`
+- [x] add `.coderabbit.yaml`
+- [ ] verify or install the CodeRabbit GitHub app for `spectacular-voyage/accord`
+- [ ] enable branch protection for `main` and require the `ci` status
+- [ ] enable GitHub CodeQL default setup in repository settings
+- [ ] review the first CodeQL scan results and triage any baseline findings
+- [ ] decide when OSV-Scanner becomes worth adding for this repo
+- [x] generate `coverage/lcov.info` in CI
+- [x] wire a Codecov upload step into `ci.yml`
+- [ ] onboard `spectacular-voyage/accord` in Codecov
+- [x] use the Kato-style Codecov OIDC upload path instead of a repository token
+- [ ] decide whether Codecov should stay informational or become a required signal later
