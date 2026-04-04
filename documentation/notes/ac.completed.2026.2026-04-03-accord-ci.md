@@ -2,7 +2,7 @@
 id: aj3ipelqez7r7x1rso96ohn
 title: 2026 04 03 Accord CI
 desc: ''
-updated: 1775231228587
+updated: 1775263181260
 created: 1775231228587
 ---
 
@@ -167,13 +167,13 @@ That keeps the repo on the low-maintenance path: GitHub-native scanning first, t
 
 - [x] add `.github/workflows/ci.yml`
 - [x] add `.coderabbit.yaml`
-- [ ] verify or install the CodeRabbit GitHub app for `spectacular-voyage/accord`
+- [x] verify or install the CodeRabbit GitHub app for `spectacular-voyage/accord`
 - [ ] enable branch protection for `main` and require the `ci` status
-- [ ] enable GitHub CodeQL default setup in repository settings
-- [ ] review the first CodeQL scan results and triage any baseline findings
+- [x] enable GitHub CodeQL default setup in repository settings
+- [x] review the first CodeQL scan results and triage any baseline findings
 - [ ] decide when OSV-Scanner becomes worth adding for this repo
 - [x] generate `coverage/lcov.info` in CI
 - [x] wire a Codecov upload step into `ci.yml`
-- [ ] onboard `spectacular-voyage/accord` in Codecov
+- [x] onboard `spectacular-voyage/accord` in Codecov
 - [x] use the Kato-style Codecov OIDC upload path instead of a repository token
 - [ ] decide whether Codecov should stay informational or become a required signal later
