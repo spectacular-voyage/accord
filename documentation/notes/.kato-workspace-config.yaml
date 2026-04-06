@@ -19,3 +19,4 @@ workspaceFeatureFlags:
   writerIncludeDecisionOptions: true
   writerIncludeDecisionSelection: true
   writerItalicizeUserMessages: false
+  writerUseDendronStyleWikilinks: true

@@ -14,7 +14,7 @@ kato-recordingIds: [971f083d-bfee-4b2d-aa38-def615f39185]
 
 jsonld and shacl
 
-Let's try to check the last box on [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md) and [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md) . Check [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) and [ac.dev.general-guidance.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.dev.general-guidance.md) for context.
+Let's try to check the last box on [[ac.task.2026.2026-04-03-accord-cli]] and [[ac.task.2026.2026-04-03-jsonld-support]] . Check [[ac.user-guide]] and [[ac.dev.general-guidance]] for context.
 
 # gpt-5.4_2026-04-03_1122_12
 
@@ -86,9 +86,9 @@ Formatting found two TypeScript files that just need mechanical cleanup. I’m a
 # gpt-5.4_2026-04-03_1137_49
 
 **Changes**
-- `.jsonld` RDF artifacts now work in `rdfCanonical` comparisons and SPARQL ASK checks. The RDF path converts JSON-LD to N-Quads and then reuses the existing quad/canonicalization flow in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts#L58) and the shared JSON-LD loading policy in [documents.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/jsonld/documents.ts#L19).
-- Local JSON-LD artifact contexts are loaded from the same checked git ref, not the working tree, in [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts#L369). I added a dedicated `repo-rdf-jsonld` fixture family plus new unit and black-box cases for equivalence, ASK, local-context loading, remote-context rejection, and parse errors.
-- The spec and task/docs are aligned with the implementation, including checking the last boxes in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md#L147) and [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md#L215). SHACL preflight is now explicitly kept separate from `accord check`; if it lands later, it should be a separate command surface, not implicit preflight.
+- `.jsonld` RDF artifacts now work in `rdfCanonical` comparisons and SPARQL ASK checks. The RDF path converts JSON-LD to N-Quads and then reuses the existing quad/canonicalization flow in [compare_rdf.ts](../../src/checker/compare_rdf.ts#L58) and the shared JSON-LD loading policy in [documents.ts](../../src/jsonld/documents.ts#L19).
+- Local JSON-LD artifact contexts are loaded from the same checked git ref, not the working tree, in [check.ts](../../src/cli/commands/check.ts#L369). I added a dedicated `repo-rdf-jsonld` fixture family plus new unit and black-box cases for equivalence, ASK, local-context loading, remote-context rejection, and parse errors.
+- The spec and task/docs are aligned with the implementation, including checking the last boxes in [[ac.task.2026.2026-04-03-jsonld-support|ac.task.2026.2026-04-03-jsonld-support.md]] and [[ac.task.2026.2026-04-03-accord-cli|ac.task.2026.2026-04-03-accord-cli.md]]. SHACL preflight is now explicitly kept separate from `accord check`; if it lands later, it should be a separate command surface, not implicit preflight.
 
 **Verification**
 `deno task fmt:check` and `deno task test` both passed in `dependencies/github.com/spectacular-voyage/accord` (`64` tests).
@@ -111,7 +111,7 @@ feat(accord): support JSON-LD RDF artifacts in accord check
 
 # User_2026-04-03_1650_18
 
-I've added a "coderabbit review" section to [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md) . Please add markdown checkboxes for each item, and mark those that are not worth doing as [c].
+I've added a "coderabbit review" section to [[ac.task.2026.2026-04-03-jsonld-support]] . Please add markdown checkboxes for each item, and mark those that are not worth doing as [c].
 
 # gpt-5.4_2026-04-03_1650_26
 
@@ -131,7 +131,7 @@ The note content shifted a bit under the wrapped review text, so I’m reopening
 
 # gpt-5.4_2026-04-03_1651_34
 
-Updated the review section in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md).
+Updated the review section in [[ac.task.2026.2026-04-03-jsonld-support]].
 
 I marked these as cancelled with `[c]`:
 - configurable remote-context allowlist
@@ -170,9 +170,9 @@ The broad suite is still green so far. I’m waiting on the rest, with the new f
 
 # gpt-5.4_2026-04-03_1655_37
 
-Implemented the actionable CodeRabbit items and marked their checkboxes `[x]` in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md). The substantive changes are in [load_jsonld.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/manifest/load_jsonld.ts), [check.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/cli/commands/check.ts), [sparql.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/sparql.ts), and [documents.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/jsonld/documents.ts). That includes normalizing manifest read failures to `ManifestLoadError`, wrapping git-backed JSON-LD artifact document read failures consistently as `RdfCompareError`, moving RDF parse/store setup inside the SPARQL error-handling path, and teaching the JSON-LD context validator to catch nested `@import` and nested `@context` usage without rejecting ordinary remote IRIs in term definitions.
+Implemented the actionable CodeRabbit items and marked their checkboxes `[x]` in [[ac.task.2026.2026-04-03-jsonld-support]]. The substantive changes are in [load_jsonld.ts](../../src/manifest/load_jsonld.ts), [check.ts](../../src/cli/commands/check.ts), [sparql.ts](../../src/checker/sparql.ts), and [documents.ts](../../src/jsonld/documents.ts). That includes normalizing manifest read failures to `ManifestLoadError`, wrapping git-backed JSON-LD artifact document read failures consistently as `RdfCompareError`, moving RDF parse/store setup inside the SPARQL error-handling path, and teaching the JSON-LD context validator to catch nested `@import` and nested `@context` usage without rejecting ordinary remote IRIs in term definitions.
 
-I also fixed the user-guide wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) so it matches the actual hard-reject behavior for remote `http`/`https` contexts, updated the remote-context RDF test in [compare_rdf_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/compare_rdf_test.ts), added manifest read-failure coverage in [manifest_loader_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/manifest_loader_test.ts), and added direct JSON-LD helper coverage in [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts).
+I also fixed the user-guide wording in [[ac.user-guide]] so it matches the actual hard-reject behavior for remote `http`/`https` contexts, updated the remote-context RDF test in [compare_rdf_test.ts](../../tests/compare_rdf_test.ts), added manifest read-failure coverage in [manifest_loader_test.ts](../../tests/manifest_loader_test.ts), and added direct JSON-LD helper coverage in [jsonld_documents_test.ts](../../tests/jsonld_documents_test.ts).
 
 Verification: `deno task fmt:check`, `deno task check`, and `deno task test` all passed in `dependencies/github.com/spectacular-voyage/accord` (`68` tests).
 
@@ -203,7 +203,7 @@ shacl-engine (RDF-Ext): A high-performance SHACL engine designed for data provid
 
 shacl-processor-ts: A TypeScript-based library specifically for validating RDF data streams using SHACL.
 
-Fill in [ac.task.2026.2026-04-03-shacl-validation.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-shacl-validation.md) please.
+Fill in [[ac.task.2026.2026-04-03-shacl-validation]] please.
 
 # gpt-5.4_2026-04-03_1701_40
 
@@ -251,9 +251,9 @@ I’ve finished the note. I’m checking git status one more time so I can answe
 
 # gpt-5.4_2026-04-03_1706_29
 
-Filled in [ac.task.2026.2026-04-03-shacl-validation.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-shacl-validation.md) with the recommendation I’d actually stand behind: do not bolt SHACL onto `accord check` as warning-only preflight. The note now argues for a separate `accord validate <manifest>` command, failing by default, because the current [accord-shacl.ttl](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/accord-shacl.ttl) already uses `sh:sparql`, so a Core-only validator would not reflect the real shapes graph.
+Filled in [[ac.task.2026.2026-04-03-shacl-validation]] with the recommendation I’d actually stand behind: do not bolt SHACL onto `accord check` as warning-only preflight. The note now argues for a separate `accord validate <manifest>` command, failing by default, because the current [accord-shacl.ttl](../../accord-shacl.ttl) already uses `sh:sparql`, so a Core-only validator would not reflect the real shapes graph.
 
-I also answered the library question in the note: `shacl-engine` is the first spike candidate; `rdf-validate-shacl` is a mismatch for current Accord unless the shapes are rewritten; `shacl-processor-ts` looks more pipeline-oriented, which I called out as an inference from its documented surface. On this branch, besides the new SHACL task note, git still shows changes in `.github/workflows/ci.yml`, [ac.task.2026.2026-04-03-accord-ci.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-ci.md), and the conversation note. No tests ran because this was a note-only edit.
+I also answered the library question in the note: `shacl-engine` is the first spike candidate; `rdf-validate-shacl` is a mismatch for current Accord unless the shapes are rewritten; `shacl-processor-ts` looks more pipeline-oriented, which I called out as an inference from its documented surface. On this branch, besides the new SHACL task note, git still shows changes in `.github/workflows/ci.yml`, [[ac.task.2026.2026-04-03-accord-ci]], and the conversation note. No tests ran because this was a note-only edit.
 
 Sources:
 - `rdf-validate-shacl`: https://github.com/zazuko/rdf-validate-shacl and https://raw.githubusercontent.com/zazuko/rdf-validate-shacl/master/packages/shacl/README.md
@@ -286,12 +286,12 @@ The round-two section is updated. I’m checking the rendered block once so I ca
 
 # gpt-5.4_2026-04-03_1716_54
 
-Updated the `coderabbit round 2` section in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md).
+Updated the `coderabbit round 2` section in [[ac.task.2026.2026-04-03-jsonld-support]].
 
 I marked these as actionable `[ ]`:
 - narrow the `loadJsonDocumentFromFileUrl` catch so parse errors are not mislabeled as read errors
-- remove the unused `JsonLdErrorFactory` import in [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts)
-- align the manifest-context wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) with the actual hard-reject behavior
+- remove the unused `JsonLdErrorFactory` import in [jsonld_documents_test.ts](../../tests/jsonld_documents_test.ts)
+- align the manifest-context wording in [[ac.user-guide]] with the actual hard-reject behavior
 
 I marked this as cancelled `[c]`:
 - rewriting the remote-context test to use `assertRejects`, because the current explicit try/catch already checks the type, code, and message clearly and the suggestion is mostly style churn
@@ -352,9 +352,9 @@ Everything is green now: the round-two fixes passed, and the broader repo valida
 
 # gpt-5.4_2026-04-03_1722_17
 
-Implemented the actionable round-two items. In [documents.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/jsonld/documents.ts), local JSON-LD file loading now only wraps actual read failures, so JSON parse failures keep their correct `Failed to parse JSON document...` message instead of being mislabeled as read errors. In [jsonld_documents_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/jsonld_documents_test.ts), I removed the unused import and added a regression test for that parse-error path. I also aligned the manifest wording in [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) with the current implementation: remote `http`/`https` JSON-LD contexts are rejected today.
+Implemented the actionable round-two items. In [documents.ts](../../src/jsonld/documents.ts), local JSON-LD file loading now only wraps actual read failures, so JSON parse failures keep their correct `Failed to parse JSON document...` message instead of being mislabeled as read errors. In [jsonld_documents_test.ts](../../tests/jsonld_documents_test.ts), I removed the unused import and added a regression test for that parse-error path. I also aligned the manifest wording in [[ac.user-guide]] with the current implementation: remote `http`/`https` JSON-LD contexts are rejected today.
 
-While validating the branch, `deno task lint` exposed a real existing issue in [compare_rdf.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/src/checker/compare_rdf.ts): the inline JSON-LD loader was `async` with no `await`. I fixed that by returning rejected promises instead, which keeps the async loader contract without tripping lint. I also updated the checklist state in [ac.task.2026.2026-04-03-jsonld-support.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-jsonld-support.md) so the implemented items are marked `[x]`.
+While validating the branch, `deno task lint` exposed a real existing issue in [compare_rdf.ts](../../src/checker/compare_rdf.ts): the inline JSON-LD loader was `async` with no `await`. I fixed that by returning rejected promises instead, which keeps the async loader contract without tripping lint. I also updated the checklist state in [[ac.task.2026.2026-04-03-jsonld-support]] so the implemented items are marked `[x]`.
 
 Verification: `deno task lint`, `deno task check`, and `deno task test` all passed in `dependencies/github.com/spectacular-voyage/accord` (`69` tests).
 

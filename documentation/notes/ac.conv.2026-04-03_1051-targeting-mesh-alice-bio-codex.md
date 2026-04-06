@@ -14,12 +14,12 @@ kato-recordingIds: [e9af13f6-deb5-4445-9f70-77ff68a68d8f]
 
 targeting mesh-alice-bio 
 
-Let's tackle the remaining items in [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md) :
+Let's tackle the remaining items in [[ac.task.2026.2026-04-03-accord-cli]] :
 
 - [ ] Add CLI smoke tests against a representative subset of the `mesh-alice-bio` manifests.
 - [ ] Run the checker against the full current `mesh-alice-bio` manifest set and record the gaps it exposes.
 
-You can reference [ac.dev.general-guidance.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.dev.general-guidance.md) for dev context and [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) for overall product guidance.
+You can reference [[ac.dev.general-guidance]] for dev context and [[ac.user-guide]] for overall product guidance.
 
 # gpt-5.4_2026-04-03_1051_43
 
@@ -121,7 +121,7 @@ The synthetic suite is done and the new real-corpus smoke file is executing. Iâ€
 
 Fixed the malformed `sflo:hasReferenceRole` IRIs in `mesh-alice-bio` by replacing the base-relative `<sflo:ReferenceRole/...>` values with full ontology IRIs on the affected ladder branches. The local branches now carrying the fixes are `08-alice-bio-referenced` `0ad8b4d`, `09-alice-bio-referenced-woven` `ae59018`, `10-alice-bio-updated` `c40b654`, `11-alice-bio-v2-woven` `ec5dc37`, `12-bob-extracted` `bf454f3`, and `13-bob-extracted-woven` `8065253`. `main` did not contain the bad pattern. These are local branch commits; I did not push them.
 
-I also finished the Accord side of the original work: added real-corpus smoke coverage in [mesh_alice_bio_smoke_test.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/mesh_alice_bio_smoke_test.ts) and [mesh_alice_bio.ts](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/tests/harness/mesh_alice_bio.ts), added `deno task test:mesh-alice-bio` in [deno.json](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/deno.json), and updated [ac.task.2026.2026-04-03-accord-cli.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.task.2026.2026-04-03-accord-cli.md), [ac.dev.general-guidance.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.dev.general-guidance.md), and [ac.user-guide.md](/home/djradon/hub/semantic-flow/weave/dependencies/github.com/spectacular-voyage/accord/documentation/notes/ac.user-guide.md) to reflect the now-green corpus.
+I also finished the Accord side of the original work: added real-corpus smoke coverage in [mesh_alice_bio_smoke_test.ts](../../tests/mesh_alice_bio_smoke_test.ts) and [mesh_alice_bio.ts](../../tests/harness/mesh_alice_bio.ts), added `deno task test:mesh-alice-bio` in [deno.json](../../deno.json), and updated [[ac.task.2026.2026-04-03-accord-cli]], [[ac.dev.general-guidance]], and [[ac.user-guide]] to reflect the now-green corpus.
 
 Verification is clean: `deno task fmt`, `deno task check`, and `deno task test` all pass in `accord`, and the full current `mesh-alice-bio` manifest set is now `13/13` green under `accord check`.
 
