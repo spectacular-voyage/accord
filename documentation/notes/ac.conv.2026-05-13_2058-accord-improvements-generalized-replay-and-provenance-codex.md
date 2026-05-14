@@ -327,3 +327,230 @@ Add JSR package metadata, public exports, JSR dry-run validation in CI,
 and a tag-triggered JSR publish workflow. Document JSR library/CLI usage
 and fill v0.0.1 release notes.
 ```
+
+# User_2026-05-13_2208_35
+
+should i create the @spectacular-voyage scope and accord package at jsr.io?
+
+# gpt-5.5_2026-05-13_2208_46
+
+Yes. Create both now:
+
+1. Create JSR scope: `@spectacular-voyage`
+2. Create package under it: `accord`
+3. In the JSR package settings, link it to GitHub repo `spectacular-voyage/accord` so the GitHub Actions OIDC publish workflow can authenticate without a token.
+
+Then do not manually publish unless you want to. The workflow I added is tag-triggered, so after the code lands, pushing `v0.0.1` should run validation and publish.
+
+Two quick checks before publish:
+- Confirm `Apache-2.0` is the intended Accord license.
+- If JSR rejects `@spectacular-voyage` for any reason, tell me before publishing so we can update `deno.json`.
+
+Docs: JSR says packages/scopes are created at JSR, and GitHub Actions publishing requires linking the package to the repository in package settings: https://jsr.io/docs/publishing-packages
+
+# User_2026-05-13_2211_42
+
+OK, created at jsr. It says "Set up your workflow with OIDC permissions and a step to run npx jsr publish:"
+
+name: Publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Publish package
+        run: npx jsr publish
+
+# gpt-5.5_2026-05-13_2212_10
+
+Yep, that JSR screen is the generic happy path. Our workflow already has the two important pieces, just with two deliberate differences: it uses `deno publish` instead of `npx jsr publish`, and it publishes from version tags instead of every push to `main`. I’m checking the workflow once against the current repo state so I can tell you whether I’d change anything.
+
+# gpt-5.5_2026-05-13_2212_27
+
+That snippet is fine, but we don’t need to copy it exactly.
+
+Our workflow already has:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+```
+
+and a publish step. It uses:
+
+```bash
+deno publish
+```
+
+instead of:
+
+```bash
+npx jsr publish
+```
+
+That’s okay. JSR’s docs say publishing can use either `deno publish` or `npx jsr publish`, and Deno’s docs say `deno publish` publishes to JSR and enables provenance by default on GitHub Actions. Sources: [JSR publishing docs](https://jsr.io/docs/publishing-packages), [Deno publish docs](https://docs.deno.com/runtime/reference/cli/publish/).
+
+The other difference is deliberate: JSR’s generic snippet publishes on every `main` push. I’d keep ours tag-triggered:
+
+```yaml
+on:
+  push:
+    tags:
+      - "v*.*.*"
+```
+
+That fits our release-note/version/tag consistency checks and avoids main-branch publishes before we mean to release.
+
+One thing to double-check in JSR: package settings should be linked to GitHub repo `spectacular-voyage/accord`; that’s what enables tokenless OIDC publishing.
+
+# User_2026-05-13_2212_46
+
+Yep, it's linked. What's next?
+
+# gpt-5.5_2026-05-13_2213_15
+
+Since the JSR package is linked, the release workflow should be able to publish with OIDC. I’m going to tighten the last release-mile now: make the tag workflow also create the GitHub release from the versioned release note, then we’ll be at “merge, tag, watch it publish.”
+
+# gpt-5.5_2026-05-13_2213_52
+
+Great. I added the remaining release-mile piece: the tag workflow now creates the GitHub release from `release-notes.vX.Y.Z.md` after `deno publish`, so the JSR publish and GitHub release are tied together.
+
+Next practical steps:
+
+1. Commit the remaining workflow/doc tweak:
+```bash
+git add .github/workflows/release-jsr.yml documentation/notes/ac.task.2026.2026-05-13-ci-cd.md
+git commit -m "ci(accord): create GitHub release for JSR tags"
+git push
+```
+
+2. In JSR settings, I’d set the package overview/readme source to `README` unless you want the JSR page to use the `src/mod.ts` module doc.
+
+3. Tag the release from `main`:
+```bash
+git tag -a v0.0.1 -m "accord v0.0.1"
+git push origin v0.0.1
+```
+
+Then watch the `release-jsr` workflow. It should validate tag/version/release notes, run checks, publish to JSR via OIDC, and create the GitHub release.
+
+I re-ran `deno task publish:dry-run` after the workflow tweak; it passed.
+
+# User_2026-05-13_2327_06
+
+We need Accord to actually honor TransitionCase.ignorePaths so fixture repos can carry source/provenance material like `.assets/` without causing whole-tree transition checks to fail.
+
+Please review `documentation/notes/ac.user-guide.md`, `src/manifest/model.ts`, and current checker code.
+
+Goal:
+- Implement useful `ignorePaths` support for whole-tree transition completeness.
+- Primary use case: manifests may include `ignorePaths: [".assets/**"]`, and Accord should ignore those paths when checking for unexpected added/removed/modified files between `fromRef` and `toRef`.
+
+Important scope:
+- Existing explicit `hasFileExpectation` and RDF checks should continue to work.
+- `ignorePaths` should not hide failures for explicitly declared file expectations unless we make that an explicit error. Preferred behavior: if a manifest explicitly expects a path that is also ignored, fail/error the manifest as contradictory.
+- If Accord does not yet have whole-tree completeness checks, add a small one rather than only parsing `ignorePaths`. The check should compare git tree paths for `fromRef` and `toRef`, remove ignored paths, then verify all non-ignored changes are covered by `hasFileExpectation`.
+
+Pattern semantics:
+- Normalize all paths to repo-relative POSIX paths.
+- Support at least:
+  - exact file path: `foo/bar.ttl`
+  - directory subtree: `.assets/**`
+  - maybe simple `*` within one segment if easy, but don’t overbuild globbing.
+- Reject absolute paths, `..` traversal, and empty ignore patterns.
+
+Expected behavior:
+- For each selected TransitionCase:
+  1. Resolve `fromRef` and `toRef`.
+  2. List file paths in both refs.
+  3. Apply `ignorePaths`.
+  4. Compute changed paths: added, removed, and modified. Modified can be detected by blob SHA difference.
+  5. Compare changed paths against declared `hasFileExpectation` paths, after excluding expectations with `changeType: "absent"` if those are assertion-only.
+  6. Report unexpected non-ignored changes as failures in JSON/text output.
+  7. Report ignored changed paths either as optional pass/detail records or omit them from normal text output; JSON can include enough detail for debugging.
+
+Tests:
+- Add a fixture where `.assets/source.ttl` changes between refs, manifest has `ignorePaths: [".assets/**"]`, and check passes.
+- Add the same fixture without ignorePaths and assert it fails with an unexpected changed path.
+- Add a manifest that both ignores `.assets/**` and declares a file expectation for `.assets/source.ttl`; assert Accord errors or fails with a clear contradictory-manifest message.
+- Add path normalization/rejection tests for absolute and traversal ignore patterns.
+
+Also, do we need to  address the need for same-branch commit-vs-commit comparison? Or that's already in place?
+
+I switched to a new "next/v0.0.2" branch.
+
+# gpt-5.5_2026-05-13_2327_20
+
+I’ll wire this as real checker behavior, not just manifest parsing: list paths and blob ids from both refs, apply validated ignore patterns, then add a completeness check for any non-ignored tree changes not covered by explicit expectations. I’ll first inspect the current branch/worktree and the git/checker surfaces so I can keep the patch snug.
+
+# gpt-5.5_2026-05-13_2328_20
+
+The current checker has path-scoped expectations only, so I’m adding the completeness layer as a failure/error-only check. That keeps existing passing scenario counts stable while making unexpected non-ignored tree changes visible when they happen.
+
+# gpt-5.5_2026-05-13_2329_47
+
+I have the manifest context confirming `ignorePaths` already loads as a list, so the model doesn’t need a shape change. The main work is git tree comparison plus new report codes; I’m adding black-box scenarios around `.assets/**` now.
+
+# gpt-5.5_2026-05-13_2331_39
+
+Docs now describe `ignorePaths` as active checker behavior instead of future metadata. I’m at the verification pass: formatting, type-checking, and the new black-box scenarios will tell us whether any existing fixture transitions were implicitly relying on untracked tree changes.
+
+# gpt-5.5_2026-05-13_2332_04
+
+The new completeness check found two real policy edges in the existing fixtures: `absent` no longer covers a removal, and local JSON-LD context files are separate tree paths that need expectations or an ignore. That matches the stricter semantics you described, so I’m going to update those black-box expectations/manifests instead of weakening the check.
+
+# gpt-5.5_2026-05-13_2335_08
+
+The focused ignore-path and black-box suites are green now. The stricter completeness check intentionally changed `absent` semantics: it still asserts absence at `toRef`, but it no longer “explains” a removal unless there’s a `removed` expectation.
+
+# gpt-5.5_2026-05-13_2335_37
+
+The in-repo suites are all green; the full `deno task test` still fails only on the optional external mesh-alice-bio smoke tests, same local fixture-ref problem as before. I’ll capture the exact setup error once more so the final note is precise.
+
+# gpt-5.5_2026-05-13_2336_24
+
+Implemented `TransitionCase.ignorePaths` as real whole-tree transition completeness.
+
+What changed:
+- Added git tree listing via `git ls-tree` in [trees.ts](../../src/git/trees.ts:8).
+- Added ignore pattern normalization/validation in [ignore_paths.ts](../../src/checker/ignore_paths.ts:14).
+- Added tree completeness checks in [tree_completeness.ts](../../src/checker/tree_completeness.ts:17).
+- Wired the check into `accord check` before RDF checks in [check.ts](../../src/cli/commands/check.ts:160).
+- Added `tree_unexpected_change`, `ignore_path_invalid`, and `ignore_path_conflict` report codes.
+- Updated [ac.user-guide.md](ac.user-guide.md:84) to describe active `ignorePaths` behavior.
+
+Behavior now:
+- Non-ignored added/removed/modified paths must be covered by non-`absent` `hasFileExpectation`.
+- `.assets/**` ignores `.assets/` subtree changes.
+- Explicit expectations inside ignored paths error as contradictory.
+- Empty, absolute, and traversal ignore patterns error.
+- `absent` remains assertion-only and does not explain a tree removal.
+
+Tests:
+- `deno task fmt:check` passed
+- `deno task lint` passed
+- `deno task check` passed
+- `deno task publish:dry-run` passed
+- `deno test --allow-read --allow-write --allow-run --allow-env tests/ignore_paths_test.ts tests/black_box_test.ts` passed
+- Full `deno task test` still only fails the optional external mesh-alice-bio smoke tests because the local fixture repo lacks refs like `00-blank-slate`.
+
+On same-branch commit-vs-commit: no new work needed for explicit commits. `fromRef`/`toRef` already go through git commit-ish resolution, so commit SHAs from the same branch work. If you mean “compare two historical states using only a branch name plus time/range semantics,” that would be separate locator behavior.
+
+Suggested commit message:
+```text
+feat(accord): honor ignorePaths in tree completeness checks
+
+Add whole-tree transition completeness checks that compare git tree paths
+between fromRef and toRef, ignore configured path patterns, and report
+unexpected non-ignored changes. Reject invalid ignore patterns and
+contradictory manifests that both ignore and explicitly expect the same path.
+```

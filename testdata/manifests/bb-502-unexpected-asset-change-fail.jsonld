@@ -1,0 +1,23 @@
+{
+  "@context": "support/accord-context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-502-unexpected-asset-change-fail",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#unexpected-assets-case",
+      "fixtureRepo": "testdata/repos/repo-ignore-paths",
+      "fromRef": "r1-before",
+      "toRef": "r2-assets-changed",
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-unchanged",
+          "type": "FileExpectation",
+          "path": "artifact.txt",
+          "changeType": "unchanged",
+          "compareMode": "text"
+        }
+      ]
+    }
+  ]
+}

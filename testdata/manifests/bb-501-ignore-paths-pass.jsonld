@@ -1,0 +1,26 @@
+{
+  "@context": "support/accord-context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-501-ignore-paths-pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#ignore-assets-case",
+      "fixtureRepo": "testdata/repos/repo-ignore-paths",
+      "fromRef": "r1-before",
+      "toRef": "r2-assets-changed",
+      "ignorePaths": [
+        ".assets/**"
+      ],
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-unchanged",
+          "type": "FileExpectation",
+          "path": "artifact.txt",
+          "changeType": "unchanged",
+          "compareMode": "text"
+        }
+      ]
+    }
+  ]
+}

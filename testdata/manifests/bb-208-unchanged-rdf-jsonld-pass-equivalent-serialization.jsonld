@@ -32,6 +32,12 @@
           "path": "graph.jsonld",
           "changeType": "unchanged",
           "compareMode": "rdfCanonical"
+        },
+        {
+          "id": "#graph-context-file",
+          "type": "FileExpectation",
+          "path": "graph.context.jsonld",
+          "changeType": "added"
         }
       ],
       "hasRdfExpectation": [

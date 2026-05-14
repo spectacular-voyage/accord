@@ -89,11 +89,21 @@ If a manifest contains more than one case, pass `--case <case-id>`.
 
 The selected case may be identified by its authored `@id`. Accord also accepts the resolved case IRI when that is how the manifest was expanded.
 
-### Replay metadata
+### Replay metadata and ignored paths
 
-Manifests may include optional replay metadata for tools that regenerate fixture states or run command-backed examples. The current model supports generalized `fromState` / `toState` locators, a linked `ReplayProfile`, command invocation details, input materialization, manual file operations, source provenance, and `ignorePaths` for future whole-tree checks.
+Manifests may include optional replay metadata for tools that regenerate fixture states or run command-backed examples. The current model supports generalized `fromState` / `toState` locators, a linked `ReplayProfile`, command invocation details, input materialization, manual file operations, source provenance, and `ignorePaths`.
 
-Today `accord check` remains a checker only. It loads this metadata so downstream tooling can consume it, but it does not execute commands, materialize sources, apply file operations, or use `ignorePaths` during path-scoped checks. Continue to use `fromRef`, `toRef`, and explicit file/RDF expectations for current checker behavior.
+Today `accord check` remains a checker only. It loads replay metadata so downstream tooling can consume it, but it does not execute commands, materialize sources, or apply file operations. Continue to use `fromRef`, `toRef`, and explicit file/RDF expectations for current checker behavior.
+
+`ignorePaths` is active for whole-tree transition completeness. Accord compares all file paths in `fromRef` and `toRef`, removes ignored paths, then reports any remaining added, removed, or modified paths that are not covered by `hasFileExpectation`. `absent` expectations are assertion-only and do not cover added, removed, or modified tree paths.
+
+Supported ignore pattern forms are intentionally small:
+
+- exact repo-relative path, such as `foo/bar.ttl`
+- directory subtree, such as `.assets/**`
+- simple `*` inside one path segment, such as `generated/*.ttl`
+
+Ignore patterns must be repo-relative POSIX paths. Empty patterns, absolute paths, and `..` traversal are errors. If a manifest explicitly declares a `FileExpectation` for a path also matched by `ignorePaths`, Accord reports a contradictory manifest error instead of hiding that explicit expectation.
 
 ## Output formats
 
@@ -218,7 +228,6 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 
 - Accord does not yet auto-locate the fixture repository from `fixtureRepo`.
 - Accord does not yet execute replay commands or apply replay materialization/file-operation metadata.
-- Accord does not yet run whole-tree completeness checks from `ignorePaths`.
 - Accord does not yet support `json` compare mode.
 - Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.
