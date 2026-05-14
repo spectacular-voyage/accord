@@ -9,6 +9,24 @@
     },
     "compareMode": {
       "@type": "@vocab"
+    },
+    "locatorKind": {
+      "@type": "@vocab"
+    },
+    "operationKind": {
+      "@type": "@vocab"
+    },
+    "promptPolicy": {
+      "@type": "@vocab"
+    },
+    "sourceKind": {
+      "@type": "@vocab"
+    },
+    "argv": {
+      "@container": "@list"
+    },
+    "ignorePaths": {
+      "@container": "@list"
     }
   }
 }

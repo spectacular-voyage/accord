@@ -8,10 +8,17 @@ import {
 } from "../jsonld/documents.ts";
 import { CHECK_CODES, CheckCode } from "../report/codes.ts";
 import {
+  CommandInvocation,
+  EnvironmentOverride,
   FileExpectation,
+  FileOperation,
+  InputMaterialization,
   ManifestDocument,
   RdfExpectation,
+  ReplayProfile,
+  SourceProvenance,
   SparqlAskAssertion,
+  StateLocator,
   TransitionCase,
 } from "./model.ts";
 
@@ -165,7 +172,26 @@ function mapSourceTransitionCase(
     operationId: getSourceString(source, "operationId"),
     fromRef: getSourceString(source, "fromRef"),
     toRef: getSourceString(source, "toRef"),
+    fromState: mapOptionalSourceNode(
+      source,
+      "fromState",
+      documentUrl,
+      mapSourceStateLocator,
+    ),
+    toState: mapOptionalSourceNode(
+      source,
+      "toState",
+      documentUrl,
+      mapSourceStateLocator,
+    ),
     targetDesignatorPath: getSourceString(source, "targetDesignatorPath"),
+    ignorePaths: getSourceStringArray(source, "ignorePaths"),
+    hasReplayProfile: mapOptionalSourceNode(
+      source,
+      "hasReplayProfile",
+      documentUrl,
+      mapSourceReplayProfile,
+    ),
     hasFileExpectation: getSourceNodeArray(source, "hasFileExpectation").map((
       node,
     ) => mapSourceFileExpectation(node, documentUrl)),
@@ -224,6 +250,156 @@ function mapSourceAskAssertion(
   };
 }
 
+function mapSourceStateLocator(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): StateLocator {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    locatorKind: getSourceString(source, "locatorKind"),
+    ref: getSourceString(source, "ref"),
+    locatorPath: getSourceString(source, "locatorPath"),
+    uri: getSourceString(source, "uri"),
+    contentDigest: getSourceString(source, "contentDigest"),
+    mediaType: getSourceString(source, "mediaType"),
+  };
+}
+
+function mapSourceReplayProfile(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): ReplayProfile {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    workspaceRoot: getSourceString(source, "workspaceRoot"),
+    meshRoot: getSourceString(source, "meshRoot"),
+    hasCommandInvocation: mapOptionalSourceNode(
+      source,
+      "hasCommandInvocation",
+      documentUrl,
+      mapSourceCommandInvocation,
+    ),
+    hasInputMaterialization: getSourceNodeArray(
+      source,
+      "hasInputMaterialization",
+    ).map((node) => mapSourceInputMaterialization(node, documentUrl)),
+    hasFileOperation: getSourceNodeArray(source, "hasFileOperation").map((
+      node,
+    ) => mapSourceFileOperation(node, documentUrl)),
+  };
+}
+
+function mapSourceCommandInvocation(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): CommandInvocation {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    executable: getSourceString(source, "executable"),
+    argv: getSourceStringArray(source, "argv"),
+    workingDirectory: getSourceString(source, "workingDirectory"),
+    promptPolicy: getSourceString(source, "promptPolicy"),
+    expectedExitCode: getSourceNumber(source, "expectedExitCode"),
+    expectsOperationalLogs: getSourceBoolean(source, "expectsOperationalLogs"),
+    expectsAuditLogs: getSourceBoolean(source, "expectsAuditLogs"),
+    hasEnvironmentOverride: getSourceNodeArray(
+      source,
+      "hasEnvironmentOverride",
+    ).map((node) => mapSourceEnvironmentOverride(node, documentUrl)),
+  };
+}
+
+function mapSourceEnvironmentOverride(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): EnvironmentOverride {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    name: getSourceString(source, "name"),
+    value: getSourceString(source, "value"),
+  };
+}
+
+function mapSourceInputMaterialization(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): InputMaterialization {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    targetPath: getSourceString(source, "targetPath"),
+    hasSourceProvenance: mapOptionalSourceNode(
+      source,
+      "hasSourceProvenance",
+      documentUrl,
+      mapSourceSourceProvenance,
+    ),
+  };
+}
+
+function mapSourceFileOperation(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): FileOperation {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    operationKind: getSourceString(source, "operationKind"),
+    targetPath: getSourceString(source, "targetPath"),
+    hasSourceProvenance: mapOptionalSourceNode(
+      source,
+      "hasSourceProvenance",
+      documentUrl,
+      mapSourceSourceProvenance,
+    ),
+  };
+}
+
+function mapSourceSourceProvenance(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): SourceProvenance {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    sourceKind: getSourceString(source, "sourceKind"),
+    sourcePath: getSourceString(source, "sourcePath"),
+    sourceRef: getSourceString(source, "sourceRef"),
+    sourceUrl: getSourceString(source, "sourceUrl"),
+    inlineValue: getSourceString(source, "inlineValue"),
+    contentDigest: getSourceString(source, "contentDigest"),
+    mediaType: getSourceString(source, "mediaType"),
+    derivationNote: getSourceString(source, "derivationNote"),
+    derivedFrom: getSourceString(source, "derivedFrom"),
+    nondeterministicSource: getSourceBoolean(source, "nondeterministicSource"),
+  };
+}
+
 function mapExpandedDocument(
   expandedDocument: unknown[],
   documentUrl: string,
@@ -263,7 +439,23 @@ function mapExpandedTransitionCase(
     operationId: getExpandedString(source, "operationId"),
     fromRef: getExpandedString(source, "fromRef"),
     toRef: getExpandedString(source, "toRef"),
+    fromState: mapOptionalExpandedNode(
+      source,
+      "fromState",
+      mapExpandedStateLocator,
+    ),
+    toState: mapOptionalExpandedNode(
+      source,
+      "toState",
+      mapExpandedStateLocator,
+    ),
     targetDesignatorPath: getExpandedString(source, "targetDesignatorPath"),
+    ignorePaths: getExpandedStringArray(source, "ignorePaths"),
+    hasReplayProfile: mapOptionalExpandedNode(
+      source,
+      "hasReplayProfile",
+      mapExpandedReplayProfile,
+    ),
     hasFileExpectation: getExpandedNodeArray(source, "hasFileExpectation").map((
       node,
     ) => mapExpandedFileExpectation(node)),
@@ -319,6 +511,152 @@ function mapExpandedAskAssertion(
   };
 }
 
+function mapExpandedStateLocator(
+  source: Record<string, unknown>,
+): StateLocator {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    locatorKind: getExpandedIriLocalName(source, "locatorKind"),
+    ref: getExpandedString(source, "ref"),
+    locatorPath: getExpandedString(source, "locatorPath"),
+    uri: getExpandedString(source, "uri"),
+    contentDigest: getExpandedString(source, "contentDigest"),
+    mediaType: getExpandedString(source, "mediaType"),
+  };
+}
+
+function mapExpandedReplayProfile(
+  source: Record<string, unknown>,
+): ReplayProfile {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    workspaceRoot: getExpandedString(source, "workspaceRoot"),
+    meshRoot: getExpandedString(source, "meshRoot"),
+    hasCommandInvocation: mapOptionalExpandedNode(
+      source,
+      "hasCommandInvocation",
+      mapExpandedCommandInvocation,
+    ),
+    hasInputMaterialization: getExpandedNodeArray(
+      source,
+      "hasInputMaterialization",
+    ).map((node) => mapExpandedInputMaterialization(node)),
+    hasFileOperation: getExpandedNodeArray(source, "hasFileOperation").map((
+      node,
+    ) => mapExpandedFileOperation(node)),
+  };
+}
+
+function mapExpandedCommandInvocation(
+  source: Record<string, unknown>,
+): CommandInvocation {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    executable: getExpandedString(source, "executable"),
+    argv: getExpandedStringArray(source, "argv"),
+    workingDirectory: getExpandedString(source, "workingDirectory"),
+    promptPolicy: getExpandedIriLocalName(source, "promptPolicy"),
+    expectedExitCode: getExpandedNumber(source, "expectedExitCode"),
+    expectsOperationalLogs: getExpandedBoolean(
+      source,
+      "expectsOperationalLogs",
+    ),
+    expectsAuditLogs: getExpandedBoolean(source, "expectsAuditLogs"),
+    hasEnvironmentOverride: getExpandedNodeArray(
+      source,
+      "hasEnvironmentOverride",
+    ).map((node) => mapExpandedEnvironmentOverride(node)),
+  };
+}
+
+function mapExpandedEnvironmentOverride(
+  source: Record<string, unknown>,
+): EnvironmentOverride {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    name: getExpandedString(source, "name"),
+    value: getExpandedString(source, "value"),
+  };
+}
+
+function mapExpandedInputMaterialization(
+  source: Record<string, unknown>,
+): InputMaterialization {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    targetPath: getExpandedString(source, "targetPath"),
+    hasSourceProvenance: mapOptionalExpandedNode(
+      source,
+      "hasSourceProvenance",
+      mapExpandedSourceProvenance,
+    ),
+  };
+}
+
+function mapExpandedFileOperation(
+  source: Record<string, unknown>,
+): FileOperation {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    operationKind: getExpandedIriLocalName(source, "operationKind"),
+    targetPath: getExpandedString(source, "targetPath"),
+    hasSourceProvenance: mapOptionalExpandedNode(
+      source,
+      "hasSourceProvenance",
+      mapExpandedSourceProvenance,
+    ),
+  };
+}
+
+function mapExpandedSourceProvenance(
+  source: Record<string, unknown>,
+): SourceProvenance {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    sourceKind: getExpandedIriLocalName(source, "sourceKind"),
+    sourcePath: getExpandedString(source, "sourcePath"),
+    sourceRef: getExpandedString(source, "sourceRef"),
+    sourceUrl: getExpandedString(source, "sourceUrl"),
+    inlineValue: getExpandedString(source, "inlineValue"),
+    contentDigest: getExpandedString(source, "contentDigest"),
+    mediaType: getExpandedString(source, "mediaType"),
+    derivationNote: getExpandedString(source, "derivationNote"),
+    derivedFrom: getExpandedIri(source, "derivedFrom"),
+    nondeterministicSource: getExpandedBoolean(
+      source,
+      "nondeterministicSource",
+    ),
+  };
+}
+
 function getSourceId(source: Record<string, unknown>): string | undefined {
   return typeof source.id === "string"
     ? source.id
@@ -364,6 +702,33 @@ function getSourceBoolean(
   key: string,
 ): boolean | undefined {
   return typeof source[key] === "boolean" ? source[key] : undefined;
+}
+
+function getSourceNumber(
+  source: Record<string, unknown>,
+  key: string,
+): number | undefined {
+  return typeof source[key] === "number" ? source[key] : undefined;
+}
+
+function mapOptionalSourceNode<T>(
+  source: Record<string, unknown>,
+  key: string,
+  documentUrl: string,
+  mapper: (node: Record<string, unknown>, documentUrl: string) => T,
+): T | undefined {
+  const rawValue = source[key];
+
+  if (isRecord(rawValue)) {
+    return mapper(rawValue, documentUrl);
+  }
+
+  if (Array.isArray(rawValue)) {
+    const node = rawValue.find(isRecord);
+    return node === undefined ? undefined : mapper(node, documentUrl);
+  }
+
+  return undefined;
 }
 
 function getSourceNodeArray(
@@ -432,6 +797,35 @@ function getExpandedString(
   return undefined;
 }
 
+function getExpandedStringArray(
+  source: Record<string, unknown>,
+  term: string,
+): string[] | undefined {
+  const rawValue = source[expandTerm(term)];
+
+  if (!Array.isArray(rawValue)) {
+    return undefined;
+  }
+
+  const values = rawValue.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+
+    if (Array.isArray(entry["@list"])) {
+      return entry["@list"].flatMap((listEntry) =>
+        isRecord(listEntry) && typeof listEntry["@value"] === "string"
+          ? [listEntry["@value"]]
+          : []
+      );
+    }
+
+    return typeof entry["@value"] === "string" ? [entry["@value"]] : [];
+  });
+
+  return values.length === 0 ? undefined : values;
+}
+
 function getExpandedBoolean(
   source: Record<string, unknown>,
   term: string,
@@ -448,6 +842,29 @@ function getExpandedBoolean(
     }
 
     if (typeof entry["@value"] === "boolean") {
+      return entry["@value"];
+    }
+  }
+
+  return undefined;
+}
+
+function getExpandedNumber(
+  source: Record<string, unknown>,
+  term: string,
+): number | undefined {
+  const rawValue = source[expandTerm(term)];
+
+  if (!Array.isArray(rawValue)) {
+    return undefined;
+  }
+
+  for (const entry of rawValue) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    if (typeof entry["@value"] === "number") {
       return entry["@value"];
     }
   }
@@ -505,6 +922,15 @@ function getExpandedIriLocalName(
 ): string | undefined {
   const iri = getExpandedIri(source, term);
   return iri === undefined ? undefined : compactIri(iri);
+}
+
+function mapOptionalExpandedNode<T>(
+  source: Record<string, unknown>,
+  term: string,
+  mapper: (node: Record<string, unknown>) => T,
+): T | undefined {
+  const node = getExpandedNodeArray(source, term)[0];
+  return node === undefined ? undefined : mapper(node);
 }
 
 function expandTerm(term: string): string {

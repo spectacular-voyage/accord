@@ -49,6 +49,7 @@ const executableScenarioIds = [
   "bb-213-rdf-jsonld-parse-error",
   "bb-301-json-report-shape",
   "bb-302-text-report-smoke",
+  "bb-401-replay-metadata-pass",
 ] as const;
 
 const scenarioIndex = await loadScenarioIndex();

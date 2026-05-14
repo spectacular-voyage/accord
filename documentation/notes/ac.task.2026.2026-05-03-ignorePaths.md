@@ -158,10 +158,10 @@ The current CLI checker does not need to apply `ignorePaths` until there is an a
 
 ## Implementation Plan
 
-- [ ] Add `ignorePaths?: string[]` to the manifest model and JSON-LD loader.
-- [ ] Add the Accord ontology property and context term.
-- [ ] Add SHACL constraints for repository-relative ignored paths.
-- [ ] Add loader/unit tests for compact and expanded manifest forms.
+- [x] Add `ignorePaths?: string[]` to the manifest model and JSON-LD loader.
+- [x] Add the Accord ontology property and context term.
+- [x] Add SHACL constraints for repository-relative ignored paths.
+- [x] Add loader/unit tests for compact and expanded manifest forms.
 - [ ] Decide whether to expose whole-tree completeness as an opt-in checker mode.
 - [ ] If whole-tree checking is added, implement exact path and `/**` subtree matching first.
 - [ ] Add report codes and tests for unexpected paths and ignored unexpected paths.

@@ -12,7 +12,7 @@ created: 1778728187266
 - Add a portable way for manifests or adjacent scenario documents to describe how a transition can be replayed.
 - Support command provenance for command-backed transitions.
 - Support source provenance for manually created, copied, fetched, or derived files.
-- Keep the existing `accord check` behavior stable while broadening the model in small, testable steps.
+- Keep the existing `accord check` behavior understandable while broadening the model in small, testable steps.
 - Give downstream tools such as Weave's fixture ladder generator a shared contract instead of forcing each project to invent its own replay metadata shape.
 
 ## Summary
@@ -36,7 +36,7 @@ The current CLI contract in [[ac.spec.2026.2026-04-03-accord-cli]] is intentiona
 - It does not know how to compare directory snapshots, generated temporary workspaces, archives, or runner-produced outputs.
 - It does not know how to record or validate replay commands or manually supplied source files.
 
-That behavior should remain stable while this task is designed. The first broadening should not silently change the meaning of current manifests.
+That behavior should stay understandable while this task is designed, but it does not need to freeze the model. Non-breaking broadening is fine where it fits, and even a breaking manifest migration is acceptable if the replay/provenance shape is materially cleaner. The current real manifest corpus is small, so the main requirement is that any semantic change be explicit and rerunnable rather than accidental.
 
 ## Use Cases
 
@@ -101,6 +101,8 @@ For each created or replaced file, the replay contract should be able to record:
 
 Remote URLs need special care. A branch URL such as a raw GitHub `refs/heads/main` URL is not stable enough by itself. A deterministic replay should pin a digest, copy the bytes into a checked-in source fixture, use an immutable commit/tag URL, or combine those strategies.
 
+One practical source-bundling pattern is to put required replay inputs in the fixture repository before cutting the first fixture rung, for example under a top-level `.assets/` directory on the branch that seeds `00-blank-slate`. Later rungs can then materialize command inputs by copying from `.assets/` instead of refetching remote or manually reconstructed content. If Accord supports this pattern, the manifest should still identify `.assets/` files as harness/source material rather than expected product output, and whole-tree comparison should ignore them unless a case explicitly lists them as expectations.
+
 ## Relationship To Weave
 
 Weave's fixture ladder generator should pause long enough for this Accord contract to be sketched and accepted. Otherwise Weave will bake replay commands and source provenance into a private TypeScript shape that Accord will need to re-model soon afterward.
@@ -122,17 +124,47 @@ The important boundary is that command and source provenance should be portable 
 - Should source provenance be part of the Accord ontology, or should Accord import a more general provenance vocabulary once the shape is mature?
 - How much environment and prompt metadata is enough before this becomes a workflow engine?
 - Should remote source digests be required for URL-backed source materialization?
+- Should checked-in replay assets use a conventional path such as `.assets/`, and should Accord provide first-class semantics for harness-source files that are present in fixture refs but excluded from product output checks?
 - Should expected-error cases be modeled in the same pass, since replay runners will need to distinguish failed commands from failed checks?
 - How should whole-tree checks, `ignorePaths`, and generated workspace checks compose?
 
 ## Decisions
 
-- Keep current `accord check` branch-to-branch behavior stable while this feature is designed.
+- Keep current `accord check` branch-to-branch behavior understandable while this feature is designed; prefer non-breaking changes, but allow explicit manifest migrations when they produce a cleaner replay/provenance model.
 - Treat branch refs as one state-locator adapter, not the whole Accord model.
 - Keep replay metadata optional.
 - Do not make Accord a general-purpose workflow language.
 - Prefer explicit command and source provenance over relying on task notes, chat archives, or generated branch history.
 - Downstream generators can execute replay metadata before Accord itself has a command-running surface.
+- Store execution-oriented replay metadata on a linked `ReplayProfile`, embedded directly in compact JSON-LD when convenient. This keeps `TransitionCase` readable as the verification contract while leaving a natural place for future runner/execution semantics.
+- Add generalized `fromState` and `toState` object locators while keeping `fromRef` and `toRef` as git-ref convenience fields for current `accord check`. Do not make `fromState` / `toState` formal OWL superproperties of `fromRef` / `toRef`: the former point to state-locator nodes and the latter are literal datatype fields. A runner can still synthesize `gitRefState` locators from `fromRef` / `toRef`.
+- Put source provenance in the Accord ontology now, with a small `SourceProvenance` shape rather than importing a broader provenance ontology before the workflow is real.
+- Treat `.assets/` as a useful convention, not a special source root. Replay sources can come from anywhere; future whole-tree checks should use case-level `ignorePaths` such as `.assets/**` to exclude harness source files unless they are explicitly listed as expectations.
+- Defer expected-error modeling until replay execution semantics exist.
+
+## Replay Profile Tradeoffs
+
+A linked `ReplayProfile` has real advantages:
+
+- it keeps the checker-facing case compact when no replay data is needed
+- it separates "what must be true" from "how a runner may reproduce it"
+- it can later be shared, versioned, or swapped without changing file/RDF expectations
+- it gives future command execution a node where runner policy, materialization, logs, and prompt behavior can grow
+
+The cost is a little more JSON-LD indirection for simple manifests. The compact authoring shape can keep that cost low by embedding the profile as a nested object under `hasReplayProfile`.
+
+## Workflow Engine Check
+
+Existing workflow engines are worth knowing about, but none should be adopted for this first Accord slice. CWL is the closest conceptual match because it standardizes command-line tools and workflows, and WDL also models task commands explicitly. Nextflow and Snakemake are powerful for larger pipeline orchestration. All of them are heavier than Accord's immediate need: portable replay metadata plus source provenance attached to an acceptance manifest. If Accord later grows a real runner with DAG execution, CWL should be revisited before inventing a broad workflow language.
+
+## Composition Guess
+
+For now, compose the pieces this way:
+
+- `TransitionCase` owns the verification contract, git-compatible `fromRef` / `toRef`, optional generalized `fromState` / `toState`, and case-level `ignorePaths`.
+- `ReplayProfile` owns replay-only metadata: command invocation, input materialization, and manual file operations.
+- `ignorePaths` only affects future whole-tree or generated-workspace completeness checks. Explicit `FileExpectation` entries still win.
+- source provenance can appear on replay input materialization or manual file operations; command-produced output stays verified by file/RDF expectations unless a later runner records derived execution provenance.
 
 ## Contract Changes
 
@@ -145,7 +177,7 @@ Likely Accord model additions:
 - generalized state locators that can eventually represent directory-backed or generated states as well as git refs
 - validation profile metadata for manifest-scoped versus whole-tree checks
 
-The current `fromRef` and `toRef` fields should remain supported for existing manifests.
+The current `fromRef` and `toRef` fields can remain supported if they still fit the generalized model. If replacing them with cleaner state-locator fields makes the contract clearer, migrate the small existing manifest corpus intentionally rather than preserving awkward compatibility.
 
 ## Testing
 
@@ -167,13 +199,13 @@ The current `fromRef` and `toRef` fields should remain supported for existing ma
 
 ## Implementation Plan
 
-- [ ] Review Weave's current fixture ladder use case and extract the minimal replay/provenance fields needed by its generator.
-- [ ] Decide whether replay metadata lives directly on `TransitionCase` or on a linked profile node.
-- [ ] Draft JSON-LD examples for one command-backed transition and one manual file-operation transition.
-- [ ] Add ontology terms and JSON-LD context entries for the accepted minimal shape.
-- [ ] Add SHACL constraints for command invocation and source provenance fields.
-- [ ] Add TypeScript manifest model fields that preserve the replay/provenance data.
-- [ ] Add loader tests for compact and expanded JSON-LD forms.
-- [ ] Update [[ac.spec.2026.2026-04-03-accord-cli]] to clarify that current `accord check` ignores replay metadata except for validation/preservation until an execution surface exists.
-- [ ] Update [[ac.user-guide]] with guidance about when to use Accord as a checker only and when to include replay metadata for downstream runners.
+- [x] Review Weave's current fixture ladder use case and extract the minimal replay/provenance fields needed by its generator.
+- [x] Decide whether replay metadata lives directly on `TransitionCase` or on a linked profile node.
+- [x] Draft JSON-LD examples for one command-backed transition and one manual file-operation transition.
+- [x] Add ontology terms and JSON-LD context entries for the accepted minimal shape.
+- [x] Add SHACL constraints for command invocation and source provenance fields.
+- [x] Add TypeScript manifest model fields that preserve the replay/provenance data.
+- [x] Add loader tests for compact and expanded JSON-LD forms.
+- [x] Update [[ac.spec.2026.2026-04-03-accord-cli]] to clarify that current `accord check` ignores replay metadata except for validation/preservation until an execution surface exists.
+- [x] Update [[ac.user-guide]] with guidance about when to use Accord as a checker only and when to include replay metadata for downstream runners.
 - [ ] Coordinate with Weave's [[wd.task.2026.2026-05-07-fixture-ladder-generator]] so the first Weave dry-run planner consumes the Accord-owned replay shape.

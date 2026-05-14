@@ -69,6 +69,74 @@ Deno.test("readManifestSource loads a manifest with a local file context", async
   assertEquals(loaded.document.hasCase?.[0].id, "#local-context-case");
 });
 
+Deno.test("readManifestSource preserves compact replay metadata", async () => {
+  const loaded = await readManifestSource(
+    "testdata/manifests/bb-401-replay-metadata-pass.jsonld",
+  );
+  const transitionCase = loaded.document.hasCase?.[0];
+  const replayProfile = transitionCase?.hasReplayProfile;
+  const command = replayProfile?.hasCommandInvocation;
+  const inputMaterialization = replayProfile?.hasInputMaterialization?.[0];
+  const fileOperation = replayProfile?.hasFileOperation?.[0];
+
+  assertEquals(transitionCase?.fromState?.locatorKind, "gitRefState");
+  assertEquals(transitionCase?.fromState?.ref, "r0-empty");
+  assertEquals(transitionCase?.toState?.locatorKind, "gitRefState");
+  assertEquals(transitionCase?.ignorePaths, [".assets/**"]);
+  assertEquals(replayProfile?.workspaceRoot, ".");
+  assertEquals(command?.executable, "weave");
+  assertEquals(command?.argv, ["knop", "create", "alice"]);
+  assertEquals(command?.promptPolicy, "nonInteractive");
+  assertEquals(command?.expectedExitCode, 0);
+  assertEquals(command?.expectsAuditLogs, true);
+  assertEquals(command?.hasEnvironmentOverride?.[0].name, "WEAVE_PROFILE");
+  assertEquals(inputMaterialization?.targetPath, "artifact.bin");
+  assertEquals(
+    inputMaterialization?.hasSourceProvenance?.sourceKind,
+    "localPathSource",
+  );
+  assertEquals(fileOperation?.operationKind, "createFile");
+  assertEquals(
+    fileOperation?.hasSourceProvenance?.sourceKind,
+    "derivedSource",
+  );
+});
+
+Deno.test("readManifestSource preserves expanded replay metadata", async () => {
+  const loaded = await readManifestSource(
+    "testdata/manifests/support/expanded-replay-metadata-manifest.jsonld",
+  );
+  const transitionCase = loaded.document.hasCase?.[0];
+  const replayProfile = transitionCase?.hasReplayProfile;
+  const command = replayProfile?.hasCommandInvocation;
+  const inputMaterialization = replayProfile?.hasInputMaterialization?.[0];
+
+  assertEquals(
+    loaded.document.id,
+    "urn:accord:testdata:expanded-replay-metadata",
+  );
+  assertEquals(
+    transitionCase?.id,
+    "urn:accord:testdata:expanded-replay-metadata#case",
+  );
+  assertEquals(transitionCase?.fromState?.locatorKind, "gitRefState");
+  assertEquals(transitionCase?.ignorePaths, [".assets/**", ".weave/**"]);
+  assertEquals(replayProfile?.workspaceRoot, ".");
+  assertEquals(command?.executable, "weave");
+  assertEquals(command?.argv, ["mesh", "create"]);
+  assertEquals(command?.promptPolicy, "nonInteractive");
+  assertEquals(command?.expectedExitCode, 0);
+  assertEquals(inputMaterialization?.targetPath, "seed.ttl");
+  assertEquals(
+    inputMaterialization?.hasSourceProvenance?.sourceKind,
+    "remoteUrlSource",
+  );
+  assertEquals(
+    inputMaterialization?.hasSourceProvenance?.contentDigest,
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  );
+});
+
 Deno.test("readManifestSource rejects a remote JSON-LD context", async () => {
   await assertRejects(
     () =>

@@ -1,6 +1,7 @@
 @prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -29,6 +30,34 @@ accord:SparqlAskAssertion a owl:Class ;
   rdfs:label "SPARQL ASK assertion" ;
   rdfs:comment "A SPARQL ASK query paired with the boolean value that must result during validation." .
 
+accord:StateLocator a owl:Class ;
+  rdfs:label "State locator" ;
+  rdfs:comment "A typed locator for a transition state, such as a git ref, directory snapshot, archive, or generated workspace." .
+
+accord:ReplayProfile a owl:Class ;
+  rdfs:label "Replay profile" ;
+  rdfs:comment "Optional replay metadata that describes how a runner can reproduce a transition without making accord check execute it." .
+
+accord:CommandInvocation a owl:Class ;
+  rdfs:label "Command invocation" ;
+  rdfs:comment "Command provenance for a replayable transition, including executable, ordered arguments, working directory, environment overrides, prompt policy, expected exit code, and log expectations." .
+
+accord:EnvironmentOverride a owl:Class ;
+  rdfs:label "Environment override" ;
+  rdfs:comment "A named environment variable value that materially affects a replay command." .
+
+accord:InputMaterialization a owl:Class ;
+  rdfs:label "Input materialization" ;
+  rdfs:comment "A file or directory source that should be materialized into a replay workspace before command execution." .
+
+accord:FileOperation a owl:Class ;
+  rdfs:label "File operation" ;
+  rdfs:comment "A declared replay step for command-incomplete or manual transitions that creates, replaces, copies, or removes a path." .
+
+accord:SourceProvenance a owl:Class ;
+  rdfs:label "Source provenance" ;
+  rdfs:comment "The origin of bytes used for replay input materialization or manual file operations." .
+
 accord:FileChangeType a owl:Class ;
   rdfs:label "File change type" ;
   rdfs:comment "A controlled set of expected file-state transition categories." .
@@ -36,6 +65,22 @@ accord:FileChangeType a owl:Class ;
 accord:CompareMode a owl:Class ;
   rdfs:label "Compare mode" ;
   rdfs:comment "A controlled set of comparison strategies for expected outputs." .
+
+accord:StateLocatorKind a owl:Class ;
+  rdfs:label "State locator kind" ;
+  rdfs:comment "A controlled set of state locator categories." .
+
+accord:FileOperationKind a owl:Class ;
+  rdfs:label "File operation kind" ;
+  rdfs:comment "A controlled set of replay file operation categories." .
+
+accord:SourceKind a owl:Class ;
+  rdfs:label "Source kind" ;
+  rdfs:comment "A controlled set of source provenance categories." .
+
+accord:PromptPolicy a owl:Class ;
+  rdfs:label "Prompt policy" ;
+  rdfs:comment "A controlled set of command prompt and confirmation policies for replay runners." .
 
 accord:hasCase a owl:ObjectProperty ;
   rdfs:label "has case" ;
@@ -66,6 +111,77 @@ accord:hasAskAssertion a owl:ObjectProperty ;
   rdfs:domain accord:RdfExpectation ;
   rdfs:range accord:SparqlAskAssertion ;
   rdfs:comment "Associates an RDF expectation with a SPARQL ASK assertion that must evaluate to the expected boolean." .
+
+accord:fromState a owl:ObjectProperty ;
+  rdfs:label "from state" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:StateLocator ;
+  rdfs:comment "Links a transition case to a generalized starting state locator. Current fromRef values remain git-oriented convenience metadata rather than OWL subproperties because they point to literals, not StateLocator nodes." .
+
+accord:toState a owl:ObjectProperty ;
+  rdfs:label "to state" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:StateLocator ;
+  rdfs:comment "Links a transition case to a generalized expected state locator. Current toRef values remain git-oriented convenience metadata rather than OWL subproperties because they point to literals, not StateLocator nodes." .
+
+accord:hasReplayProfile a owl:ObjectProperty ;
+  rdfs:label "has replay profile" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:ReplayProfile ;
+  rdfs:comment "Links a transition case to optional metadata for replaying or regenerating the transition." .
+
+accord:hasCommandInvocation a owl:ObjectProperty ;
+  rdfs:label "has command invocation" ;
+  rdfs:domain accord:ReplayProfile ;
+  rdfs:range accord:CommandInvocation ;
+  rdfs:comment "Associates a replay profile with the command invocation that can reproduce a command-backed transition." .
+
+accord:hasEnvironmentOverride a owl:ObjectProperty ;
+  rdfs:label "has environment override" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range accord:EnvironmentOverride ;
+  rdfs:comment "Associates a command invocation with an environment variable override that materially affects replay." .
+
+accord:hasInputMaterialization a owl:ObjectProperty ;
+  rdfs:label "has input materialization" ;
+  rdfs:domain accord:ReplayProfile ;
+  rdfs:range accord:InputMaterialization ;
+  rdfs:comment "Associates a replay profile with source material that should be placed in a workspace before command execution." .
+
+accord:hasFileOperation a owl:ObjectProperty ;
+  rdfs:label "has file operation" ;
+  rdfs:domain accord:ReplayProfile ;
+  rdfs:range accord:FileOperation ;
+  rdfs:comment "Associates a replay profile with a declared file operation for command-incomplete or manual transitions." .
+
+accord:hasSourceProvenance a owl:ObjectProperty ;
+  rdfs:label "has source provenance" ;
+  rdfs:range accord:SourceProvenance ;
+  rdfs:comment "Associates input materialization or file operations with the origin of the bytes used for replay." .
+
+accord:locatorKind a owl:ObjectProperty ;
+  rdfs:label "locator kind" ;
+  rdfs:domain accord:StateLocator ;
+  rdfs:range accord:StateLocatorKind ;
+  rdfs:comment "Classifies the kind of state locator, such as a git ref, directory snapshot, archive, or generated workspace." .
+
+accord:operationKind a owl:ObjectProperty ;
+  rdfs:label "operation kind" ;
+  rdfs:domain accord:FileOperation ;
+  rdfs:range accord:FileOperationKind ;
+  rdfs:comment "Classifies the replay file operation." .
+
+accord:sourceKind a owl:ObjectProperty ;
+  rdfs:label "source kind" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range accord:SourceKind ;
+  rdfs:comment "Classifies the origin of replay source bytes." .
+
+accord:promptPolicy a owl:ObjectProperty ;
+  rdfs:label "prompt policy" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range accord:PromptPolicy ;
+  rdfs:comment "Declares how a replay runner should handle command prompts or confirmations." .
 
 accord:changeType a owl:ObjectProperty ;
   rdfs:label "change type" ;
@@ -108,17 +224,157 @@ accord:toRef a owl:DatatypeProperty ;
   rdfs:range xsd:string ;
   rdfs:comment "The expected resulting fixture, branch, or other named reference for a transition case." .
 
+accord:ref a owl:DatatypeProperty ;
+  rdfs:label "ref" ;
+  rdfs:domain accord:StateLocator ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A named state reference, such as a git branch, tag, or commit when locatorKind is accord:gitRefState." .
+
+accord:uri a owl:DatatypeProperty ;
+  rdfs:label "URI" ;
+  rdfs:domain accord:StateLocator ;
+  rdfs:range xsd:anyURI ;
+  rdfs:comment "A URI locator for archive-backed, remote, or externally addressed state." .
+
+accord:locatorPath a owl:DatatypeProperty ;
+  rdfs:label "locator path" ;
+  rdfs:domain accord:StateLocator ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A directory, archive, or workspace path used by a state locator." .
+
 accord:targetDesignatorPath a owl:DatatypeProperty ;
   rdfs:label "target designator path" ;
   rdfs:domain accord:TransitionCase ;
   rdfs:range xsd:string ;
   rdfs:comment "The designator path or analogous operation target within the checked domain model." .
 
+accord:ignorePaths a owl:DatatypeProperty ;
+  rdfs:label "ignore paths" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Repository-relative exact paths or /** subtree patterns that future whole-tree checks should ignore unless an explicit file expectation names the same path." .
+
 accord:path a owl:DatatypeProperty ;
   rdfs:label "path" ;
   rdfs:domain accord:FileExpectation ;
   rdfs:range xsd:string ;
   rdfs:comment "The file path whose expected state or change is being checked." .
+
+accord:targetPath a owl:DatatypeProperty ;
+  rdfs:label "target path" ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The workspace-relative path targeted by an input materialization or replay file operation." .
+
+accord:workspaceRoot a owl:DatatypeProperty ;
+  rdfs:label "workspace root" ;
+  rdfs:domain accord:ReplayProfile ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The replay workspace root, expressed relative to the materialized fixture root when possible." .
+
+accord:meshRoot a owl:DatatypeProperty ;
+  rdfs:label "mesh root" ;
+  rdfs:domain accord:ReplayProfile ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The mesh root to use during replay, expressed relative to the workspace root when possible." .
+
+accord:executable a owl:DatatypeProperty ;
+  rdfs:label "executable" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The executable name or path for a command invocation." .
+
+accord:argv a rdf:Property ;
+  rdfs:label "argv" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:comment "The ordered command arguments for a command invocation. JSON-LD authors should represent this with an @list container so argv order is preserved." .
+
+accord:workingDirectory a owl:DatatypeProperty ;
+  rdfs:label "working directory" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The command working directory, expressed relative to the replay workspace root when possible." .
+
+accord:expectedExitCode a owl:DatatypeProperty ;
+  rdfs:label "expected exit code" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range xsd:integer ;
+  rdfs:comment "The command exit code expected by a replay runner." .
+
+accord:expectsOperationalLogs a owl:DatatypeProperty ;
+  rdfs:label "expects operational logs" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range xsd:boolean ;
+  rdfs:comment "Whether replay is expected to produce ordinary operational logs." .
+
+accord:expectsAuditLogs a owl:DatatypeProperty ;
+  rdfs:label "expects audit logs" ;
+  rdfs:domain accord:CommandInvocation ;
+  rdfs:range xsd:boolean ;
+  rdfs:comment "Whether replay is expected to produce audit-grade logs." .
+
+accord:name a owl:DatatypeProperty ;
+  rdfs:label "name" ;
+  rdfs:domain accord:EnvironmentOverride ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The name of an environment variable override." .
+
+accord:value a owl:DatatypeProperty ;
+  rdfs:label "value" ;
+  rdfs:domain accord:EnvironmentOverride ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The value of an environment variable override." .
+
+accord:sourcePath a owl:DatatypeProperty ;
+  rdfs:label "source path" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A local checked-in or fixture-relative source path for replay bytes." .
+
+accord:sourceRef a owl:DatatypeProperty ;
+  rdfs:label "source ref" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A fixture or repository ref that qualifies a source path." .
+
+accord:sourceUrl a owl:DatatypeProperty ;
+  rdfs:label "source URL" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:anyURI ;
+  rdfs:comment "A remote URL where replay source bytes can be fetched." .
+
+accord:inlineValue a owl:DatatypeProperty ;
+  rdfs:label "inline value" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Inline source bytes or text for small replay inputs." .
+
+accord:contentDigest a owl:DatatypeProperty ;
+  rdfs:label "content digest" ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A content digest that pins replay source bytes or located state content, typically using an algorithm-prefixed value such as sha256:..." .
+
+accord:mediaType a owl:DatatypeProperty ;
+  rdfs:label "media type" ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The media type of replay source bytes when handling depends on it." .
+
+accord:derivationNote a owl:DatatypeProperty ;
+  rdfs:label "derivation note" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A short note explaining how manually authored or derived source bytes were produced." .
+
+accord:derivedFrom a owl:DatatypeProperty ;
+  rdfs:label "derived from" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:anyURI ;
+  rdfs:comment "A task, specification, source document, or other identifier that manually authored bytes were derived from." .
+
+accord:nondeterministicSource a owl:DatatypeProperty ;
+  rdfs:label "nondeterministic source" ;
+  rdfs:domain accord:SourceProvenance ;
+  rdfs:range xsd:boolean ;
+  rdfs:comment "Marks URL-backed source provenance as intentionally nondeterministic when no content digest is available." .
 
 accord:query a owl:DatatypeProperty ;
   rdfs:label "query" ;
@@ -167,3 +423,67 @@ accord:json a accord:CompareMode ;
 accord:rdfCanonical a accord:CompareMode ;
   rdfs:label "RDF canonical" ;
   rdfs:comment "Compare RDF content after dataset canonicalization and configured volatility exclusions." .
+
+accord:gitRefState a accord:StateLocatorKind ;
+  rdfs:label "git ref state" ;
+  rdfs:comment "A state located by a git branch, tag, commit, or other ref." .
+
+accord:directoryState a accord:StateLocatorKind ;
+  rdfs:label "directory state" ;
+  rdfs:comment "A state located by a directory snapshot." .
+
+accord:archiveState a accord:StateLocatorKind ;
+  rdfs:label "archive state" ;
+  rdfs:comment "A state located by an archive." .
+
+accord:generatedState a accord:StateLocatorKind ;
+  rdfs:label "generated state" ;
+  rdfs:comment "A state produced by a replay runner rather than named as a durable fixture ref." .
+
+accord:createFile a accord:FileOperationKind ;
+  rdfs:label "create file" ;
+  rdfs:comment "A replay file operation that creates a file from source provenance." .
+
+accord:replaceFile a accord:FileOperationKind ;
+  rdfs:label "replace file" ;
+  rdfs:comment "A replay file operation that replaces a file from source provenance." .
+
+accord:copyPath a accord:FileOperationKind ;
+  rdfs:label "copy path" ;
+  rdfs:comment "A replay file operation that copies a file or directory from source provenance." .
+
+accord:removePath a accord:FileOperationKind ;
+  rdfs:label "remove path" ;
+  rdfs:comment "A replay file operation that removes a file or directory." .
+
+accord:inlineSource a accord:SourceKind ;
+  rdfs:label "inline source" ;
+  rdfs:comment "Source bytes or text carried inline in the manifest." .
+
+accord:fixtureRefSource a accord:SourceKind ;
+  rdfs:label "fixture ref source" ;
+  rdfs:comment "Source bytes copied from a path at a fixture ref." .
+
+accord:localPathSource a accord:SourceKind ;
+  rdfs:label "local path source" ;
+  rdfs:comment "Source bytes copied from a checked-in local path such as a replay asset." .
+
+accord:remoteUrlSource a accord:SourceKind ;
+  rdfs:label "remote URL source" ;
+  rdfs:comment "Source bytes fetched from a remote URL and pinned by digest unless explicitly marked nondeterministic." .
+
+accord:derivedSource a accord:SourceKind ;
+  rdfs:label "derived source" ;
+  rdfs:comment "Source bytes manually authored or derived from a task, spec, note, or other documented input rather than copied byte-for-byte." .
+
+accord:nonInteractive a accord:PromptPolicy ;
+  rdfs:label "non-interactive" ;
+  rdfs:comment "Replay should not expect interactive prompts." .
+
+accord:acceptPreview a accord:PromptPolicy ;
+  rdfs:label "accept preview" ;
+  rdfs:comment "Replay may accept a command preview or confirmation prompt." .
+
+accord:expectedConfirmation a accord:PromptPolicy ;
+  rdfs:label "expected confirmation" ;
+  rdfs:comment "Replay expects a specific confirmation interaction." .

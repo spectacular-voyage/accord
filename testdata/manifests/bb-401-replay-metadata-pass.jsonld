@@ -1,0 +1,118 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "locatorKind": {
+      "@type": "@vocab"
+    },
+    "operationKind": {
+      "@type": "@vocab"
+    },
+    "promptPolicy": {
+      "@type": "@vocab"
+    },
+    "sourceKind": {
+      "@type": "@vocab"
+    },
+    "argv": {
+      "@container": "@list"
+    },
+    "ignorePaths": {
+      "@container": "@list"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-401-replay-metadata-pass",
+  "dcterms:title": "bb-401 replay metadata pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#replay-metadata-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.replayMetadata",
+      "fromRef": "r0-empty",
+      "toRef": "r1-bytes-a",
+      "fromState": {
+        "type": "StateLocator",
+        "locatorKind": "gitRefState",
+        "ref": "r0-empty"
+      },
+      "toState": {
+        "type": "StateLocator",
+        "locatorKind": "gitRefState",
+        "ref": "r1-bytes-a"
+      },
+      "ignorePaths": [
+        ".assets/**"
+      ],
+      "hasReplayProfile": {
+        "type": "ReplayProfile",
+        "workspaceRoot": ".",
+        "meshRoot": ".",
+        "hasCommandInvocation": {
+          "type": "CommandInvocation",
+          "executable": "weave",
+          "argv": [
+            "knop",
+            "create",
+            "alice"
+          ],
+          "workingDirectory": ".",
+          "promptPolicy": "nonInteractive",
+          "expectedExitCode": 0,
+          "expectsOperationalLogs": true,
+          "expectsAuditLogs": true,
+          "hasEnvironmentOverride": [
+            {
+              "type": "EnvironmentOverride",
+              "name": "WEAVE_PROFILE",
+              "value": "test"
+            }
+          ]
+        },
+        "hasInputMaterialization": [
+          {
+            "type": "InputMaterialization",
+            "targetPath": "artifact.bin",
+            "hasSourceProvenance": {
+              "type": "SourceProvenance",
+              "sourceKind": "localPathSource",
+              "sourcePath": ".assets/artifact.bin",
+              "contentDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "mediaType": "application/octet-stream"
+            }
+          }
+        ],
+        "hasFileOperation": [
+          {
+            "type": "FileOperation",
+            "operationKind": "createFile",
+            "targetPath": "artifact.bin",
+            "hasSourceProvenance": {
+              "type": "SourceProvenance",
+              "sourceKind": "derivedSource",
+              "derivationNote": "Synthetic replay metadata fixture."
+            }
+          }
+        ]
+      },
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-added",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "added",
+          "compareMode": "bytes"
+        }
+      ]
+    }
+  ]
+}

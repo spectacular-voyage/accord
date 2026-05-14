@@ -62,6 +62,12 @@ If a manifest contains more than one case, pass `--case <case-id>`.
 
 The selected case may be identified by its authored `@id`. Accord also accepts the resolved case IRI when that is how the manifest was expanded.
 
+### Replay metadata
+
+Manifests may include optional replay metadata for tools that regenerate fixture states or run command-backed examples. The current model supports generalized `fromState` / `toState` locators, a linked `ReplayProfile`, command invocation details, input materialization, manual file operations, source provenance, and `ignorePaths` for future whole-tree checks.
+
+Today `accord check` remains a checker only. It loads this metadata so downstream tooling can consume it, but it does not execute commands, materialize sources, apply file operations, or use `ignorePaths` during path-scoped checks. Continue to use `fromRef`, `toRef`, and explicit file/RDF expectations for current checker behavior.
+
 ## Output formats
 
 ### Text output
@@ -182,6 +188,8 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 ## Current limitations
 
 - Accord does not yet auto-locate the fixture repository from `fixtureRepo`.
+- Accord does not yet execute replay commands or apply replay materialization/file-operation metadata.
+- Accord does not yet run whole-tree completeness checks from `ignorePaths`.
 - Accord does not yet support `json` compare mode.
 - Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.

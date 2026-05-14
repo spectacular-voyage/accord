@@ -397,6 +397,19 @@
       "expectedCodes": [
         "file_content_mismatch"
       ]
+    },
+    {
+      "id": "bb-401-replay-metadata-pass",
+      "manifestPath": "testdata/manifests/bb-401-replay-metadata-pass.jsonld",
+      "repoId": "repo-files",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedCaseId": "#replay-metadata-case",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      }
     }
   ]
 }

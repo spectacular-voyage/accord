@@ -141,6 +141,14 @@ The CLI still needs execution semantics beyond the ontology and SHACL. Examples 
 
 Those rules belong in this spec even if the ontology and SHACL remain unchanged.
 
+### Replay And Provenance Metadata
+
+Accord manifests may include optional replay metadata such as generalized `fromState` / `toState` locators, case-level `ignorePaths`, a linked `ReplayProfile`, command invocation metadata, input materialization, manual file operations, and source provenance.
+
+The current `accord check` command does not execute replay commands, materialize declared inputs, perform manual file operations, or run whole-tree completeness checks. Its current setup behavior still requires `fromRef` and `toRef`, verifies those refs in the selected git repository, and evaluates the listed file/RDF expectations. Replay metadata is loaded and exposed by the manifest model for downstream runners, but it is otherwise ignored by current checker execution.
+
+`ignorePaths` is reserved for future whole-tree or generated-workspace checks. It must not suppress an explicit `FileExpectation`; if a path is both ignored and explicitly expected, the explicit expectation remains authoritative.
+
 ### Case Selection
 
 Case selection is resolved as follows:
