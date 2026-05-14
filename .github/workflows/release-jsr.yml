@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
@@ -54,3 +54,14 @@ jobs:
 
       - name: Publish to JSR
         run: deno publish
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE_NOTES="documentation/notes/release-notes.v${VERSION}.md"
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "Accord ${GITHUB_REF_NAME}" \
+            --notes-file "${RELEASE_NOTES}"

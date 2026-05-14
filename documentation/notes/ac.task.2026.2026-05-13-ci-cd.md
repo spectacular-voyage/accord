@@ -35,7 +35,7 @@ Recommended release lanes:
 
 Accord already has `.github/workflows/ci.yml` running `deno task fmt:check`, `deno task lint`, `deno task check`, and coverage-enabled tests on PRs and `main`. Codecov upload is wired with OIDC, and the earlier CI setup is tracked in [[ac.completed.2026.2026-04-03-accord-ci]].
 
-The repository now has JSR package metadata in `deno.json`: `name`, `version`, `license`, public `exports`, publish filtering, and a `publish:dry-run` task. [[release-notes.v0.0.1]] exists as the seed release note. `.github/workflows/release-jsr.yml` publishes tag releases to JSR through GitHub Actions OIDC after verifying tag/version/release-note alignment and running the normal checks.
+The repository now has JSR package metadata in `deno.json`: `name`, `version`, `license`, public `exports`, publish filtering, and a `publish:dry-run` task. [[release-notes.v0.0.1]] exists as the seed release note. `.github/workflows/release-jsr.yml` publishes tag releases to JSR through GitHub Actions OIDC after verifying tag/version/release-note alignment and running the normal checks, then creates a GitHub release from the versioned release note.
 
 There is still no binary build script, package assembly script, GitHub release creation step, or npmjs package layout. Those are intentionally later lanes.
 
@@ -202,7 +202,7 @@ This does not conflict with JSR. JSR's npm compatibility package is addressed th
 - [x] Add a package import smoke test against the public API.
 - [x] Add a release consistency check that verifies tag/version/release-note alignment in the JSR release workflow.
 - [x] Add a tag-driven JSR publish workflow using GitHub Actions OIDC.
-- [ ] Add GitHub release creation from the versioned release note.
+- [x] Add GitHub release creation from the versioned release note.
 - [x] Document the JSR install/import path in [[ac.user-guide]].
 - [x] Decide whether to document a temporary Deno CLI run/install path before native binaries exist.
 - [ ] Later: add `accord --version`.
