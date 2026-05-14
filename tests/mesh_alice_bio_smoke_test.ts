@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { JsonReport } from "../src/report/json_report.ts";
+import type { JsonReport } from "../src/report/json_report.ts";
 import { runAccordCli } from "./harness/cli_runner.ts";
 import {
   conformanceManifestPath,

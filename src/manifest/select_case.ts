@@ -1,5 +1,5 @@
-import { CHECK_CODES, CheckCode } from "../report/codes.ts";
-import { ManifestDocument, TransitionCase } from "./model.ts";
+import { CHECK_CODES, type CheckCode } from "../report/codes.ts";
+import type { ManifestDocument, TransitionCase } from "./model.ts";
 
 export class CaseSelectionError extends Error {
   code: CheckCode;

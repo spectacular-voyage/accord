@@ -14,11 +14,24 @@ This guide describes the current checker behavior that exists in this repository
 
 ## Current command surface
 
-Today the checker is run from the repository with Deno:
+During development, the checker is run from the repository with Deno:
 
 ```bash
 deno run -A src/main.ts --help
 deno run -A src/main.ts check <manifest-path>
+```
+
+After the JSR package is published, the same CLI entrypoint is available through the package:
+
+```bash
+deno run -A jsr:@spectacular-voyage/accord/cli --help
+deno run -A jsr:@spectacular-voyage/accord/cli check <manifest-path>
+```
+
+For repeated local use before native binaries exist:
+
+```bash
+deno install -A --global --name accord jsr:@spectacular-voyage/accord/cli
 ```
 
 The current CLI usage is:
@@ -28,7 +41,21 @@ accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--
 accord --help
 ```
 
-The eventual packaged command should preserve this shape, but the current repository-native invocation is still `deno run -A src/main.ts ...`.
+The eventual native binary command should preserve this shape. Until then, use either the repository-native invocation or the JSR `./cli` entrypoint.
+
+## Library use
+
+Accord is also published as a Deno-first TypeScript library. The default package entrypoint exposes the manifest model, manifest loading, case selection, comparison helpers, JSON-LD document policy helpers, report types, checker result codes, and the CLI runner:
+
+```ts
+import {
+  readManifestSource,
+  selectTransitionCase,
+  type ManifestDocument,
+} from "jsr:@spectacular-voyage/accord";
+```
+
+The public API is intentionally small for the first package release. Treat it as early and expect explicit migration notes if the module surface changes before a stability milestone.
 
 ## Inputs
 
@@ -146,6 +173,8 @@ For `rdfCanonical` expectations, Accord currently supports:
 - graph equivalence comparison
 - ignored predicate filtering
 - SPARQL `ASK` assertions attached through `RdfExpectation`
+
+The current ASK evaluator is intentionally small. It supports basic graph-pattern-style queries such as `ASK { ?s a <Type> ; <name> "Alice" . }` over the parsed RDF quads, including IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. Broader SPARQL features such as prefixes, filters, optionals, unions, and property paths should be treated as unsupported until Accord has a concrete manifest corpus that needs them.
 
 The current RDF artifact syntax support is intentionally limited to a small explicit set:
 

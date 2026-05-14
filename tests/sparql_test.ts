@@ -19,6 +19,47 @@ Deno.test("runAskAssertion returns true for a matching ASK query", async () => {
   assertEquals(result, true);
 });
 
+Deno.test("runAskAssertion supports basic ASK graph patterns", async () => {
+  const dataset = await Deno.readFile(
+    "testdata/repos/repo-rdf/refs/r1-graph-v1/graph.ttl",
+  );
+
+  const result = await runAskAssertion({
+    dataset,
+    path: "graph.ttl",
+    query: `
+      ASK {
+        ?person a <https://example.test/Person> ;
+          <https://example.test/name> "Alice" ;
+          <https://example.test/knows> ?friend .
+        ?friend a <https://example.test/Person>, <https://example.test/Person> ;
+          <https://example.test/name> "Bob" .
+      }
+    `,
+  });
+
+  assertEquals(result, true);
+});
+
+Deno.test("runAskAssertion preserves variable bindings across ASK patterns", async () => {
+  const dataset = await Deno.readFile(
+    "testdata/repos/repo-rdf/refs/r1-graph-v1/graph.ttl",
+  );
+
+  const result = await runAskAssertion({
+    dataset,
+    path: "graph.ttl",
+    query: `
+      ASK {
+        ?person <https://example.test/knows> ?friend .
+        ?friend <https://example.test/name> "Alice" .
+      }
+    `,
+  });
+
+  assertEquals(result, false);
+});
+
 Deno.test("runAskAssertion returns false for a non-matching ASK query", async () => {
   const dataset = await Deno.readFile(
     "testdata/repos/repo-rdf/refs/r1-graph-v1/graph.ttl",

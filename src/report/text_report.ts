@@ -1,4 +1,4 @@
-import { JsonReport } from "./json_report.ts";
+import type { JsonReport } from "./json_report.ts";
 
 export function renderTextReport(report: JsonReport): string {
   const lines = [

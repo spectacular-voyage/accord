@@ -10,13 +10,13 @@ import {
 import { runAskAssertion, SparqlAskError } from "../../checker/sparql.ts";
 import {
   evaluatePresenceExpectation,
-  FileChangeType,
+  type FileChangeType,
 } from "../../checker/file_expectations.ts";
 import { gitBlobExists, readGitBlob } from "../../git/blobs.ts";
 import { gitRefExists } from "../../git/refs.ts";
 import { GitAccessError, resolveGitRepositoryRoot } from "../../git/repo.ts";
 import { createPathMappedJsonLdDocumentContext } from "../../jsonld/documents.ts";
-import {
+import type {
   FileExpectation,
   RdfExpectation,
   SparqlAskAssertion,
@@ -30,15 +30,15 @@ import {
   CaseSelectionError,
   selectTransitionCase,
 } from "../../manifest/select_case.ts";
-import { CHECK_CODES, CheckCode } from "../../report/codes.ts";
+import { CHECK_CODES, type CheckCode } from "../../report/codes.ts";
 import {
-  CheckRecord,
+  type CheckRecord,
   countCheckStatuses,
   deriveReportStatus,
-  JsonReport,
+  type JsonReport,
 } from "../../report/json_report.ts";
 import { renderTextReport } from "../../report/text_report.ts";
-import { CheckCommand } from "../parse_args.ts";
+import type { CheckCommand } from "../parse_args.ts";
 
 export async function handleCheckCommand(
   command: CheckCommand,

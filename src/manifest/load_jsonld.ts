@@ -3,11 +3,11 @@ import {
   assertContextReferencesAllowed,
   createFileJsonLdDocumentContext,
   getTopLevelContext,
-  JsonLdDocumentContext,
+  type JsonLdDocumentContext,
   parseJsonSource,
 } from "../jsonld/documents.ts";
-import { CHECK_CODES, CheckCode } from "../report/codes.ts";
-import {
+import { CHECK_CODES, type CheckCode } from "../report/codes.ts";
+import type {
   CommandInvocation,
   EnvironmentOverride,
   FileExpectation,

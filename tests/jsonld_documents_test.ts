@@ -3,7 +3,7 @@ import {
   assertContextReferencesAllowed,
   createFileJsonLdDocumentContext,
 } from "../src/jsonld/documents.ts";
-import { CHECK_CODES, CheckCode } from "../src/report/codes.ts";
+import { CHECK_CODES, type CheckCode } from "../src/report/codes.ts";
 
 class TestJsonLdError extends Error {
   code: CheckCode;

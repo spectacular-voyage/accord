@@ -32,6 +32,9 @@ jobs:
       - name: Type-check
         run: deno task check
 
+      - name: Check JSR package
+        run: deno task publish:dry-run
+
       - name: Run tests with coverage
         run: deno task test:coverage
 

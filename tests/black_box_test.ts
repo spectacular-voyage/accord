@@ -1,6 +1,6 @@
 import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { JsonReport } from "../src/report/json_report.ts";
+import type { JsonReport } from "../src/report/json_report.ts";
 import { runAccordCli } from "./harness/cli_runner.ts";
 import { materializeRepoFixture } from "./harness/fixture_materializer.ts";
 

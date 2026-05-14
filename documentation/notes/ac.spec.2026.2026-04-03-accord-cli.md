@@ -92,10 +92,11 @@ The current best-fit dependency baseline is:
 - Deno standard library for assertions, path handling, filesystem helpers, and CLI parsing
 - `npm:jsonld` for JSON-LD processing and deterministic document-loader control
 - `npm:n3` for Turtle or N-Quads parsing and RDFJS store work
-- `npm:@comunica/query-sparql` for SPARQL ASK evaluation
 - `npm:rdf-canonize` for RDF dataset canonicalization if the Deno spike confirms it is workable in practice
 
-The current preferred JSON-LD direction is `jsonld.js`, not the Comunica JSON-LD parse actor. Manifest loading needs direct JSON-LD document processing more than it needs another RDF parse actor abstraction.
+The current preferred JSON-LD direction is `jsonld.js`. Manifest loading needs direct JSON-LD document processing more than it needs another RDF parse actor abstraction.
+
+SPARQL ASK evaluation should stay small unless real manifests require broader SPARQL semantics. The current checker supports basic graph-pattern-style ASK queries over parsed RDF quads, including IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. Unsupported query shapes should return `sparql_query_error`.
 
 ## Exit Codes
 
@@ -307,7 +308,7 @@ Evaluation order:
 4. Run canonical graph comparison when required by the file expectation change type.
 5. Run each `SparqlAskAssertion` against the unfiltered `toRef` graph.
 
-Each ASK assertion should be executed exactly as authored. The checker should not inject prefixes, rewrite IRIs, or silently coerce non-ASK queries into ASK behavior.
+Each ASK assertion should be executed exactly as authored within the supported ASK subset. The checker should not inject prefixes, rewrite IRIs, or silently coerce non-ASK queries into ASK behavior.
 
 ## Report Semantics
 

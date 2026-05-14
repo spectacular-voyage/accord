@@ -1,5 +1,5 @@
 import { fromFileUrl, resolve, toFileUrl } from "@std/path";
-import { CHECK_CODES, CheckCode } from "../report/codes.ts";
+import { CHECK_CODES, type CheckCode } from "../report/codes.ts";
 
 export interface LoadedJsonLdDocument {
   contextUrl: null;

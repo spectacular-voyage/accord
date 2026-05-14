@@ -1,4 +1,4 @@
-import { CheckCode } from "./codes.ts";
+import type { CheckCode } from "./codes.ts";
 
 export type CheckKind =
   | "file_compare"

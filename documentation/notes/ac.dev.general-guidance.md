@@ -54,9 +54,8 @@ Accord is Deno-first, but the current implementation deliberately uses a few npm
 - `jsonld.js` for `.jsonld` RDF artifact ingestion
 - `n3` for RDF parsing and the in-memory RDFJS store
 - `rdf-canonize` for RDF canonicalization
-- `@comunica/query-sparql` for SPARQL `ASK`
 
-That stack is acceptable because it is working under Deno today. It is still heavier than ideal, especially because Comunica has a large transitive graph, so new dependencies should be added cautiously and only when they solve a concrete problem.
+SPARQL `ASK` support is intentionally implemented as a narrow in-repo evaluator over parsed quads rather than through Comunica. It supports the basic graph-pattern subset used by current Accord and Semantic Flow manifests: IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. It does not implement broad SPARQL execution semantics such as prefixes, filters, optionals, unions, or property paths. That keeps the dependency graph small and avoids Deno/npm resolver instability from Comunica's transitive `cross-fetch` chain. New dependencies should be added cautiously and only when they solve a concrete problem.
 
 ## Important implementation boundaries
 
