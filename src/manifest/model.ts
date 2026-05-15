@@ -107,6 +107,7 @@ export interface ReplayProfile {
   workspaceRoot?: string;
   meshRoot?: string;
   hasCommandInvocation?: CommandInvocation;
+  hasCommandSequence?: CommandInvocation[];
   hasInputMaterialization?: InputMaterialization[];
   hasFileOperation?: FileOperation[];
   [key: string]: unknown;
