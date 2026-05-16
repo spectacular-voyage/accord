@@ -29,7 +29,11 @@ export async function listGitTreeBlobs(
   return entries.flatMap((entry) => {
     const match = entry.match(/^\d+ blob ([0-9a-f]+)\t(.+)$/);
     if (match === null) {
-      return [];
+      throw new GitAccessError(
+        `Unparsable git ls-tree output for ref ${ref} in ${repoPath}: ${
+          JSON.stringify(entry)
+        }`,
+      );
     }
 
     return [{ objectId: match[1], path: match[2] }];
