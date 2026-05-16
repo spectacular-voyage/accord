@@ -156,13 +156,16 @@
       "id": "bb-106-absent-pass-even-if-previously-present",
       "manifestPath": "testdata/manifests/bb-106-absent-pass-even-if-previously-present.jsonld",
       "repoId": "repo-files",
-      "expectedExitCode": 0,
-      "expectedStatus": "pass",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
       "expectedSummary": {
         "pass": 1,
-        "fail": 0,
+        "fail": 1,
         "error": 0
-      }
+      },
+      "expectedCodes": [
+        "tree_unexpected_change"
+      ]
     },
     {
       "id": "bb-107-absent-fail-when-still-present",
@@ -172,11 +175,12 @@
       "expectedStatus": "fail",
       "expectedSummary": {
         "pass": 0,
-        "fail": 1,
+        "fail": 2,
         "error": 0
       },
       "expectedCodes": [
-        "file_presence_mismatch"
+        "file_presence_mismatch",
+        "tree_unexpected_change"
       ]
     },
     {
@@ -294,7 +298,7 @@
       "expectedExitCode": 0,
       "expectedStatus": "pass",
       "expectedSummary": {
-        "pass": 2,
+        "pass": 3,
         "fail": 0,
         "error": 0
       }
@@ -306,7 +310,7 @@
       "expectedExitCode": 1,
       "expectedStatus": "fail",
       "expectedSummary": {
-        "pass": 1,
+        "pass": 2,
         "fail": 1,
         "error": 0
       },
@@ -321,7 +325,7 @@
       "expectedExitCode": 0,
       "expectedStatus": "pass",
       "expectedSummary": {
-        "pass": 2,
+        "pass": 3,
         "fail": 0,
         "error": 0
       }
@@ -333,7 +337,7 @@
       "expectedExitCode": 1,
       "expectedStatus": "fail",
       "expectedSummary": {
-        "pass": 1,
+        "pass": 2,
         "fail": 1,
         "error": 0
       },
@@ -410,6 +414,83 @@
         "fail": 0,
         "error": 0
       }
+    },
+    {
+      "id": "bb-501-ignore-paths-pass",
+      "manifestPath": "testdata/manifests/bb-501-ignore-paths-pass.jsonld",
+      "repoId": "repo-ignore-paths",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedCaseId": "#ignore-assets-case",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-502-unexpected-asset-change-fail",
+      "manifestPath": "testdata/manifests/bb-502-unexpected-asset-change-fail.jsonld",
+      "repoId": "repo-ignore-paths",
+      "expectedExitCode": 1,
+      "expectedStatus": "fail",
+      "expectedCaseId": "#unexpected-assets-case",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 1,
+        "error": 0
+      },
+      "expectedCodes": [
+        "tree_unexpected_change"
+      ]
+    },
+    {
+      "id": "bb-503-ignore-path-conflict-error",
+      "manifestPath": "testdata/manifests/bb-503-ignore-path-conflict-error.jsonld",
+      "repoId": "repo-ignore-paths",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedCaseId": "#ignore-conflict-case",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "ignore_path_conflict"
+      ]
+    },
+    {
+      "id": "bb-504-ignore-path-absolute-error",
+      "manifestPath": "testdata/manifests/bb-504-ignore-path-absolute-error.jsonld",
+      "repoId": "repo-ignore-paths",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedCaseId": "#absolute-ignore-path-case",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "ignore_path_invalid"
+      ]
+    },
+    {
+      "id": "bb-505-ignore-path-traversal-error",
+      "manifestPath": "testdata/manifests/bb-505-ignore-path-traversal-error.jsonld",
+      "repoId": "repo-ignore-paths",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedCaseId": "#traversal-ignore-path-case",
+      "expectedSummary": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "ignore_path_invalid"
+      ]
     }
   ]
 }

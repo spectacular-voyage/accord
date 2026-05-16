@@ -1,0 +1,11 @@
+{
+  "id": "repo-ignore-paths",
+  "refs": [
+    {
+      "name": "r1-before"
+    },
+    {
+      "name": "r2-assets-changed"
+    }
+  ]
+}

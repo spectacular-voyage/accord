@@ -287,6 +287,10 @@ function mapSourceReplayProfile(
       documentUrl,
       mapSourceCommandInvocation,
     ),
+    hasCommandSequence: getSourceNodeArray(
+      source,
+      "hasCommandSequence",
+    ).map((node) => mapSourceCommandInvocation(node, documentUrl)),
     hasInputMaterialization: getSourceNodeArray(
       source,
       "hasInputMaterialization",
@@ -545,6 +549,10 @@ function mapExpandedReplayProfile(
       "hasCommandInvocation",
       mapExpandedCommandInvocation,
     ),
+    hasCommandSequence: getExpandedNodeArray(
+      source,
+      "hasCommandSequence",
+    ).map((node) => mapExpandedCommandInvocation(node)),
     hasInputMaterialization: getExpandedNodeArray(
       source,
       "hasInputMaterialization",

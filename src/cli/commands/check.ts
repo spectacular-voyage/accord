@@ -8,6 +8,7 @@ import {
   TextDecodeError,
 } from "../../checker/compare_text.ts";
 import { runAskAssertion, SparqlAskError } from "../../checker/sparql.ts";
+import { evaluateTreeCompleteness } from "../../checker/tree_completeness.ts";
 import {
   evaluatePresenceExpectation,
   type FileChangeType,
@@ -156,6 +157,14 @@ async function evaluateCaseChecks(
   const checks: CheckRecord[] = [];
   const fileExpectations = transitionCase.hasFileExpectation ?? [];
   const presenceByExpectation = new Map<FileExpectation, boolean>();
+  const treeCompletenessChecks = await evaluateTreeCompleteness(
+    repoPath,
+    transitionCase,
+  );
+
+  if (treeCompletenessChecks.some((check) => check.status === "error")) {
+    return treeCompletenessChecks;
+  }
 
   for (const fileExpectation of fileExpectations) {
     const path = fileExpectation.path;
@@ -206,6 +215,7 @@ async function evaluateCaseChecks(
   }
 
   checks.push(
+    ...treeCompletenessChecks,
     ...await evaluateRdfExpectationChecks(
       repoPath,
       transitionCase,

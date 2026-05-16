@@ -5,7 +5,8 @@ export type CheckKind =
   | "file_presence"
   | "rdf_compare"
   | "setup"
-  | "sparql_ask";
+  | "sparql_ask"
+  | "tree_completeness";
 
 export type CheckStatus = "error" | "fail" | "pass";
 export type ReportStatus = CheckStatus;

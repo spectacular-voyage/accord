@@ -8,6 +8,8 @@ export const CHECK_CODES = {
   FIXTURE_REPO_NOT_FOUND: "fixture_repo_not_found",
   MANIFEST_LOAD_ERROR: "manifest_load_error",
   GIT_REF_UNRESOLVED: "git_ref_unresolved",
+  IGNORE_PATH_CONFLICT: "ignore_path_conflict",
+  IGNORE_PATH_INVALID: "ignore_path_invalid",
   RDF_GRAPH_OK: "rdf_graph_ok",
   RDF_GRAPH_MISMATCH: "rdf_graph_mismatch",
   RDF_PARSE_ERROR: "rdf_parse_error",
@@ -16,6 +18,7 @@ export const CHECK_CODES = {
   SPARQL_ASK_MISMATCH: "sparql_ask_mismatch",
   SPARQL_QUERY_ERROR: "sparql_query_error",
   TEXT_DECODE_ERROR: "text_decode_error",
+  TREE_UNEXPECTED_CHANGE: "tree_unexpected_change",
 } as const;
 
 export type CheckCode = typeof CHECK_CODES[keyof typeof CHECK_CODES];

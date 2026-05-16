@@ -1,0 +1,26 @@
+{
+  "@context": "support/accord-context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-505-ignore-path-traversal-error",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#traversal-ignore-path-case",
+      "fixtureRepo": "testdata/repos/repo-ignore-paths",
+      "fromRef": "r1-before",
+      "toRef": "r2-assets-changed",
+      "ignorePaths": [
+        "../source.ttl"
+      ],
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-unchanged",
+          "type": "FileExpectation",
+          "path": "artifact.txt",
+          "changeType": "unchanged",
+          "compareMode": "text"
+        }
+      ]
+    }
+  ]
+}

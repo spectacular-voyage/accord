@@ -1,6 +1,6 @@
 {
   "name": "@spectacular-voyage/accord",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/mod.ts",
@@ -11,10 +11,10 @@
     "fmt:check": "deno fmt --check deno.json src tests testdata",
     "lint": "deno lint src tests",
     "check": "deno check src/**/*.ts tests/**/*.ts",
-    "test": "deno test --allow-read --allow-write --allow-run --allow-env tests",
+    "test": "deno test --allow-read --allow-write --allow-run --allow-env --ignore=tests/mesh_alice_bio_smoke_test.ts tests",
     "test:black-box": "deno test --allow-read --allow-write --allow-run --allow-env tests/black_box_test.ts",
     "test:mesh-alice-bio": "deno test --allow-read --allow-write --allow-run --allow-env tests/mesh_alice_bio_smoke_test.ts",
-    "test:coverage": "deno test --allow-read --allow-write --allow-run --allow-env --coverage=coverage tests",
+    "test:coverage": "deno test --allow-read --allow-write --allow-run --allow-env --coverage=coverage --ignore=tests/mesh_alice_bio_smoke_test.ts tests",
     "coverage:lcov": "deno coverage coverage --lcov > coverage/lcov.info",
     "publish:dry-run": "deno publish --dry-run --allow-dirty"
   },
@@ -26,10 +26,7 @@
     "n3": "npm:n3@2.0.3",
     "rdf-canonize": "npm:rdf-canonize@5.0.0"
   },
-  "exclude": [
-    ".test-tmp/**",
-    "documentation/notes/**"
-  ],
+  "exclude": [".test-tmp/**", "documentation/notes/**"],
   "publish": {
     "include": [
       "README.md",
@@ -39,17 +36,10 @@
       "deno.lock",
       "src/**/*.ts"
     ],
-    "exclude": [
-      "documentation/**",
-      "testdata/**",
-      "tests/**"
-    ]
+    "exclude": ["documentation/**", "testdata/**", "tests/**"]
   },
   "fmt": {
     "proseWrap": "preserve",
-    "exclude": [
-      "documentation/notes/**",
-      "**/*.md"
-    ]
+    "exclude": ["documentation/notes/**", "**/*.md"]
   }
 }

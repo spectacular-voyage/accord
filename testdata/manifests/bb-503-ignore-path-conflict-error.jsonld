@@ -1,0 +1,26 @@
+{
+  "@context": "support/accord-context.jsonld",
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-503-ignore-path-conflict-error",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#ignore-conflict-case",
+      "fixtureRepo": "testdata/repos/repo-ignore-paths",
+      "fromRef": "r1-before",
+      "toRef": "r2-assets-changed",
+      "ignorePaths": [
+        ".assets/**"
+      ],
+      "hasFileExpectation": [
+        {
+          "id": "#asset-updated",
+          "type": "FileExpectation",
+          "path": ".assets/source.ttl",
+          "changeType": "updated",
+          "compareMode": "text"
+        }
+      ]
+    }
+  ]
+}
