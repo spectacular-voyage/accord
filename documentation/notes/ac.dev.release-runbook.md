@@ -86,6 +86,12 @@ deno task coverage:lcov
 
 The generated coverage directory is local output and should not be committed.
 
+`deno task test` and `deno task test:coverage` intentionally exclude the optional `mesh-alice-bio` smoke suite. That suite depends on sibling Semantic Flow repositories whose branch series can move independently from Accord. Run it only when real-corpus compatibility is the thing being checked:
+
+```bash
+deno task test:mesh-alice-bio
+```
+
 ## Merge To Main
 
 Merge the release branch to `main` only after CI is green. The tag-triggered release workflow publishes whatever is reachable at the pushed tag, so do not tag a stale branch or an unreviewed local commit.

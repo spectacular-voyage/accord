@@ -106,14 +106,15 @@ The current testing strategy has two layers:
 
 - focused unit tests for parsing, git access, comparisons, and report behavior
 - black-box tests driven by `testdata/scenarios/black-box.json`
-- `mesh-alice-bio` smoke tests driven by the real sibling `semantic-flow-framework` manifests and `mesh-alice-bio` fixture checkout when those repositories are present
+- optional `mesh-alice-bio` smoke tests driven by the real sibling `semantic-flow-framework` manifests and `mesh-alice-bio` fixture checkout when those repositories are present
 
 The black-box suite is important because it asserts the CLI contract instead of implementation details. Prefer extending that suite when adding observable behavior.
 
-Real-corpus validation against the `mesh-alice-bio` manifests is now part of the expected integration surface. Treat it as integration validation, not as a replacement for the synthetic black-box corpus.
+Real-corpus validation against the `mesh-alice-bio` manifests is useful, but it is not part of Accord's ordinary release gate. Treat it as optional cross-repository integration validation. Weave owns the live Semantic Flow fixture ladder checks, while Accord's default suite should stay stable against its in-repo synthetic corpus.
 
 The current baseline is:
 
+- `deno task test` for the default in-repo release-gate suite
 - `deno task test:black-box` for the synthetic CLI contract
 - `deno task test:mesh-alice-bio` for a representative real-corpus smoke subset when the sibling `semantic-flow` repositories are available
 - an explicit full-corpus rerun against all 13 current `mesh-alice-bio` manifests when the fixture ladder or real manifests change materially
@@ -142,7 +143,7 @@ The current order of work should be:
 
 1. keep the current checker and black-box suite stable
 2. complete user and development documentation for the current implementation
-3. keep the `mesh-alice-bio` smoke subset and full-corpus reruns healthy as the real fixture ladder evolves
+3. use the `mesh-alice-bio` smoke subset and full-corpus reruns as optional cross-repository checks when real fixture compatibility is the point of the change
 4. only then expand the remaining format surface such as `json` compare mode or RDF/XML support
 
-That order matters. It is better to validate the current checker against its intended real corpus before broadening the format surface.
+That order matters. It is better to keep Accord's in-repo contract crisp and let Weave carry the live Semantic Flow ladder as that corpus evolves.
