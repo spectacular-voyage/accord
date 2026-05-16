@@ -117,7 +117,9 @@ The current baseline is:
 - `deno task test` for the default in-repo release-gate suite
 - `deno task test:black-box` for the synthetic CLI contract
 - `deno task test:mesh-alice-bio` for a representative real-corpus smoke subset when the sibling `semantic-flow` repositories are available
-- an explicit full-corpus rerun against all 13 current `mesh-alice-bio` manifests when the fixture ladder or real manifests change materially
+- an explicit full-corpus rerun against all current `mesh-alice-bio` manifests when the fixture ladder or real manifests change materially
+
+The opt-in `mesh-alice-bio` smoke test reads the latest Semantic Flow Framework Alice manifests, then rewrites their bare numbered `fromRef` / `toRef` values to the current `a.NN-*` replay branch series in a temporary manifest copy. It discovers the current manifest set and checks every manifest; any known-incomplete manifest must be listed explicitly in the test with a reason. Weave remains responsible for full live-ladder regeneration and fixture repair.
 
 When changing logic:
 
