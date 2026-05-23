@@ -96,7 +96,7 @@ An authoring profile can look like this:
 ```json
 {
   "@context": {
-    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
     "dcterms": "http://purl.org/dc/terms/",
     "id": "@id",
     "type": "@type",

@@ -1,14 +1,37 @@
-@prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
+@base <https://spectacular-voyage.github.io/accord/ontology/> .
+@prefix accord: <https://spectacular-voyage.github.io/accord/ontology/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sflo: <https://semantic-flow.github.io/sflo/ontology/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://spectacular-voyage.github.io/accord/accord-ontology> a owl:Ontology ;
-  dcterms:title "Accord ontology" ;
+<https://spectacular-voyage.github.io/accord/ontology> a owl:Ontology ;
+  dcterms:title "Accord Ontology" ;
   dcterms:description "A small ontology for machine-readable conformance manifests and reusable acceptance checks." ;
+  dcterms:creator <https://djradon.github.io/ns/dave-richardson> ;
+  dcterms:hasVersion <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0> ;
+  dcterms:modified "2026-05-23"^^xsd:date ;
+  owl:versionIRI <https://raw.githubusercontent.com/spectacular-voyage/accord/refs/tags/v0.1.0/accord-ontology.ttl> ;
+  owl:versionInfo "0.1.0" ;
+  vann:preferredNamespacePrefix "accord" ;
+  vann:preferredNamespaceUri "https://spectacular-voyage.github.io/accord/ontology/" ;
   rdfs:comment "Accord models manifests as executable acceptance metadata rather than long-form prose specifications." .
+
+<https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0>
+  a owl:Ontology, sflo:HistoricalState ;
+  dcterms:isVersionOf <https://spectacular-voyage.github.io/accord/ontology> ;
+  dcterms:issued "2026-05-23"^^xsd:date ;
+  owl:versionInfo "0.1.0" ;
+  schema:contentUrl <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl/accord-ontology.ttl> ;
+  sflo:hasManifestation <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl> .
+
+<https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl>
+  dcat:downloadURL <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl/accord-ontology.ttl> .
 
 accord:Manifest a owl:Class ;
   rdfs:label "Manifest" ;

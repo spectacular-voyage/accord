@@ -3,82 +3,82 @@
     "@id": "urn:accord:testdata:expanded-scenario-index",
     "@type": [
       "https://example.com/ScenarioDocument",
-      "https://spectacular-voyage.github.io/accord/ns#ScenarioIndex"
+      "https://spectacular-voyage.github.io/accord/ontology/ScenarioIndex"
     ],
-    "https://spectacular-voyage.github.io/accord/ns#defaultFixtureRepo": [
+    "https://spectacular-voyage.github.io/accord/ontology/defaultFixtureRepo": [
       {
         "@value": "testdata/repos/repo-files"
       }
     ],
-    "https://spectacular-voyage.github.io/accord/ns#hasStateLane": [
+    "https://spectacular-voyage.github.io/accord/ontology/hasStateLane": [
       {
         "@id": "urn:accord:testdata:expanded-scenario-index#publication-lane",
         "@type": [
-          "https://spectacular-voyage.github.io/accord/ns#StateLane"
+          "https://spectacular-voyage.github.io/accord/ontology/StateLane"
         ],
-        "https://spectacular-voyage.github.io/accord/ns#laneKey": [
+        "https://spectacular-voyage.github.io/accord/ontology/laneKey": [
           {
             "@value": "publication"
           }
         ]
       }
     ],
-    "https://spectacular-voyage.github.io/accord/ns#hasStep": [
+    "https://spectacular-voyage.github.io/accord/ontology/hasStep": [
       {
         "@list": [
           {
             "@id": "urn:accord:testdata:expanded-scenario-index#bytes-added",
             "@type": [
-              "https://spectacular-voyage.github.io/accord/ns#ScenarioStep"
+              "https://spectacular-voyage.github.io/accord/ontology/ScenarioStep"
             ],
-            "https://spectacular-voyage.github.io/accord/ns#manifestPath": [
+            "https://spectacular-voyage.github.io/accord/ontology/manifestPath": [
               {
                 "@value": "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld"
               }
             ],
-            "https://spectacular-voyage.github.io/accord/ns#caseId": [
+            "https://spectacular-voyage.github.io/accord/ontology/caseId": [
               {
                 "@value": "#auto-select-case"
               }
             ],
-            "https://spectacular-voyage.github.io/accord/ns#hasLaneBinding": [
+            "https://spectacular-voyage.github.io/accord/ontology/hasLaneBinding": [
               {
                 "@type": [
-                  "https://spectacular-voyage.github.io/accord/ns#LaneStateBinding"
+                  "https://spectacular-voyage.github.io/accord/ontology/LaneStateBinding"
                 ],
-                "https://spectacular-voyage.github.io/accord/ns#lane": [
+                "https://spectacular-voyage.github.io/accord/ontology/lane": [
                   {
                     "@id": "urn:accord:testdata:expanded-scenario-index#publication-lane"
                   }
                 ],
-                "https://spectacular-voyage.github.io/accord/ns#fromLaneState": [
+                "https://spectacular-voyage.github.io/accord/ontology/fromLaneState": [
                   {
                     "@type": [
-                      "https://spectacular-voyage.github.io/accord/ns#StateLocator"
+                      "https://spectacular-voyage.github.io/accord/ontology/StateLocator"
                     ],
-                    "https://spectacular-voyage.github.io/accord/ns#locatorKind": [
+                    "https://spectacular-voyage.github.io/accord/ontology/locatorKind": [
                       {
-                        "@id": "https://spectacular-voyage.github.io/accord/ns#gitRefState"
+                        "@id": "https://spectacular-voyage.github.io/accord/ontology/gitRefState"
                       }
                     ],
-                    "https://spectacular-voyage.github.io/accord/ns#ref": [
+                    "https://spectacular-voyage.github.io/accord/ontology/ref": [
                       {
                         "@value": "r0-empty"
                       }
                     ]
                   }
                 ],
-                "https://spectacular-voyage.github.io/accord/ns#toLaneState": [
+                "https://spectacular-voyage.github.io/accord/ontology/toLaneState": [
                   {
                     "@type": [
-                      "https://spectacular-voyage.github.io/accord/ns#StateLocator"
+                      "https://spectacular-voyage.github.io/accord/ontology/StateLocator"
                     ],
-                    "https://spectacular-voyage.github.io/accord/ns#locatorKind": [
+                    "https://spectacular-voyage.github.io/accord/ontology/locatorKind": [
                       {
-                        "@id": "https://spectacular-voyage.github.io/accord/ns#gitRefState"
+                        "@id": "https://spectacular-voyage.github.io/accord/ontology/gitRefState"
                       }
                     ],
-                    "https://spectacular-voyage.github.io/accord/ns#ref": [
+                    "https://spectacular-voyage.github.io/accord/ontology/ref": [
                       {
                         "@value": "r1-bytes-a"
                       }

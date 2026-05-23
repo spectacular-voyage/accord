@@ -22,7 +22,7 @@ import type {
   TransitionCase,
 } from "./model.ts";
 
-const ACCORD_NS = "https://spectacular-voyage.github.io/accord/ns#";
+const ACCORD_NS = "https://spectacular-voyage.github.io/accord/ontology/";
 
 export interface LoadedManifestSource {
   path: string;
