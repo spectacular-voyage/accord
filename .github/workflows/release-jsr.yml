@@ -31,7 +31,7 @@ jobs:
             exit 1
           fi
 
-          RELEASE_NOTES="documentation/notes/release-notes.v${VERSION}.md"
+          RELEASE_NOTES="notes/release-notes.v${VERSION}.md"
           if [ ! -s "${RELEASE_NOTES}" ]; then
             echo "Missing non-empty release notes: ${RELEASE_NOTES}"
             exit 1
@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          RELEASE_NOTES="documentation/notes/release-notes.v${VERSION}.md"
+          RELEASE_NOTES="notes/release-notes.v${VERSION}.md"
           gh release create "${GITHUB_REF_NAME}" \
             --title "Accord ${GITHUB_REF_NAME}" \
             --notes-file "${RELEASE_NOTES}"

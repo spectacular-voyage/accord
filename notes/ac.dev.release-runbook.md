@@ -2,7 +2,7 @@
 id: 3s21nns0qoo1kli8h0gdun6
 title: Release Runbook
 desc: ''
-updated: 1778970208446
+updated: 1779518530382
 created: 1778970204425
 ---
 
@@ -20,7 +20,7 @@ The current release workflow publishes:
 - JSR default library entrypoint from `src/mod.ts`
 - JSR CLI entrypoint from `src/main.ts` as `jsr:@spectacular-voyage/accord/cli`
 - Git tag `vX.Y.Z`
-- GitHub Release `vX.Y.Z` using `documentation/notes/release-notes.vX.Y.Z.md`
+- GitHub Release `vX.Y.Z` using `notes/release-notes.vX.Y.Z.md`
 
 The current release workflow does not publish:
 
@@ -36,7 +36,7 @@ The current release workflow does not publish:
 - The release commit is on `main`, or the release branch is ready to merge to `main`.
 - GitHub Actions CI is green on the release commit.
 - `deno.json` has the intended package version.
-- `documentation/notes/release-notes.vX.Y.Z.md` exists and is non-empty for the same version.
+- `notes/release-notes.vX.Y.Z.md` exists and is non-empty for the same version.
 - The release note is written for users, not as an internal task log.
 
 ## Prepare The Release
@@ -53,12 +53,19 @@ git status --short
 deno eval 'const config = JSON.parse(await Deno.readTextFile("deno.json")); console.log(config.version);'
 ```
 
-3. Update `deno.json` if the version is changing.
+3. Bump or verify the release version:
+
+```bash
+VERSION=0.0.3
+deno task bump:version -- --version "$VERSION"
+```
+
+Set `VERSION` to the intended release version. Use `--patch`, `--minor`, or `--major` instead when advancing mechanically from the current root version.
 
 4. Create or update the matching release note:
 
 ```text
-documentation/notes/release-notes.vX.Y.Z.md
+notes/release-notes.vX.Y.Z.md
 ```
 
 Use normal Dendron frontmatter. Internal documentation links should use wikilinks, for example `[[ac.user-guide]]`.
