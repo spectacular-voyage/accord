@@ -2,6 +2,7 @@
   {
     "@id": "urn:accord:testdata:expanded-scenario-index",
     "@type": [
+      "https://example.com/ScenarioDocument",
       "https://spectacular-voyage.github.io/accord/ns#ScenarioIndex"
     ],
     "https://spectacular-voyage.github.io/accord/ns#defaultFixtureRepo": [

@@ -66,6 +66,7 @@ Deno.test("readScenarioIndexSource preserves expanded scenario topology", async 
     loaded.document.id,
     "urn:accord:testdata:expanded-scenario-index",
   );
+  assertEquals(loaded.document.type, "ScenarioIndex");
   assertEquals(loaded.document.hasStateLane?.[0].laneKey, "publication");
   assertEquals(
     step?.id,
@@ -76,6 +77,30 @@ Deno.test("readScenarioIndexSource preserves expanded scenario topology", async 
     "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
   );
   assertEquals(binding?.fromLaneState?.locatorKind, "gitRefState");
+  assertEquals(binding?.toLaneState?.ref, "r1-bytes-a");
+
+  await validateScenarioIndexDocument(loaded.document);
+});
+
+Deno.test("readScenarioIndexSource unwraps compact JSON-LD @list node arrays", async () => {
+  const loaded = await readScenarioIndexSource(
+    "testdata/scenarios/support/compact-list-scenario-index.jsonld",
+  );
+  const step = loaded.document.hasStep?.[0];
+  const binding = step?.hasLaneBinding?.[0];
+
+  assertEquals(
+    loaded.document.id,
+    "urn:accord:testdata:compact-list-scenario-index",
+  );
+  assertEquals(loaded.document.hasStep?.length, 1);
+  assertEquals(step?.id, "#bytes-added");
+  assertEquals(
+    step?.manifestPath,
+    "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+  );
+  assertEquals(step?.hasLaneBinding?.length, 1);
+  assertEquals(binding?.lane, "#publication-lane");
   assertEquals(binding?.toLaneState?.ref, "r1-bytes-a");
 
   await validateScenarioIndexDocument(loaded.document);
@@ -177,6 +202,13 @@ Deno.test("scenario index vocabulary is present in ontology, SHACL, and context"
     );
   }
 
+  assert(
+    shacl.includes(
+      "A lane state binding must reference a state lane declared by the same scenario index.",
+    ),
+  );
+  assert(shacl.includes("?scenario accord:hasStateLane ?lane ."));
+  assert(shacl.includes("accord:hasStep/rdf:rest*/rdf:first ?step"));
   assertEquals(hasStepContext["@container"], "@list");
   assertEquals(laneContext["@type"], "@id");
 });

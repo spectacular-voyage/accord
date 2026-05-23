@@ -187,13 +187,17 @@ function mapSourceShapeDocument(
 function findSourceShapeScenarioIndexNode(
   rawDocument: unknown,
 ): Record<string, unknown> | null {
-  if (isRecord(rawDocument) && "hasStep" in rawDocument) {
+  if (
+    isRecord(rawDocument) && hasSourceNodeCollection(rawDocument, "hasStep")
+  ) {
     return rawDocument;
   }
 
   if (Array.isArray(rawDocument)) {
     for (const candidate of rawDocument) {
-      if (isRecord(candidate) && "hasStep" in candidate) {
+      if (
+        isRecord(candidate) && hasSourceNodeCollection(candidate, "hasStep")
+      ) {
         return candidate;
       }
     }
@@ -285,7 +289,7 @@ function mapExpandedDocument(
   documentUrl: string,
 ): ScenarioIndexDocument {
   const scenarioIndexNode = expandedDocument.find((candidate) =>
-    getExpandedType(candidate) === "ScenarioIndex"
+    getExpandedTypes(candidate).includes("ScenarioIndex")
   );
 
   if (!isRecord(scenarioIndexNode)) {
@@ -581,11 +585,24 @@ function getSourceNodeArray(
 ): Record<string, unknown>[] {
   const rawValue = source[key];
 
-  if (!Array.isArray(rawValue)) {
-    return [];
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter(isRecord);
   }
 
-  return rawValue.filter(isRecord);
+  if (isRecord(rawValue) && Array.isArray(rawValue["@list"])) {
+    return rawValue["@list"].filter(isRecord);
+  }
+
+  return [];
+}
+
+function hasSourceNodeCollection(
+  source: Record<string, unknown>,
+  key: string,
+): boolean {
+  const rawValue = source[key];
+  return Array.isArray(rawValue) ||
+    (isRecord(rawValue) && Array.isArray(rawValue["@list"]));
 }
 
 function getExpandedNodeId(
@@ -595,14 +612,18 @@ function getExpandedNodeId(
 }
 
 function getExpandedType(source: unknown): string | undefined {
+  const types = getExpandedTypes(source);
+  return types.find(isCompactAccordType) ?? types[0];
+}
+
+function getExpandedTypes(source: unknown): string[] {
   if (!isRecord(source) || !Array.isArray(source["@type"])) {
-    return undefined;
+    return [];
   }
 
-  const firstType = source["@type"].find((entry): entry is string =>
-    typeof entry === "string"
+  return source["@type"].flatMap((entry) =>
+    typeof entry === "string" ? [compactIri(entry)] : []
   );
-  return firstType === undefined ? undefined : compactIri(firstType);
 }
 
 function getExpandedNodeArray(
@@ -726,6 +747,10 @@ function expandTerm(term: string): string {
 
 function compactIri(value: string): string {
   return value.startsWith(ACCORD_NS) ? value.slice(ACCORD_NS.length) : value;
+}
+
+function isCompactAccordType(value: string): boolean {
+  return !value.startsWith("http://") && !value.startsWith("https://");
 }
 
 function resolveIri(

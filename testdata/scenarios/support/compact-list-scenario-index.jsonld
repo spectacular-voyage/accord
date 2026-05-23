@@ -1,0 +1,41 @@
+{
+  "@context": "../../manifests/support/accord-context.jsonld",
+  "type": "ScenarioIndex",
+  "id": "urn:accord:testdata:compact-list-scenario-index",
+  "defaultFixtureRepo": "testdata/repos/repo-files",
+  "hasStateLane": [
+    {
+      "id": "#publication-lane",
+      "type": "StateLane",
+      "laneKey": "publication"
+    }
+  ],
+  "hasStep": {
+    "@list": [
+      {
+        "id": "#bytes-added",
+        "type": "ScenarioStep",
+        "manifestPath": "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+        "caseId": "#auto-select-case",
+        "hasLaneBinding": {
+          "@list": [
+            {
+              "type": "LaneStateBinding",
+              "lane": "#publication-lane",
+              "fromLaneState": {
+                "type": "StateLocator",
+                "locatorKind": "gitRefState",
+                "ref": "r0-empty"
+              },
+              "toLaneState": {
+                "type": "StateLocator",
+                "locatorKind": "gitRefState",
+                "ref": "r1-bytes-a"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

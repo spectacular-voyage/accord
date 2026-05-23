@@ -137,6 +137,28 @@ accord-sh:LaneStateBindingShape a sh:NodeShape ;
     sh:class accord:StateLocator ;
     sh:node accord-sh:StateLocatorShape ;
     sh:message "If present, toLaneState must be a single Accord state locator." ;
+  ] ;
+  sh:sparql [
+    sh:message "A lane state binding must reference a state lane declared by the same scenario index." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this WHERE {
+        $this accord:lane ?lane .
+        ?step accord:hasLaneBinding $this .
+        {
+          ?scenario accord:hasStep ?step .
+        }
+        UNION
+        {
+          ?scenario accord:hasStep/rdf:rest*/rdf:first ?step .
+        }
+        FILTER NOT EXISTS {
+          ?scenario accord:hasStateLane ?lane .
+        }
+      }
+      LIMIT 1
+    """ ;
   ] .
 
 accord-sh:TransitionCaseShape a sh:NodeShape ;
