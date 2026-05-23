@@ -72,6 +72,22 @@ export {
   CaseSelectionError,
   selectTransitionCase,
 } from "./manifest/select_case.ts";
+export {
+  readScenarioIndexSource,
+  ScenarioIndexLoadError,
+  ScenarioIndexValidationError,
+  validateScenarioIndexDocument,
+} from "./scenario/load_jsonld.ts";
+export type {
+  LoadedScenarioIndexSource,
+  ScenarioIndexValidationOptions,
+} from "./scenario/load_jsonld.ts";
+export type {
+  LaneStateBinding,
+  ScenarioIndexDocument,
+  ScenarioStep,
+  StateLane,
+} from "./scenario/model.ts";
 export { CHECK_CODES } from "./report/codes.ts";
 export type { CheckCode } from "./report/codes.ts";
 export {

@@ -146,9 +146,17 @@ Those rules belong in this spec even if the ontology and SHACL remain unchanged.
 
 Accord manifests may include optional replay metadata such as generalized `fromState` / `toState` locators, case-level `ignorePaths`, a linked `ReplayProfile`, command invocation metadata, input materialization, manual file operations, and source provenance.
 
-The current `accord check` command does not execute replay commands, materialize declared inputs, perform manual file operations, or run whole-tree completeness checks. Its current setup behavior still requires `fromRef` and `toRef`, verifies those refs in the selected git repository, and evaluates the listed file/RDF expectations. Replay metadata is loaded and exposed by the manifest model for downstream runners, but it is otherwise ignored by current checker execution.
+The current `accord check` command does not execute replay commands, materialize declared inputs, or perform manual file operations. Its current setup behavior still requires `fromRef` and `toRef`, verifies those refs in the selected git repository, evaluates the listed file/RDF expectations, and runs whole-tree transition completeness with `ignorePaths`. Replay metadata is loaded and exposed by the manifest model for downstream runners, but it is otherwise ignored by current checker execution.
 
-`ignorePaths` is reserved for future whole-tree or generated-workspace checks. It must not suppress an explicit `FileExpectation`; if a path is both ignored and explicitly expected, the explicit expectation remains authoritative.
+`ignorePaths` is active for whole-tree transition completeness checks between the selected `fromRef` and `toRef`. It does not suppress an explicit `FileExpectation`; if a path is both ignored and explicitly expected, Accord reports a contradictory manifest error.
+
+### Scenario Index Documents
+
+Accord scenario indexes are JSON-LD topology documents shaped by the Accord vocabulary. They are intended for fixture-owned documents that order transition manifests into scenarios, declare fixture-level defaults, and bind multi-step state lanes such as source and publication lanes.
+
+`accord check` does not accept or execute a `ScenarioIndex` document today. The checker input remains a transition manifest. Scenario indexes are currently exposed through the library loader and validator so downstream tools can consume shared topology metadata without turning Accord into a workflow engine.
+
+The scenario index validation contract is deliberately local: a valid index has at least one ordered `ScenarioStep`, safe repository-relative manifest references that exist on disk, no duplicated step ids, no duplicated state lane keys, and lane bindings that reference declared lanes. Accord does not yet validate referenced transition-manifest compatibility, branch/ref existence for lane states, or runner execution semantics.
 
 ### Case Selection
 

@@ -12,6 +12,7 @@ created: 1778728187266
 - Add a portable way for manifests or adjacent scenario documents to describe how a transition can be replayed.
 - Support command provenance for command-backed transitions.
 - Support source provenance for manually created, copied, fetched, or derived files.
+- Define a portable scenario index vocabulary and validation surface for ordered conformance scenarios without making Accord own every fixture's actual index document.
 - Keep the existing `accord check` behavior understandable while broadening the model in small, testable steps.
 - Give downstream tools such as Weave's fixture ladder generator a shared contract instead of forcing each project to invent its own replay metadata shape.
 
@@ -20,6 +21,8 @@ created: 1778728187266
 Accord currently works best when a transition is represented as a before ref and an after ref inside a local git fixture repository. That is valuable, but it is narrower than Accord's intended role as a reusable acceptance-spec layer.
 
 The immediate pressure comes from Weave's fixture ladder generator work. Weave has branch-laddered fixture repositories, but the branches are becoming disposable generated outputs. The durable information should include both the expected after-state checks and enough replay metadata to regenerate the after-state from the before-state. Existing Accord manifests carry `operationId`, `fromRef`, `toRef`, targets, file expectations, and RDF expectations. They do not carry the exact command, command working directory, prompt policy, materialized inputs, remote source digest, or manual file-source provenance.
+
+There is a separate but related pressure around fixture-ladder topology. Per-transition manifests can describe one operation, but they should not have to duplicate the ordered ladder, fixture repo identity, branch naming conventions, asset roots, or multi-lane source/publication state that belong to a whole scenario. Accord should define the vocabulary and verification rules for an adjacent scenario index, while the consuming fixture or application owns the actual index document checked in beside its manifests.
 
 This task should define the first Accord-level model for generalized replay and source provenance. The first implementation can be metadata-only: load, preserve, validate, and expose the fields without making `accord check` execute commands. A later runner can use the same model to materialize directories, run commands, compare resulting workspaces, or update fixture branches.
 
@@ -54,15 +57,18 @@ Branch refs should stay a first-class state locator, but they should not be the 
 
 ## Proposed Model Direction
 
-Keep the model split into two layers:
+Keep the model split into three related layers:
 
 - verification contract: the existing `TransitionCase`, `FileExpectation`, `RdfExpectation`, and future expected-error fields that say what must be true
 - replay contract: optional metadata that says how a runner can reproduce the transition
+- scenario index contract: optional adjacent documents that assemble transition manifests into an ordered scenario, fixture ladder, or conformance suite
 
 The replay contract should be optional. A manifest that only wants to compare two git refs should remain small. A manifest that wants deterministic regeneration can opt into the richer shape.
 
 Potential concepts:
 
+- `ScenarioIndex`: a fixture-owned document, shaped by Accord, that names a scenario and lists its ordered steps.
+- `ScenarioStep`: one rung or case in a scenario index, normally pointing at a `TransitionCase` manifest and declaring any scenario-level state lane bindings needed to place that transition in the larger topology.
 - `StateLocator`: a description of a before or after state. First variants could include git ref, directory snapshot, generated workspace, and archive.
 - `CommandInvocation`: executable, argv, working directory, environment overrides, stdin or prompt policy, expected exit code, and whether command logs are expected.
 - `InputMaterialization`: files or directories to place before a command runs, including target path, source kind, and source digest.
@@ -103,18 +109,38 @@ Remote URLs need special care. A branch URL such as a raw GitHub `refs/heads/mai
 
 One practical source-bundling pattern is to put required replay inputs in the fixture repository before cutting the first fixture rung, for example under a top-level `.assets/` directory on the branch that seeds `00-blank-slate`. Later rungs can then materialize command inputs by copying from `.assets/` instead of refetching remote or manually reconstructed content. If Accord supports this pattern, the manifest should still identify `.assets/` files as harness/source material rather than expected product output, and whole-tree comparison should ignore them unless a case explicitly lists them as expectations.
 
+## Scenario Index Contract
+
+Accord should define the portable vocabulary and validation surface for scenario indexes, but the actual index should belong to the consuming fixture or application. For example, a Semantic Flow Framework fixture can check in its own `conformance/index.jsonld` beside its transition manifests, while Accord supplies the terms and rules that make that document portable.
+
+A scenario index should describe topology and coordination facts, not duplicate transition assertions. Good candidates for the index are:
+
+- scenario id, label, and intended fixture or conformance suite
+- fixture repository identity and any repo-local defaults needed by runners
+- ordered step list, with each step pointing at a transition manifest or `TransitionCase`
+- branch prefix or naming defaults when a scenario publishes branch ladders
+- source asset roots or other harness input roots that apply across steps
+- state lanes that span more than one transition, such as a source lane and publication lane
+- scenario-level validation profile, guardrails, and ignore defaults that do not belong to a single file/RDF expectation
+
+Transition manifests should still own one operation's verification expectations and optional `ReplayProfile`. The scenario index should answer "how do these transition cases form a ladder or conformance scenario?" rather than "what exact files must change in this operation?"
+
+Branch-published fixtures are the motivating hard case. A single `fromRef` / `toRef` pair can describe a simple branch-to-branch check, but it cannot fully describe a step that starts from one source ref, generates or updates a publication ref, and then expects later steps to continue from publication state while source state may follow a different lane. The index should be able to name those lanes explicitly without forcing every transition manifest to carry the entire ladder topology.
+
 ## Relationship To Weave
 
-Weave's fixture ladder generator should pause long enough for this Accord contract to be sketched and accepted. Otherwise Weave will bake replay commands and source provenance into a private TypeScript shape that Accord will need to re-model soon afterward.
+Weave's fixture ladder generator should pause long enough for this Accord contract to be sketched and accepted. Otherwise Weave will bake replay commands, source provenance, and scenario topology into a private TypeScript shape that Accord will need to re-model soon afterward.
 
 That does not mean Weave must wait for a full Accord runner implementation. A pragmatic sequence is:
 
 1. Add this Accord task and settle the minimal replay/provenance vocabulary.
-2. Add metadata fields to Accord's ontology, context, SHACL, and manifest loader, while keeping `accord check` behavior unchanged.
-3. Let Weave's first dry-run planner consume that manifest metadata, with temporary Weave-local adapters only where Accord execution is not ready.
-4. Later decide whether Accord itself should grow a replay/check-generated-workspace command or stay as a manifest library plus checker.
+2. Add the minimal scenario index vocabulary and validation rules needed to point at transition manifests and express ordered fixture topology.
+3. Add metadata fields to Accord's ontology, context, SHACL, and manifest loader, while keeping `accord check` behavior unchanged.
+4. Let Weave's first dry-run planner consume fixture-owned scenario indexes plus per-transition replay metadata, with temporary Weave-local adapters only where Accord execution is not ready.
+5. Replace Weave's legacy fixture-specific render helpers only after the generalized scenario/replay contract can drive the fixture ladder planning path.
+6. Later decide whether Accord itself should grow a replay/check-generated-workspace command or stay as a manifest library plus checker.
 
-The important boundary is that command and source provenance should be portable Accord data, not hidden inside Weave-only generator code.
+The important boundary is that command provenance, source provenance, and scenario index semantics should be portable Accord data, while each fixture or consuming application owns its actual scenario index instance.
 
 ## Open Issues
 
@@ -127,6 +153,7 @@ The important boundary is that command and source provenance should be portable 
 - Should checked-in replay assets use a conventional path such as `.assets/`, and should Accord provide first-class semantics for harness-source files that are present in fixture refs but excluded from product output checks?
 - Should expected-error cases be modeled in the same pass, since replay runners will need to distinguish failed commands from failed checks?
 - How should whole-tree checks, `ignorePaths`, and generated workspace checks compose?
+- How much state-locator compatibility should Accord validate before a runner exists, beyond validating declared lane references and preserving the per-step state bindings?
 
 ## Decisions
 
@@ -139,8 +166,17 @@ The important boundary is that command and source provenance should be portable 
 - Store execution-oriented replay metadata on a linked `ReplayProfile`, embedded directly in compact JSON-LD when convenient. This keeps `TransitionCase` readable as the verification contract while leaving a natural place for future runner/execution semantics.
 - Add generalized `fromState` and `toState` object locators while keeping `fromRef` and `toRef` as git-ref convenience fields for current `accord check`. Do not make `fromState` / `toState` formal OWL superproperties of `fromRef` / `toRef`: the former point to state-locator nodes and the latter are literal datatype fields. A runner can still synthesize `gitRefState` locators from `fromRef` / `toRef`.
 - Put source provenance in the Accord ontology now, with a small `SourceProvenance` shape rather than importing a broader provenance ontology before the workflow is real.
-- Treat `.assets/` as a useful convention, not a special source root. Replay sources can come from anywhere; future whole-tree checks should use case-level `ignorePaths` such as `.assets/**` to exclude harness source files unless they are explicitly listed as expectations.
+- Treat `.assets/` as a useful convention, not a special source root. Replay sources can come from anywhere; whole-tree transition completeness should use case-level `ignorePaths` such as `.assets/**` to exclude harness source files unless they are explicitly listed as expectations.
 - Defer expected-error modeling until replay execution semantics exist.
+- Accord should define the scenario index vocabulary and validation contract, but fixture/application repositories should own their actual scenario index documents.
+- Keep the scenario index focused on scenario topology: ordered steps, manifest references, fixture identity, defaults, and multi-step state lanes. Keep per-operation file/RDF assertions and replay metadata on transition manifests.
+- Do not force branch-published fixture behavior into a single `fromRef` / `toRef` pair. Use the scenario index to express source and publication lanes when the fixture has both.
+- Scenario indexes should be JSON-LD Accord documents with Accord ontology terms, context entries, and SHACL shapes. A smaller non-RDF runner shape would just create a second contract for downstream tools to reconcile later.
+- Keep Accord's existing `testdata/scenarios/black-box.json` as a plain in-repo CLI harness catalog. Add a separate sample JSON-LD scenario index that points at existing black-box transition manifests, but do not replace or converge the harness index in this slice.
+- Use an ordered `hasStep` list for scenario topology. Each `ScenarioStep` should point at a transition manifest with `manifestPath` and may identify a particular case with `caseId`; it should not duplicate file/RDF assertions from that manifest.
+- Use named `StateLane` nodes with unique `laneKey` values and per-step `LaneStateBinding` nodes. A binding references one declared lane and may carry `fromLaneState` and `toLaneState` locators. This is enough for source/publication branch fixtures without defining source/publication as Accord-controlled lane roles or introducing DAG execution semantics.
+- Avoid reusing transition-case-scoped ontology properties on scenario indexes when their existing RDF domains would imply the wrong class. In particular, use `defaultFixtureRepo` on `ScenarioIndex` instead of `fixtureRepo`, and use `fromLaneState` / `toLaneState` on lane bindings instead of overloading `fromState` / `toState`.
+- Accord should validate scenario-index coherence that is local and cheap: ordered step preservation, safe and existing manifest references relative to the configured validation root, unique step ids, unique lane keys, and lane bindings that reference declared lanes. It should not read transition manifests for semantic compatibility or execute workflows in this slice.
 
 ## Replay Profile Tradeoffs
 
@@ -161,20 +197,24 @@ Existing workflow engines are worth knowing about, but none should be adopted fo
 
 For now, compose the pieces this way:
 
+- `ScenarioIndex` owns fixture- or application-level topology: scenario identity, ordered steps, fixture repo identity, defaults, state lanes, and references to transition manifests.
+- `ScenarioStep` points from the scenario index to a `TransitionCase` or manifest and can bind scenario-level lanes to the state locators needed by that step.
 - `TransitionCase` owns the verification contract, git-compatible `fromRef` / `toRef`, optional generalized `fromState` / `toState`, and case-level `ignorePaths`.
 - `ReplayProfile` owns replay-only metadata: command invocation, input materialization, and manual file operations.
-- `ignorePaths` only affects future whole-tree or generated-workspace completeness checks. Explicit `FileExpectation` entries still win.
+- `ignorePaths` affects current whole-tree transition completeness checks and future generated-workspace completeness checks. Explicit `FileExpectation` entries still win.
 - source provenance can appear on replay input materialization or manual file operations; command-produced output stays verified by file/RDF expectations unless a later runner records derived execution provenance.
 
 ## Contract Changes
 
 Likely Accord model additions:
 
+- scenario index and scenario step data for ordered conformance scenarios, with manifest references rather than duplicated assertions
 - optional replay or reproduction metadata on a `TransitionCase`
 - command invocation data with ordered argv
 - source materialization data for files created before execution
 - source provenance data for manual or command-incomplete transitions
 - generalized state locators that can eventually represent directory-backed or generated states as well as git refs
+- state lane metadata for multi-ref fixtures, especially branch-published source/publication flows
 - validation profile metadata for manifest-scoped versus whole-tree checks
 
 The current `fromRef` and `toRef` fields can remain supported if they still fit the generalized model. If replacing them with cleaner state-locator fields makes the contract clearer, migrate the small existing manifest corpus intentionally rather than preserving awkward compatibility.
@@ -184,7 +224,9 @@ The current `fromRef` and `toRef` fields can remain supported if they still fit 
 - Add manifest-loader tests that preserve command invocation metadata from compact JSON-LD and expanded JSON-LD.
 - Add manifest-loader tests for manual source provenance entries.
 - Add ontology and SHACL tests for required command/source fields once the vocabulary is chosen.
+- Add ontology and SHACL tests for the scenario index and step vocabulary once the minimal shape is chosen.
 - Add a black-box manifest that includes replay metadata but still passes through current path-scoped `accord check` without changing results.
+- Add a small scenario index fixture that points at two transition manifests and proves ordering, manifest reference validation, and duplicate id behavior.
 - Add a synthetic non-git state-locator fixture once the runner/checker semantics are defined.
 - Add tests proving URL-backed source materialization requires either a digest or an explicit nondeterministic marker, depending on the chosen contract.
 
@@ -193,6 +235,8 @@ The current `fromRef` and `toRef` fields can remain supported if they still fit 
 - Replacing ordinary unit tests.
 - Replacing Weave's fixture ladder generator.
 - Requiring every Accord manifest to include replay metadata.
+- Requiring every fixture to have a scenario index.
+- Hosting or owning consuming applications' fixture indexes inside the Accord repository.
 - Executing arbitrary commands from manifests in the current `accord check` command.
 - Building a full DAG workflow engine.
 - Solving branch update or publication behavior for fixture repositories.
@@ -208,4 +252,7 @@ The current `fromRef` and `toRef` fields can remain supported if they still fit 
 - [x] Add loader tests for compact and expanded JSON-LD forms.
 - [x] Update [[ac.spec.2026.2026-04-03-accord-cli]] to clarify that current `accord check` ignores replay metadata except for validation/preservation until an execution surface exists.
 - [x] Update [[ac.user-guide]] with guidance about when to use Accord as a checker only and when to include replay metadata for downstream runners.
+- [x] Define the minimal `ScenarioIndex` / `ScenarioStep` vocabulary and validation rules for fixture-owned scenario indexes.
+- [x] Add an Accord-owned sample scenario index that points at existing black-box transition manifests without replacing the current harness index.
 - [ ] Coordinate with Weave's [[wd.task.2026.2026-05-07-fixture-ladder-generator]] so the first Weave dry-run planner consumes the Accord-owned replay shape.
+- [ ] Coordinate with Weave's fixture-specific render-helper replacement so generalized rendering/planning consumes fixture-owned scenario indexes instead of hard-coded fixture ladders.
