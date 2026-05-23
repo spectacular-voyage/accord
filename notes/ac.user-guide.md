@@ -50,8 +50,10 @@ Accord is also published as a Deno-first TypeScript library. The default package
 ```ts
 import {
   readManifestSource,
+  readScenarioIndexSource,
   selectTransitionCase,
   type ManifestDocument,
+  validateScenarioIndexDocument,
 } from "jsr:@spectacular-voyage/accord";
 ```
 
@@ -68,6 +70,21 @@ That means:
 - inline contexts are supported
 - local file contexts are supported
 - remote `http` and `https` JSON-LD contexts are rejected today
+
+### Scenario indexes
+
+Accord also defines a portable JSON-LD `ScenarioIndex` shape for fixture-owned topology documents. A scenario index is not a replacement for a transition manifest and is not consumed by `accord check` today. It describes how multiple manifests fit into an ordered scenario.
+
+The current library helpers are:
+
+```ts
+const loaded = await readScenarioIndexSource("conformance/index.jsonld");
+await validateScenarioIndexDocument(loaded.document);
+```
+
+A scenario index can declare fixture-level defaults such as `defaultFixtureRepo`, `branchPrefix`, and `assetRoot`; named state lanes with `hasStateLane`; and an ordered `hasStep` list. Each `ScenarioStep` points at a transition manifest with `manifestPath` and may provide a `caseId` selector. `LaneStateBinding` nodes can bind a step to declared lanes using `fromLaneState` and `toLaneState` locators.
+
+Current validation stays deliberately local. It checks that steps exist, step ids and lane keys are not duplicated, manifest paths are safe repository-relative paths that reference existing files, and lane bindings reference declared lanes. It does not read the referenced transition manifests for semantic compatibility, execute replay commands, or update fixture branches.
 
 ### Fixture repository
 
@@ -228,6 +245,7 @@ deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixt
 
 - Accord does not yet auto-locate the fixture repository from `fixtureRepo`.
 - Accord does not yet execute replay commands or apply replay materialization/file-operation metadata.
+- `accord check` does not yet consume `ScenarioIndex` documents; they are currently a library-level topology contract for downstream tools.
 - Accord does not yet support `json` compare mode.
 - Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.

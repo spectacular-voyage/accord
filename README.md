@@ -25,7 +25,7 @@ This initial repository is intentionally small:
 
 - `accord-ontology.ttl` defines the core vocabulary
 - `accord-shacl.ttl` defines authoring and validation constraints
-- future JSON-LD manifests can use the ontology terms directly
+- JSON-LD manifests and scenario indexes can use the ontology terms directly
 - future runners or executors can consume the same manifests without owning the semantics
 
 The goal is to start with a semantic kernel, not a framework tower.
@@ -50,6 +50,10 @@ The current ontology starts with a deliberately small set of concepts:
 - `accord:FileExpectation`
 - `accord:RdfExpectation`
 - `accord:SparqlAskAssertion`
+- `accord:ScenarioIndex`
+- `accord:ScenarioStep`
+- `accord:StateLane`
+- `accord:LaneStateBinding`
 - `accord:fixtureRepo`
 - `accord:targetDesignatorPath`
 - `accord:targetsFileExpectation`
@@ -64,6 +68,8 @@ The current model is centered on transition cases because many conformance probl
 - compare the resulting state against expected outcomes
 
 That works especially well for systems that combine filesystem layout with RDF content. Each RDF expectation now targets exactly one file expectation so per-file RDF assertions, ignore lists, and canonical comparison rules remain unambiguous.
+
+Scenario indexes are the adjacent topology layer. They order transition manifests, declare fixture defaults, and bind named state lanes across steps without duplicating the file or RDF assertions owned by each transition manifest.
 
 For deterministic execution, file expectations that describe present files should also declare how those files are compared. In the current model:
 

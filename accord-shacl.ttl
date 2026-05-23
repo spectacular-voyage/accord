@@ -15,6 +15,152 @@ accord-sh:ManifestShape a sh:NodeShape ;
   ] ;
   sh:node accord-sh:CommonTextMetadataShape .
 
+accord-sh:ScenarioIndexShape a sh:NodeShape ;
+  sh:targetClass accord:ScenarioIndex ;
+  sh:node accord-sh:CommonTextMetadataShape ;
+  sh:property [
+    sh:path accord:defaultFixtureRepo ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, defaultFixtureRepo must be a single string identifying the default fixture repository." ;
+  ] ;
+  sh:property [
+    sh:path accord:branchPrefix ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, scenario branchPrefix must be a single string." ;
+  ] ;
+  sh:property [
+    sh:path accord:assetRoot ;
+    sh:datatype xsd:string ;
+    sh:message "assetRoot values must be repository-relative string paths." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasStateLane ;
+    sh:class accord:StateLane ;
+    sh:node accord-sh:StateLaneShape ;
+    sh:message "Each state lane must satisfy the Accord state lane shape." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasStep ;
+    sh:minCount 1 ;
+    sh:message "A scenario index must contain an ordered hasStep list." ;
+  ] ;
+  sh:sparql [
+    sh:message "A scenario index must not declare two distinct state lanes with the same laneKey." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:hasStateLane ?laneA, ?laneB .
+        FILTER (?laneA != ?laneB)
+        ?laneA accord:laneKey ?laneKey .
+        ?laneB accord:laneKey ?laneKey .
+      }
+      LIMIT 1
+    """ ;
+  ] .
+
+accord-sh:ScenarioStepShape a sh:NodeShape ;
+  sh:targetClass accord:ScenarioStep ;
+  sh:node accord-sh:CommonTextMetadataShape ;
+  sh:property [
+    sh:path accord:manifestPath ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A scenario step must declare exactly one manifestPath." ;
+  ] ;
+  sh:property [
+    sh:path accord:caseId ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, caseId must be a single string selector." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasLaneBinding ;
+    sh:class accord:LaneStateBinding ;
+    sh:node accord-sh:LaneStateBindingShape ;
+    sh:message "Each lane binding must satisfy the Accord lane state binding shape." ;
+  ] ;
+  sh:sparql [
+    sh:message "manifestPath values must be repository-relative, must not contain parent traversal or backslashes, and must not be absolute." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      SELECT $this WHERE {
+        $this accord:manifestPath ?path .
+        FILTER (
+          STRSTARTS(STR(?path), "/") ||
+          CONTAINS(STR(?path), "..") ||
+          CONTAINS(STR(?path), "\\\\")
+        )
+      }
+      LIMIT 1
+    """ ;
+  ] .
+
+accord-sh:StateLaneShape a sh:NodeShape ;
+  sh:targetClass accord:StateLane ;
+  sh:property [
+    sh:path accord:laneKey ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A state lane must declare exactly one laneKey." ;
+  ] ;
+  sh:property [
+    sh:path accord:branchPrefix ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "If present, state lane branchPrefix must be a single string." ;
+  ] .
+
+accord-sh:LaneStateBindingShape a sh:NodeShape ;
+  sh:targetClass accord:LaneStateBinding ;
+  sh:property [
+    sh:path accord:lane ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class accord:StateLane ;
+    sh:message "A lane state binding must reference exactly one declared state lane." ;
+  ] ;
+  sh:property [
+    sh:path accord:fromLaneState ;
+    sh:maxCount 1 ;
+    sh:class accord:StateLocator ;
+    sh:node accord-sh:StateLocatorShape ;
+    sh:message "If present, fromLaneState must be a single Accord state locator." ;
+  ] ;
+  sh:property [
+    sh:path accord:toLaneState ;
+    sh:maxCount 1 ;
+    sh:class accord:StateLocator ;
+    sh:node accord-sh:StateLocatorShape ;
+    sh:message "If present, toLaneState must be a single Accord state locator." ;
+  ] ;
+  sh:sparql [
+    sh:message "A lane state binding must reference a state lane declared by the same scenario index." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this WHERE {
+        $this accord:lane ?lane .
+        ?step accord:hasLaneBinding $this .
+        {
+          ?scenario accord:hasStep ?step .
+        }
+        UNION
+        {
+          ?scenario accord:hasStep/rdf:rest*/rdf:first ?step .
+        }
+        FILTER NOT EXISTS {
+          ?scenario accord:hasStateLane ?lane .
+        }
+      }
+      LIMIT 1
+    """ ;
+  ] .
+
 accord-sh:TransitionCaseShape a sh:NodeShape ;
   sh:targetClass accord:TransitionCase ;
   sh:node accord-sh:CommonTextMetadataShape ;

@@ -58,6 +58,22 @@ accord:SourceProvenance a owl:Class ;
   rdfs:label "Source provenance" ;
   rdfs:comment "The origin of bytes used for replay input materialization or manual file operations." .
 
+accord:ScenarioIndex a owl:Class ;
+  rdfs:label "Scenario index" ;
+  rdfs:comment "A fixture-owned topology document that orders transition manifests into a reusable conformance scenario without duplicating per-operation assertions." .
+
+accord:ScenarioStep a owl:Class ;
+  rdfs:label "Scenario step" ;
+  rdfs:comment "One ordered step in a scenario index, normally pointing at a transition manifest and optionally binding scenario state lanes to state locators." .
+
+accord:StateLane a owl:Class ;
+  rdfs:label "State lane" ;
+  rdfs:comment "A named state lane that spans scenario steps, such as an application source lane or a publication lane." .
+
+accord:LaneStateBinding a owl:Class ;
+  rdfs:label "Lane state binding" ;
+  rdfs:comment "A per-step binding from a declared state lane to the state locators used before and after that step." .
+
 accord:FileChangeType a owl:Class ;
   rdfs:label "File change type" ;
   rdfs:comment "A controlled set of expected file-state transition categories." .
@@ -159,6 +175,41 @@ accord:hasSourceProvenance a owl:ObjectProperty ;
   rdfs:range accord:SourceProvenance ;
   rdfs:comment "Associates input materialization or file operations with the origin of the bytes used for replay." .
 
+accord:hasStep a rdf:Property ;
+  rdfs:label "has step" ;
+  rdfs:domain accord:ScenarioIndex ;
+  rdfs:comment "Associates a scenario index with its ordered steps. JSON-LD authors should represent this with an @list container so scenario step order is preserved." .
+
+accord:hasStateLane a owl:ObjectProperty ;
+  rdfs:label "has state lane" ;
+  rdfs:domain accord:ScenarioIndex ;
+  rdfs:range accord:StateLane ;
+  rdfs:comment "Declares a named state lane available to the scenario's steps." .
+
+accord:hasLaneBinding a owl:ObjectProperty ;
+  rdfs:label "has lane binding" ;
+  rdfs:domain accord:ScenarioStep ;
+  rdfs:range accord:LaneStateBinding ;
+  rdfs:comment "Associates a scenario step with a state lane binding for that step." .
+
+accord:lane a owl:ObjectProperty ;
+  rdfs:label "lane" ;
+  rdfs:domain accord:LaneStateBinding ;
+  rdfs:range accord:StateLane ;
+  rdfs:comment "References the scenario state lane being bound by a lane state binding." .
+
+accord:fromLaneState a owl:ObjectProperty ;
+  rdfs:label "from lane state" ;
+  rdfs:domain accord:LaneStateBinding ;
+  rdfs:range accord:StateLocator ;
+  rdfs:comment "Links a lane state binding to the lane's state before the scenario step." .
+
+accord:toLaneState a owl:ObjectProperty ;
+  rdfs:label "to lane state" ;
+  rdfs:domain accord:LaneStateBinding ;
+  rdfs:range accord:StateLocator ;
+  rdfs:comment "Links a lane state binding to the lane's state after the scenario step." .
+
 accord:locatorKind a owl:ObjectProperty ;
   rdfs:label "locator kind" ;
   rdfs:domain accord:StateLocator ;
@@ -212,6 +263,12 @@ accord:fixtureRepo a owl:DatatypeProperty ;
   rdfs:range xsd:string ;
   rdfs:comment "Identifies the fixture repository whose named refs are used by the transition case." .
 
+accord:defaultFixtureRepo a owl:DatatypeProperty ;
+  rdfs:label "default fixture repo" ;
+  rdfs:domain accord:ScenarioIndex ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Identifies the default fixture repository for scenario steps that omit a more specific fixture identity." .
+
 accord:fromRef a owl:DatatypeProperty ;
   rdfs:label "from ref" ;
   rdfs:domain accord:TransitionCase ;
@@ -252,7 +309,36 @@ accord:ignorePaths a owl:DatatypeProperty ;
   rdfs:label "ignore paths" ;
   rdfs:domain accord:TransitionCase ;
   rdfs:range xsd:string ;
-  rdfs:comment "Repository-relative exact paths or /** subtree patterns that future whole-tree checks should ignore unless an explicit file expectation names the same path." .
+  rdfs:comment "Repository-relative exact paths or /** subtree patterns that whole-tree transition completeness checks ignore unless an explicit file expectation names the same path." .
+
+accord:manifestPath a owl:DatatypeProperty ;
+  rdfs:label "manifest path" ;
+  rdfs:domain accord:ScenarioStep ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The repository-relative path to the transition manifest used by a scenario step." .
+
+accord:caseId a owl:DatatypeProperty ;
+  rdfs:label "case id" ;
+  rdfs:domain accord:ScenarioStep ;
+  rdfs:range xsd:string ;
+  rdfs:comment "An optional transition case selector within the referenced manifest." .
+
+accord:laneKey a owl:DatatypeProperty ;
+  rdfs:label "lane key" ;
+  rdfs:domain accord:StateLane ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A scenario-local stable key for a state lane, such as source or publication." .
+
+accord:branchPrefix a owl:DatatypeProperty ;
+  rdfs:label "branch prefix" ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A repository-local branch naming prefix used as scenario or lane-level default metadata." .
+
+accord:assetRoot a owl:DatatypeProperty ;
+  rdfs:label "asset root" ;
+  rdfs:domain accord:ScenarioIndex ;
+  rdfs:range xsd:string ;
+  rdfs:comment "A repository-relative root containing scenario-level source assets or harness inputs." .
 
 accord:path a owl:DatatypeProperty ;
   rdfs:label "path" ;

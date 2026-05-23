@@ -22,7 +22,13 @@
     "sourceKind": {
       "@type": "@vocab"
     },
+    "lane": {
+      "@type": "@id"
+    },
     "argv": {
+      "@container": "@list"
+    },
+    "hasStep": {
       "@container": "@list"
     },
     "ignorePaths": {
