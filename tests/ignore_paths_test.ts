@@ -41,4 +41,9 @@ Deno.test("compileIgnorePathPatterns rejects invalid patterns", () => {
     IgnorePathPatternError,
     "traversal",
   );
+  assertThrows(
+    () => compileIgnorePathPatterns(["generated\\source.ttl"]),
+    IgnorePathPatternError,
+    "POSIX",
+  );
 });
