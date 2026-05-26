@@ -201,7 +201,7 @@ For now, compose the pieces this way:
 - `ScenarioStep` points from the scenario index to a `TransitionCase` or manifest and can bind scenario-level lanes to the state locators needed by that step.
 - `TransitionCase` owns the verification contract, git-compatible `fromRef` / `toRef`, optional generalized `fromState` / `toState`, and case-level `ignorePaths`.
 - `ReplayProfile` owns replay-only metadata: command invocation, input materialization, and manual file operations.
-- `ignorePaths` affects current whole-tree transition completeness checks and future generated-workspace completeness checks. Explicit `FileExpectation` entries still win.
+- `ignorePaths` affects current whole-tree transition completeness checks and future generated-workspace completeness checks. If an ignored path is also named by an explicit `FileExpectation`, Accord reports a contradictory manifest instead of letting either rule silently win.
 - source provenance can appear on replay input materialization or manual file operations; command-produced output stays verified by file/RDF expectations unless a later runner records derived execution provenance.
 
 ## Contract Changes
