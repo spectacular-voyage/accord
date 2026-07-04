@@ -48,6 +48,24 @@ Top product bets:
 
 My gentle pushback: I would not turn Accord into a full test framework. Its product identity should be “reproducible transition evidence,” especially across git refs and semantic artifacts. Let app-specific tests stay in app repos, but give Accord enough assertion vocabulary to prove the contract-level facts without custom code every time.
 
+## Stagecraft Temporal Rung Additions
+
+The temporal-vocabulary rung sharpened a few of those product bets:
+
+1. Scenario runner output should be per-step, not only whole-index pass/fail. Stagecraft wants to run `scenario-index.jsonld`, see each rung pair, and keep path expectations paired with semantic `hasAskAssertion` checks. The runner should preserve that evidence grouping in text and JSON reports.
+
+2. Manifest drafting from git diff should be conservative but useful. A draft command could create `added`, `updated`, `removed`, and `unchanged` file expectations from `git diff --name-status`, infer likely compare modes for `.ttl`, `.jsonld`, and text files, then leave assertion details for humans.
+
+3. Negative RDF expectations need a friendly shape. In the temporal rung, unsupported `FILTER NOT EXISTS` had to become a separate ASK assertion with `expectedBoolean: false`. That is acceptable as a low-level escape hatch, but the product-level feature should be an explicit absence assertion such as `mustNotHaveTriple` or `notExists`.
+
+4. Fixture-ladder profiles should include immutability assertions. Stagecraft's new convention requires old `_history*/_s*/...` payload-state files to remain byte-identical across a rung while allowing new state paths, inventory progression, and generated pages. This is a contract-level check, not an application unit test.
+
+5. Drift checks should be first-class evidence. After merge, a fixture rung often needs to prove that the final ref differs from the expected branch only under the allowed conformance paths, or else report the unexpected drift clearly.
+
+6. Authoring validation should happen before slow transition checks. Runner-neutral manifests need early feedback for dangling expectation references, malformed assertion syntax, duplicate identifiers, and query features outside Accord's supported ASK subset.
+
+The critical boundary is still the same: Accord should prove transition contracts and authoring validity, not become the place where Stagecraft implements domain behavior.
+
 ## Testing Vocab
 
 - make our vocab borrow from https://w3c.github.io/json-ld-api/tests/vocab.html and https://www.w3.org/TR/rdf11-testcases/
