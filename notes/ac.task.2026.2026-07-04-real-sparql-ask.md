@@ -101,6 +101,11 @@ Out of scope unless a chosen engine gives it essentially for free and tests prov
 - Keep ASK execution local to the artifact graph selected by the owning `RdfExpectation`.
 - Do not fold this work into SHACL manifest validation.
 - Do not make Accord a general SPARQL CLI.
+- Re-spike result on Deno 2.8.3: do not wire `@comunica/query-sparql` into the checker for this slice. `deno info npm:@comunica/query-sparql` resolves `@comunica/query-sparql@5.2.4`, but a normal Deno npm-cache import with `--node-modules-dir=none` still fails through `jsonld-context-parser@2.4.0` requiring `cross-fetch/polyfill` and Deno reporting the resolved `dist/node-polyfill.js` path as missing. The file exists in the cache after resolution, so this remains the Deno/npm resolver class of failure that previously pushed Accord away from Comunica.
+- Comunica does run when forced through a physical `node_modules` directory (`--node-modules-dir=auto`) and correctly answers `FILTER NOT EXISTS`, bare boolean literal, and integer literal ASK probes over an in-memory `n3` store. That path initialized a very large graph, emitted deprecation noise, and pulled remote-source, HTTP, update, RDF/XML, HTML, JSON-LD streaming, and serializer actors that Accord does not need for local artifact-scoped ASK. Functional, yes; release-gate dependency shape, no.
+- Comunica dependency/performance notes from the spike: isolated cache size was about 95 MB; `deno info --json` reported 518 npm packages in the resolved cache; the warm physical-`node_modules` functional probe answered the first ASK in about 19 ms after import/engine setup and the next two in about 2-3 ms. Those per-query numbers are fine, but import/setup weight and resolver behavior are not.
+- `sparqljs@3.7.4` is compatible with the normal Deno npm cache path and does not need physical `node_modules`. In a clean `--no-config` spike, `deno info npm:sparqljs@3.7.4` reported 4 unique dependencies, 2.66 MB logical dependency size, and a 4.3 MB isolated cache. It parsed `ASK`, `ASK WHERE`, `PREFIX`, `FILTER NOT EXISTS`, bare booleans, and numeric literals into RDFJS-shaped terms that Accord can evaluate locally. The package is deprecated upstream, so it should be treated as a bounded parser dependency for this first slice rather than a blank check for broad SPARQL growth.
+- Choose the parser-plus-local-evaluator route for this task: use `sparqljs` for syntax and term parsing, keep evaluation in Accord over the already-loaded RDF artifact quads, and document the committed ASK profile explicitly. Do not extend the old regex/token parser for `FILTER NOT EXISTS`.
 
 ## Contract Changes
 
@@ -135,10 +140,10 @@ If the implementation adopts a full SPARQL engine and thereby supports additiona
 
 ## Implementation Plan
 
-- [ ] Re-spike a real SPARQL ASK engine under the current Deno toolchain and record dependency, permission, and performance risks.
-- [ ] If the engine spike is clean, wire ASK execution through the engine while preserving Accord's existing RDF artifact loading and report codes.
-- [ ] If the engine spike is not clean, choose between a parser-plus-local-evaluator slice and a deliberately small extension of the current evaluator.
-- [ ] Add acceptance tests before changing behavior, using the Stagecraft temporal-rung absence check as the motivating shape.
-- [ ] Keep query-error and boolean-mismatch reporting stable.
-- [ ] Update [[ac.dev.general-guidance]], [[ac.spec.2026.2026-04-03-accord-cli]], and user docs to describe the supported ASK profile.
-- [ ] Update [[ac.task.2026.2026-04-03-shacl-validation]] if this task exposes a reusable syntax preflight for `accord validate`.
+- [x] Re-spike a real SPARQL ASK engine under the current Deno toolchain and record dependency, permission, and performance risks.
+- [c] If the engine spike is clean, wire ASK execution through the engine while preserving Accord's existing RDF artifact loading and report codes.
+- [x] If the engine spike is not clean, choose between a parser-plus-local-evaluator slice and a deliberately small extension of the current evaluator.
+- [x] Add acceptance tests before changing behavior, using the Stagecraft temporal-rung absence check as the motivating shape.
+- [x] Keep query-error and boolean-mismatch reporting stable.
+- [x] Update [[ac.dev.general-guidance]], [[ac.spec.2026.2026-04-03-accord-cli]], and user docs to describe the supported ASK profile.
+- [x] Update [[ac.task.2026.2026-04-03-shacl-validation]] to record that this task did not expose a reusable syntax/profile preflight; ASK syntax/profile failures remain check-time `sparql_query_error` results for now.

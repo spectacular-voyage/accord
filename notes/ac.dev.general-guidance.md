@@ -54,8 +54,9 @@ Accord is Deno-first, but the current implementation deliberately uses a few npm
 - `jsonld.js` for `.jsonld` RDF artifact ingestion
 - `n3` for RDF parsing and the in-memory RDFJS store
 - `rdf-canonize` for RDF canonicalization
+- `sparqljs` for parsing authored SPARQL ASK syntax before Accord evaluates the supported local profile over parsed quads
 
-SPARQL `ASK` support is intentionally implemented as a narrow in-repo evaluator over parsed quads rather than through Comunica. It supports the basic graph-pattern subset used by current Accord and Semantic Flow manifests: IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. It does not implement broad SPARQL execution semantics such as prefixes, filters, optionals, unions, or property paths. That keeps the dependency graph small and avoids Deno/npm resolver instability from Comunica's transitive `cross-fetch` chain. New dependencies should be added cautiously and only when they solve a concrete problem.
+SPARQL `ASK` support is intentionally implemented as a small local evaluator over parsed quads rather than through Comunica. `sparqljs` handles syntax, prefixes, and RDF term parsing; Accord owns the execution profile. The committed profile supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns, IRIs, variables, blank nodes as query-local variables, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters. It deliberately rejects broader SPARQL features such as `SERVICE`, `OPTIONAL`, `UNION`, `GRAPH`, `MINUS`, `BIND`, `VALUES`, property paths, subqueries, `FROM`, non-ASK query forms, and general filter expressions with `sparql_query_error`. That keeps ASK execution local, avoids Deno/npm resolver instability from Comunica's transitive `cross-fetch` chain, and prevents incidental parser support from becoming Accord's product contract. New dependencies should be added cautiously and only when they solve a concrete problem.
 
 ## Important implementation boundaries
 

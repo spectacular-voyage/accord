@@ -201,7 +201,9 @@ For `rdfCanonical` expectations, Accord currently supports:
 - ignored predicate filtering
 - SPARQL `ASK` assertions attached through `RdfExpectation`
 
-The current ASK evaluator is intentionally small. It supports basic graph-pattern-style queries such as `ASK { ?s a <Type> ; <name> "Alice" . }` over the parsed RDF quads, including IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. Broader SPARQL features such as prefixes, filters, optionals, unions, and property paths should be treated as unsupported until Accord has a concrete manifest corpus that needs them.
+The current ASK evaluator is intentionally small and local. It supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns such as `ASK { ?s a <Type> ; <name> "Alice" . }`, IRIs, variables, blank nodes used as query-local bindings, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters over the parsed RDF artifact quads.
+
+Accord does not run ASK assertions as a SPARQL endpoint. It rejects `SERVICE`, remote graph loading, `OPTIONAL`, `UNION`, `GRAPH`, `MINUS`, `BIND`, `VALUES`, property paths, subqueries, `FROM`, non-ASK query forms, and general filter expressions. Invalid or unsupported ASK queries are reported as `sparql_ask` errors with the stable code `sparql_query_error`; they should not surface raw parser or dependency stack traces.
 
 The current RDF artifact syntax support is intentionally limited to a small explicit set:
 

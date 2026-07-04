@@ -35,6 +35,7 @@ export type {
   HelpCommand,
   OutputFormat,
   ParsedCommand,
+  ValidateCommand,
 } from "./cli/parse_args.ts";
 export {
   assertContextReferencesAllowed,
@@ -51,9 +52,13 @@ export type {
 } from "./jsonld/documents.ts";
 export {
   ManifestLoadError,
+  readManifestRdfSource,
   readManifestSource,
 } from "./manifest/load_jsonld.ts";
-export type { LoadedManifestSource } from "./manifest/load_jsonld.ts";
+export type {
+  LoadedManifestRdfSource,
+  LoadedManifestSource,
+} from "./manifest/load_jsonld.ts";
 export type {
   CommandInvocation,
   EnvironmentOverride,
@@ -103,3 +108,21 @@ export type {
   ReportSummary,
 } from "./report/json_report.ts";
 export { renderTextReport } from "./report/text_report.ts";
+export {
+  buildValidationErrorReport,
+  buildValidationReport,
+} from "./report/validation_report.ts";
+export type {
+  ValidationCommandError,
+  ValidationErrorCode,
+  ValidationReport,
+  ValidationResultRecord,
+  ValidationStatus,
+} from "./report/validation_report.ts";
+export { renderValidationTextReport } from "./report/validation_text_report.ts";
+export {
+  getShippedShapesPath,
+  validateManifest,
+  ValidationExecutionError,
+} from "./shacl/validate_manifest.ts";
+export type { ValidateManifestOptions } from "./shacl/validate_manifest.ts";

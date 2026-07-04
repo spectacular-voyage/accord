@@ -14,7 +14,13 @@ export interface CheckCommand {
   format: OutputFormat;
 }
 
-export type ParsedCommand = CheckCommand | HelpCommand;
+export interface ValidateCommand {
+  kind: "validate";
+  manifestPath: string;
+  format: OutputFormat;
+}
+
+export type ParsedCommand = CheckCommand | HelpCommand | ValidateCommand;
 
 export class CliParseError extends Error {
   constructor(message: string) {
@@ -27,6 +33,7 @@ export function renderUsage(): string {
   return [
     "Usage:",
     "  accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]",
+    "  accord validate <manifest-path> [--format <text|json>]",
     "  accord --help",
   ].join("\n");
 }
@@ -52,8 +59,30 @@ export function parseCliArgs(args: string[]): ParsedCommand {
     return { kind: "help" };
   }
 
-  if (subcommand !== "check") {
+  if (subcommand !== "check" && subcommand !== "validate") {
     throw new CliParseError(`Unknown command: ${subcommand}`);
+  }
+
+  const format = parseOutputFormat(parsed.format);
+
+  if (subcommand === "validate") {
+    if (rest.length !== 1) {
+      throw new CliParseError(
+        "The validate command requires exactly one manifest path.",
+      );
+    }
+
+    if (parsed.case !== undefined || parsed["fixture-repo-path"] !== undefined) {
+      throw new CliParseError(
+        "The validate command only accepts --format.",
+      );
+    }
+
+    return {
+      kind: "validate",
+      manifestPath: rest[0],
+      format,
+    };
   }
 
   if (rest.length !== 1) {
@@ -61,8 +90,6 @@ export function parseCliArgs(args: string[]): ParsedCommand {
       "The check command requires exactly one manifest path.",
     );
   }
-
-  const format = parseOutputFormat(parsed.format);
 
   return {
     kind: "check",

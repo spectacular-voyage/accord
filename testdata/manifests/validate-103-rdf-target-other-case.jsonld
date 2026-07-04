@@ -1,0 +1,54 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:validate-103-rdf-target-other-case",
+  "dcterms:title": "validate RDF target in another case",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#case-a",
+      "fixtureRepo": "testdata/repos/repo-rdf",
+      "operationId": "test.validate.caseA",
+      "fromRef": "r1-graph-v1",
+      "toRef": "r2-graph-v1-reformatted",
+      "hasFileExpectation": [
+        {
+          "id": "#graph-file",
+          "type": "FileExpectation",
+          "path": "graph.ttl",
+          "changeType": "unchanged",
+          "compareMode": "rdfCanonical"
+        }
+      ]
+    },
+    {
+      "type": "TransitionCase",
+      "id": "#case-b",
+      "fixtureRepo": "testdata/repos/repo-rdf",
+      "operationId": "test.validate.caseB",
+      "fromRef": "r1-graph-v1",
+      "toRef": "r2-graph-v1-reformatted",
+      "hasRdfExpectation": [
+        {
+          "id": "#graph-rdf",
+          "type": "RdfExpectation",
+          "targetsFileExpectation": "#graph-file"
+        }
+      ]
+    }
+  ]
+}

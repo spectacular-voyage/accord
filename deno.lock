@@ -5,10 +5,14 @@
     "jsr:@std/cli@1": "1.0.20",
     "jsr:@std/internal@^1.0.6": "1.0.8",
     "jsr:@std/path@1": "1.1.0",
+    "npm:@types/sparqljs@3.1.12": "3.1.12",
     "npm:jsonld@9.0.0": "9.0.0",
     "npm:n3@1.23.0": "1.23.0",
     "npm:n3@2.0.3": "2.0.3",
-    "npm:rdf-canonize@5.0.0": "5.0.0"
+    "npm:rdf-canonize@5.0.0": "5.0.0",
+    "npm:rdf-validate-shacl@*": "0.6.5",
+    "npm:rdf-validate-shacl@0.6.5": "0.6.5",
+    "npm:sparqljs@3.7.4": "3.7.4"
   },
   "jsr": {
     "@std/assert@1.0.13": {
@@ -35,6 +39,87 @@
         "undici"
       ]
     },
+    "@rdfjs/data-model@2.1.2": {
+      "integrity": "sha512-yoSVlyCltqbaCTse3uSdf5Vo3q4UskcTm+3klaUQTwOq7Z5aCZLtLPZatXTPzr+S0WEcjTZvD++A+r3QmgamsA==",
+      "bin": true
+    },
+    "@rdfjs/dataset@2.0.2": {
+      "integrity": "sha512-6YJx+5n5Uxzq9dd9I0GGcIo6eopZOPfcsAfxSGX5d+YBzDgVa1cbtEBFnaPyPKiQsOm4+Cr3nwypjpg02YKPlA==",
+      "bin": true
+    },
+    "@rdfjs/environment@1.0.0": {
+      "integrity": "sha512-+S5YjSvfoQR5r7YQCRCCVHvIEyrWia7FJv2gqM3s5EDfotoAQmFeBagApa9c/eQFi5EiNhmBECE5nB8LIxTaHg=="
+    },
+    "@rdfjs/namespace@2.0.1": {
+      "integrity": "sha512-U85NWVGnL3gWvOZ4eXwUcv3/bom7PAcutSBQqmVWvOaslPy+kDzAJCH1WYBLpdQd4yMmJ+bpJcDl9rcHtXeixg==",
+      "dependencies": [
+        "@rdfjs/data-model"
+      ]
+    },
+    "@rdfjs/term-map@2.0.2": {
+      "integrity": "sha512-EJ2FmmdEUsSR/tU1nrizRLWzH24YzhuvesrbUWxC3Fs0ilYNdtTbg0RaFJDUnJF3HkbNBQe8Zrt/uvU/hcKnHg==",
+      "dependencies": [
+        "@rdfjs/to-ntriples"
+      ]
+    },
+    "@rdfjs/term-set@2.0.3": {
+      "integrity": "sha512-DyXrKWEx+mtAFUZVU7bc3Va6/KZ8PsIp0RVdyWT9jfDgI/HCvNisZaBtAcm+SYTC45o+7WLkbudkk1bfaKVB0A==",
+      "dependencies": [
+        "@rdfjs/to-ntriples"
+      ]
+    },
+    "@rdfjs/to-ntriples@3.0.1": {
+      "integrity": "sha512-gjoPAvh4j7AbGMjcDn/8R4cW+d/FPtbfbMM0uQXkyfBFtNUW2iVgrqsgJ65roLc54Y9A2TTFaeeTGSvY9a0HCQ=="
+    },
+    "@rdfjs/types@1.1.2": {
+      "integrity": "sha512-wqpOJK1QCbmsGNtyzYnojPU8gRDPid2JO0Q0kMtb4j65xhCK880cnKAfEOwC+dX85VJcCByQx5zOwyyfCjDJsg==",
+      "dependencies": [
+        "@types/node"
+      ]
+    },
+    "@rdfjs/types@2.0.1": {
+      "integrity": "sha512-uyAzpugX7KekAXAHq26m3JlUIZJOC0uSBhpnefGV5i15bevDyyejoB7I+9MKeUrzXD8OOUI3+4FeV1wwQr5ihA==",
+      "dependencies": [
+        "@types/node"
+      ]
+    },
+    "@tpluscode/rdf-ns-builders@5.0.0": {
+      "integrity": "sha512-rtMFbArdief+s0z2A3TOb/gNe5O5xn9LDiEpilCf6lGYCUIfyqoOvZY80fS/eILwcF2Mj6cUQN1WBQ+1neJmaw==",
+      "dependencies": [
+        "@rdfjs/data-model",
+        "@rdfjs/namespace",
+        "@rdfjs/types@2.0.1",
+        "@types/rdfjs__namespace",
+        "@zazuko/prefixes"
+      ]
+    },
+    "@types/node@26.1.0": {
+      "integrity": "sha512-O0A1G3xPGy4w7AgQdAQYUlQ+BKk2Oovw8eRpofyp5KdBZULnbe+WqaOVNrm705SHphCiG4XHsACrSmPu1f+Kgw==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "@types/rdfjs__namespace@2.0.10": {
+      "integrity": "sha512-xoVzEIOxcpyteEmzaj94MSBbrBFs+vqv05joMhzLEiPRwsBBDnhkdBCaaDxR1Tf7wOW0kB2R1IYe4C3vEBFPgA==",
+      "dependencies": [
+        "@rdfjs/types@2.0.1"
+      ]
+    },
+    "@types/sparqljs@3.1.12": {
+      "integrity": "sha512-zg/sdKKtYI0845wKPSuSgunyU1o/+7tRzMw85lHsf4p/0UbA6+65MXAyEtv1nkaqSqrq/bXm7+bqXas+Xo5dpQ==",
+      "dependencies": [
+        "@rdfjs/types@2.0.1"
+      ]
+    },
+    "@vocabulary/sh@1.1.6_@rdfjs+types@2.0.1": {
+      "integrity": "sha512-8IfAQoKh57THz8LA2+n1jaY/VC2XaqMNSsJgzBKSSrj20y5PSMAawb6dMsxoLxqDIPBDs1TFRl/9CijUnwbBUA==",
+      "dependencies": [
+        "@rdfjs/types@2.0.1"
+      ]
+    },
+    "@zazuko/prefixes@2.6.1": {
+      "integrity": "sha512-fbOadP7twxt0ZYT9mgIC+xQMk6f3pYYLI5a/2UJ/mc/ygqb/NoVv2ryK3lTtoi74xwkdpUeDwIuFQSosowzUgg=="
+    },
     "abort-controller@3.0.0": {
       "integrity": "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==",
       "dependencies": [
@@ -55,6 +140,20 @@
       "integrity": "sha512-F705O3xrsUtgt98j7leetNhTWPe+5S72rlL5O4jA1pKqBVQ/dT1O1D6PFxmSXvc0SUOinWS57DKx0I3CHrXJHQ==",
       "bin": true
     },
+    "clownface@2.0.3": {
+      "integrity": "sha512-E76TBJ7CgU9+/5paSAvuNdMO+fzFThnvRVtidosktYppYkXM8V7tid8Ezzo8S1OmoWxKUam3yfkZlfCid4OiJQ==",
+      "dependencies": [
+        "@rdfjs/data-model",
+        "@rdfjs/environment",
+        "@rdfjs/namespace"
+      ]
+    },
+    "debug@4.4.3": {
+      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
+      "dependencies": [
+        "ms"
+      ]
+    },
     "event-target-shim@5.0.1": {
       "integrity": "sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ=="
     },
@@ -70,7 +169,7 @@
         "@digitalbazaar/http-client",
         "canonicalize",
         "lru-cache",
-        "rdf-canonize"
+        "rdf-canonize@5.0.0"
       ]
     },
     "ky@1.14.3": {
@@ -81,6 +180,9 @@
       "dependencies": [
         "yallist"
       ]
+    },
+    "ms@2.1.3": {
+      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="
     },
     "n3@1.23.0": {
       "integrity": "sha512-JEbhFlxFTNsHTHUAGykRoVNRG4Sqsu8Wn+SXq99l9pRQPgqJzvY4CwNp/yxRGwb4oni9BT5sH5kevnbVUIUvkQ==",
@@ -103,10 +205,66 @@
     "queue-microtask@1.2.3": {
       "integrity": "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="
     },
+    "rdf-canonize@3.4.0": {
+      "integrity": "sha512-fUeWjrkOO0t1rg7B2fdyDTvngj+9RlUyL92vOdiB7c0FPguWVsniIMjEtHH+meLBO9rzkUlUzBVXgWrjI8P9LA==",
+      "dependencies": [
+        "setimmediate"
+      ]
+    },
     "rdf-canonize@5.0.0": {
       "integrity": "sha512-g8OUrgMXAR9ys/ZuJVfBr05sPPoMA7nHIVs8VEvg9QwM5W4GR2qSFEEHjsyHF1eWlBaf8Ev40WNjQFQ+nJTO3w==",
       "dependencies": [
         "setimmediate"
+      ]
+    },
+    "rdf-data-factory@1.1.3": {
+      "integrity": "sha512-ny6CI7m2bq4lfQQmDYvcb2l1F9KtGwz9chipX4oWu2aAtVoXjb7k3d8J1EsgAsEbMXnBipB/iuRen5H2fwRWWQ==",
+      "dependencies": [
+        "@rdfjs/types@1.1.2"
+      ]
+    },
+    "rdf-data-factory@2.0.2": {
+      "integrity": "sha512-WzPoYHwQYWvIP9k+7IBLY1b4nIDitzAK4mA37WumAF/Cjvu/KOtYJH9IPZnUTWNSd5K2+pq4vrcE9WZC4sRHhg==",
+      "dependencies": [
+        "@rdfjs/types@2.0.1"
+      ]
+    },
+    "rdf-dataset-ext@1.1.0": {
+      "integrity": "sha512-CH85RfRKN9aSlbju8T7aM8hgCSWMBsh2eh/tGxUUtWMN+waxi6iFDt8/r4PAEmKaEA82guimZJ4ISbmJ2rvWQg==",
+      "dependencies": [
+        "rdf-canonize@3.4.0",
+        "readable-stream"
+      ],
+      "deprecated": true
+    },
+    "rdf-literal@2.0.0": {
+      "integrity": "sha512-jlQ+h7EvnXmncmk8OzOYR8T3gNfd4g0LQXbflHkEkancic8dh0Tdt5RiRq8vUFndjIeNHt1RWeA5TAj6rgrtng==",
+      "dependencies": [
+        "rdf-data-factory@2.0.2"
+      ]
+    },
+    "rdf-validate-datatype@0.2.2": {
+      "integrity": "sha512-mH9qL8i0WBbZ6HJCA26BB6V+WV2MraKvitez3SV0QegBWVQ4wYO49CgfFBzoAYg6tlnhFXl9MkrOAQ07X2N1FA==",
+      "dependencies": [
+        "@rdfjs/term-map",
+        "@tpluscode/rdf-ns-builders"
+      ]
+    },
+    "rdf-validate-shacl@0.6.5": {
+      "integrity": "sha512-rwIibopSixDE8ecA9x0c7oTVxdMWxGiJh7h3uJ+WS2h4lq2nx3DZVO7rJvwa5kZpDq9QEFPoyZINAUyfaaoN4Q==",
+      "dependencies": [
+        "@rdfjs/data-model",
+        "@rdfjs/dataset",
+        "@rdfjs/environment",
+        "@rdfjs/namespace",
+        "@rdfjs/term-set",
+        "@rdfjs/types@2.0.1",
+        "@vocabulary/sh",
+        "clownface",
+        "debug",
+        "rdf-dataset-ext",
+        "rdf-literal",
+        "rdf-validate-datatype"
       ]
     },
     "readable-stream@4.7.0": {
@@ -125,11 +283,22 @@
     "setimmediate@1.0.5": {
       "integrity": "sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA=="
     },
+    "sparqljs@3.7.4": {
+      "integrity": "sha512-hb4C84gf7KM7vz+iG595mPwvqxOvBJCm9L3dCxtV2zZDht6ZMmMG0tHeeqFeqwb9875yU9U4lhYe4LYRvWj0BQ==",
+      "dependencies": [
+        "rdf-data-factory@1.1.3"
+      ],
+      "deprecated": true,
+      "bin": true
+    },
     "string_decoder@1.3.0": {
       "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
       "dependencies": [
         "safe-buffer"
       ]
+    },
+    "undici-types@8.3.0": {
+      "integrity": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="
     },
     "undici@6.24.1": {
       "integrity": "sha512-sC+b0tB1whOCzbtlx20fx3WgCXwkW627p4EA9uM+/tNNPkSS+eSEld6pAs9nDv7WbY1UUljBMYPtu9BCOrCWKA=="
@@ -145,7 +314,9 @@
       "jsr:@std/path@1",
       "npm:jsonld@9.0.0",
       "npm:n3@2.0.3",
-      "npm:rdf-canonize@5.0.0"
+      "npm:rdf-canonize@5.0.0",
+      "npm:rdf-validate-shacl@0.6.5",
+      "npm:sparqljs@3.7.4"
     ]
   }
 }

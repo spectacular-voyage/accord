@@ -1,4 +1,6 @@
 import jsonld from "jsonld";
+import { Parser } from "n3";
+import type { Quad } from "n3";
 import {
   assertContextReferencesAllowed,
   createFileJsonLdDocumentContext,
@@ -28,6 +30,12 @@ export interface LoadedManifestSource {
   path: string;
   documentUrl: string;
   document: ManifestDocument;
+}
+
+export interface LoadedManifestRdfSource {
+  path: string;
+  documentUrl: string;
+  quads: Quad[];
 }
 
 export class ManifestLoadError extends Error {
@@ -79,6 +87,35 @@ export async function readManifestSource(
   };
 }
 
+export async function readManifestRdfSource(
+  manifestPath: string,
+): Promise<LoadedManifestRdfSource> {
+  const documentContext = createFileJsonLdDocumentContext(
+    manifestPath,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+  );
+  const sourceText = await readManifestText(manifestPath, documentContext);
+  const rawDocument = parseJsonSource(
+    sourceText,
+    manifestPath,
+    documentContext.documentUrl,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+    "JSON-LD manifest document",
+  );
+  assertContextReferencesAllowed(
+    getTopLevelContext(rawDocument),
+    createManifestLoadError,
+  );
+
+  return {
+    path: manifestPath,
+    documentUrl: documentContext.documentUrl,
+    quads: await manifestToRdfQuads(rawDocument, documentContext),
+  };
+}
+
 async function readManifestText(
   manifestPath: string,
   documentContext: JsonLdDocumentContext,
@@ -114,6 +151,35 @@ async function expandManifest(
     throw new ManifestLoadError(
       CHECK_CODES.MANIFEST_LOAD_ERROR,
       `Failed to load JSON-LD manifest: ${message}`,
+    );
+  }
+}
+
+async function manifestToRdfQuads(
+  rawDocument: unknown,
+  documentContext: JsonLdDocumentContext,
+): Promise<Quad[]> {
+  try {
+    const nquads = await jsonld.toRDF(rawDocument, {
+      base: documentContext.documentUrl,
+      safe: true,
+      format: "application/n-quads",
+      documentLoader: documentContext.documentLoader,
+    });
+
+    return new Parser({
+      format: "application/n-quads",
+      baseIRI: documentContext.documentUrl,
+    }).parse(nquads);
+  } catch (error) {
+    if (error instanceof ManifestLoadError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ManifestLoadError(
+      CHECK_CODES.MANIFEST_LOAD_ERROR,
+      `Failed to convert JSON-LD manifest to RDF: ${message}`,
     );
   }
 }

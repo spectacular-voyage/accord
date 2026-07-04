@@ -93,10 +93,11 @@ The current best-fit dependency baseline is:
 - `npm:jsonld` for JSON-LD processing and deterministic document-loader control
 - `npm:n3` for Turtle or N-Quads parsing and RDFJS store work
 - `npm:rdf-canonize` for RDF dataset canonicalization if the Deno spike confirms it is workable in practice
+- `npm:sparqljs` for parsing authored SPARQL ASK syntax before Accord evaluates its supported local profile
 
 The current preferred JSON-LD direction is `jsonld.js`. Manifest loading needs direct JSON-LD document processing more than it needs another RDF parse actor abstraction.
 
-SPARQL ASK evaluation should stay small unless real manifests require broader SPARQL semantics. The current checker supports basic graph-pattern-style ASK queries over parsed RDF quads, including IRIs, variables, literals, RDF `a`, repeated-variable joins, semicolon predicate-object lists, and comma object lists. Unsupported query shapes should return `sparql_query_error`.
+SPARQL ASK evaluation should stay local and explicit unless real manifests require broader semantics. The current checker supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns, IRIs, variables, query-local blank nodes, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters over the parsed RDF artifact quads. Unsupported query shapes should return `sparql_query_error`.
 
 ## Exit Codes
 
@@ -318,6 +319,8 @@ Evaluation order:
 
 Each ASK assertion should be executed exactly as authored within the supported ASK subset. The checker should not inject prefixes, rewrite IRIs, or silently coerce non-ASK queries into ASK behavior.
 
+The committed ASK profile is intentionally narrower than full SPARQL. It supports local graph-pattern ASK checks over the already-loaded target artifact graph, including `FILTER NOT EXISTS` absence checks and ordinary SPARQL literal syntax for booleans and numbers. It rejects `SERVICE`, remote graph loading, `OPTIONAL`, `UNION`, `GRAPH`, `MINUS`, `BIND`, `VALUES`, property paths, subqueries, `FROM`, non-ASK query forms, and general filter expressions with a stable `sparql_query_error` result. Parser support for any construct outside this list is incidental and must not become observable product contract without tests and documentation.
+
 ## Report Semantics
 
 The top-level report status must follow the same precedence as the exit codes:
@@ -387,6 +390,7 @@ The minimum stable diagnostic codes are:
 - `rdf_graph_mismatch`
 - `rdf_parse_error`
 - `sparql_ask_mismatch`
+- `sparql_query_error`
 
 Check-counting for black-box tests should use this granularity:
 
@@ -695,6 +699,16 @@ Expected: exit `2`, status `error`, `summary = { "pass": 1, "fail": 0, "error": 
 Manifest: `unchanged` expectation for `graph.jsonld` from `r1-graph-v1-inline` to `r4-graph-invalid` using `rdfCanonical`.
 Command: `accord check <manifest> --fixture-repo-path <repo-rdf-jsonld> --format json`
 Expected: exit `2`, status `error`, `summary = { "pass": 1, "fail": 0, "error": 1 }`, one `rdf_compare` error with code `rdf_parse_error`.
+
+`bb-214-sparql-ask-filter-not-exists-pass`
+Manifest: `added` expectation for `graph.ttl` from `r0-empty` to `r1-graph-v1` using `rdfCanonical` with one ASK assertion that proves a temporal-rung-style absence check using `FILTER NOT EXISTS` and `expectedBoolean: true`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf> --format json`
+Expected: exit `0`, status `pass`, `summary = { "pass": 2, "fail": 0, "error": 0 }`, one `file_presence` pass and one `sparql_ask` pass.
+
+`bb-215-sparql-ask-unsupported-service-error`
+Manifest: `added` expectation for `graph.ttl` from `r0-empty` to `r1-graph-v1` using `rdfCanonical` with one ASK assertion that uses unsupported remote `SERVICE`.
+Command: `accord check <manifest> --fixture-repo-path <repo-rdf> --format json`
+Expected: exit `2`, status `error`, `summary = { "pass": 1, "fail": 0, "error": 1 }`, one `sparql_ask` error with code `sparql_query_error`.
 
 #### Report Surface
 

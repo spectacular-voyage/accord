@@ -66,7 +66,7 @@ The Stagecraft temporal-vocabulary rung added concrete evidence that authoring v
 - ASK assertion syntax problems, including `FILTER NOT EXISTS` and bare boolean literals, failed only when `accord check` executed the transition. The owned task for broadening that language surface is [[ac.task.2026.2026-07-04-real-sparql-ask]].
 - A JSON-LD context duplicate-key issue was easy to miss because standard JSON parsing keeps only one value. That specific failure happened in a contract context file rather than an Accord manifest, but the same silent-overwrite risk applies to authored manifests.
 
-This is a reason to keep `accord validate` separate, but not a reason to pretend SHACL alone is enough. The first version should run SHACL over the manifest graph. It may also call a reusable `SparqlAskAssertion` syntax preflight if [[ac.task.2026.2026-07-04-real-sparql-ask]] produces one. If duplicate-key detection is added, it should happen before JSON-LD expansion so the original authoring problem is still observable.
+This is a reason to keep `accord validate` separate, but not a reason to pretend SHACL alone is enough. The first version should run SHACL over the manifest graph. The real ASK slice in [[ac.task.2026.2026-07-04-real-sparql-ask]] did not expose a reusable `SparqlAskAssertion` syntax/profile preflight; ASK syntax and profile failures therefore remain check-time `sparql_query_error` results for now. If duplicate-key detection is added, it should happen before JSON-LD expansion so the original authoring problem is still observable.
 
 ### Candidate libraries
 
@@ -152,7 +152,7 @@ The important point is that this command validates authored contract data, not f
 - Decide whether warning-only behavior is needed at all once a separate `accord validate` command exists.
 - Decide whether shape overrides should be supported, or whether the command should always use the repository’s shipped `accord-shacl.ttl`.
 - Decide whether `accord validate` includes non-SHACL authoring checks in the same command, especially duplicate-key detection before JSON-LD expansion.
-- Decide whether `accord validate` should call the reusable ASK syntax preflight if [[ac.task.2026.2026-07-04-real-sparql-ask]] exposes one.
+- Decide whether `accord validate` should grow its own ASK syntax/profile preflight, since [[ac.task.2026.2026-07-04-real-sparql-ask]] did not expose one.
 
 ## Decisions
 
@@ -181,7 +181,7 @@ If the work lands, the CLI contract changes would be in the command surface, not
 - Add validator tests that exercise the current `sh:sparql` constraints explicitly rather than only happy-path SHACL Core checks.
 - Add CLI tests for both passing and failing manifests through `accord validate`.
 - Add at least one invalid-manifest fixture per important shape rule so the error report remains stable and understandable.
-- If [[ac.task.2026.2026-07-04-real-sparql-ask]] exposes a reusable syntax preflight, add an invalid-manifest fixture proving `accord validate` reports query syntax/profile failures before transition execution.
+- If `accord validate` grows an ASK syntax/profile preflight, add an invalid-manifest fixture proving it reports query syntax/profile failures before transition execution.
 - Add at least one pre-expansion JSON or JSON-LD fixture with a duplicate key if duplicate-key detection is included in `validate`.
 - Re-run the existing checker suite to confirm SHACL support does not leak into `accord check`.
 
@@ -199,7 +199,7 @@ If the work lands, the CLI contract changes would be in the command surface, not
 - [ ] Extend the CLI spec and user documentation to define `accord validate <manifest>` as a separate command from `accord check`.
 - [ ] Reuse the existing manifest JSON-LD loader policy to produce a dataset suitable for SHACL validation.
 - [ ] Load the repository’s shipped `accord-shacl.ttl` into the validator and wire in SHACL-SPARQL support explicitly.
-- [ ] Reuse any ASK syntax preflight exposed by [[ac.task.2026.2026-07-04-real-sparql-ask]], or consciously document why ASK syntax/profile failures remain a check-time error.
+- [x] Record that [[ac.task.2026.2026-07-04-real-sparql-ask]] did not expose a reusable ASK syntax/profile preflight; ASK syntax/profile failures remain check-time errors until `accord validate` grows its own preflight.
 - [ ] Decide whether manifest loading should use a duplicate-key-detecting JSON parser before JSON-LD expansion.
 - [ ] Convert raw validation output into stable Accord text and JSON reports.
 - [ ] Decide whether any opt-in soft mode such as `--warn-only` is still justified after the separate command exists.

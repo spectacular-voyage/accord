@@ -376,6 +376,33 @@
       ]
     },
     {
+      "id": "bb-214-sparql-ask-filter-not-exists-pass",
+      "manifestPath": "testdata/manifests/bb-214-sparql-ask-filter-not-exists-pass.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 0,
+      "expectedStatus": "pass",
+      "expectedSummary": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      }
+    },
+    {
+      "id": "bb-215-sparql-ask-unsupported-service-error",
+      "manifestPath": "testdata/manifests/bb-215-sparql-ask-unsupported-service-error.jsonld",
+      "repoId": "repo-rdf",
+      "expectedExitCode": 2,
+      "expectedStatus": "error",
+      "expectedSummary": {
+        "pass": 1,
+        "fail": 0,
+        "error": 1
+      },
+      "expectedCodes": [
+        "sparql_query_error"
+      ]
+    },
+    {
       "id": "bb-301-json-report-shape",
       "manifestPath": "testdata/manifests/bb-301-json-report-shape.jsonld",
       "repoId": "repo-files",
