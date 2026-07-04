@@ -72,7 +72,9 @@ export function parseCliArgs(args: string[]): ParsedCommand {
       );
     }
 
-    if (parsed.case !== undefined || parsed["fixture-repo-path"] !== undefined) {
+    if (
+      parsed.case !== undefined || parsed["fixture-repo-path"] !== undefined
+    ) {
       throw new CliParseError(
         "The validate command only accepts --format.",
       );

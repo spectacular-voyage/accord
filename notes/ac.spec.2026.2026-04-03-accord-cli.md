@@ -20,19 +20,24 @@ Its job is to answer one question: does a selected Accord manifest case accurate
 
 ## Command Surface
 
-The minimum v1 command surface is:
+The current command surface is:
 
 ```bash
 accord check <manifest-path>
+accord validate <manifest-path>
 ```
 
-Supported v1 options:
+Supported `check` options:
 
 - `--case <case-id>` selects one case explicitly
 - `--fixture-repo-path <path>` selects the local fixture repository root explicitly
 - `--format json` emits machine-readable output instead of the default text report
 
-No additional top-level command is required for the first usable checker.
+Supported `validate` options:
+
+- `--format json` emits machine-readable validation output instead of the default text report
+
+`accord check` and `accord validate` are intentionally separate. `check` does not run SHACL validation as a preflight, not even warning-only. `validate` answers whether the authored manifest graph conforms to the shipped Accord SHACL shapes.
 
 ## Reference Implementation Shape
 
@@ -94,10 +99,13 @@ The current best-fit dependency baseline is:
 - `npm:n3` for Turtle or N-Quads parsing and RDFJS store work
 - `npm:rdf-canonize` for RDF dataset canonicalization if the Deno spike confirms it is workable in practice
 - `npm:sparqljs` for parsing authored SPARQL ASK syntax before Accord evaluates its supported local profile
+- `npm:shacl-engine` for SHACL Core validation over the shipped Accord shapes graph, with an Accord-owned `sh:sparql` validation hook for the current Deno-compatible release path
 
 The current preferred JSON-LD direction is `jsonld.js`. Manifest loading needs direct JSON-LD document processing more than it needs another RDF parse actor abstraction.
 
 SPARQL ASK evaluation should stay local and explicit unless real manifests require broader semantics. The current checker supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns, IRIs, variables, query-local blank nodes, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters over the parsed RDF artifact quads. Unsupported query shapes should return `sparql_query_error`.
+
+SHACL validation must load the repository's shipped `accord-shacl.ttl` as-is. The current shipped shapes include `sh:sparql` constraints, so validators that cannot execute SHACL-SPARQL are not sufficient for Accord validation. The current implementation registers a local `sh:sparql` executor with `shacl-engine` rather than importing `shacl-engine/sparql.js`, because the plugin path failed under Deno's normal npm-cache resolver during the 2026-07-04 spike.
 
 ## Exit Codes
 
@@ -106,6 +114,12 @@ The checker should use stable exit codes so it can back black-box tests cleanly:
 - `0` means the selected case ran successfully and all checks passed
 - `1` means the selected case ran successfully and one or more checks failed
 - `2` means the checker could not evaluate the case correctly because of usage error, manifest load error, JSON-LD processing error, repository access error, unsupported feature, or another execution error
+
+The validator uses the same broad exit-code categories:
+
+- `0` means the manifest conforms to the shipped Accord SHACL shapes
+- `1` means validation ran successfully and found one or more non-conformance results
+- `2` means validation could not run correctly because of usage error, manifest load error, JSON-LD processing error, SHACL setup error, or unsupported SHACL-SPARQL profile in the shipped shapes
 
 Overall result precedence is:
 
@@ -131,6 +145,10 @@ To keep manifest evaluation reproducible, v1 must not fetch arbitrary remote JSO
 ### Validation Boundary
 
 The ontology and SHACL define the Accord data model and authoring constraints. They are a good starting point and should remain the first place to express reusable manifest semantics.
+
+`accord validate <manifest-path>` executes that authoring validation explicitly. It loads the manifest through the same fail-closed local-only JSON-LD document policy used by the checker, converts the manifest to an RDF dataset, loads the shipped `accord-shacl.ttl`, runs SHACL Core and the shipped `sh:sparql` constraints, emits a stable text or JSON report, and exits non-zero on non-conformance.
+
+`accord validate` does not select a transition case, resolve fixture repositories, inspect git refs, compare files, or execute `SparqlAskAssertion` queries against artifact graphs. If ASK syntax/profile preflight becomes reusable later, it may be added to validation. Until then, ASK assertion syntax failures remain check-time errors.
 
 The CLI still needs execution semantics beyond the ontology and SHACL. Examples include:
 
@@ -376,6 +394,24 @@ The minimum check kinds are:
 - `file_compare`
 - `rdf_compare`
 - `sparql_ask`
+
+`accord validate` has a separate report shape. The text report includes the manifest path, shapes path, validation status, conformance boolean, summary counts, and every validation result. The JSON report includes:
+
+```json
+{
+  "manifestPath": "string",
+  "shapesPath": "accord-shacl.ttl",
+  "status": "conformant",
+  "conforms": true,
+  "summary": {
+    "resultCount": 0,
+    "errorCount": 0
+  },
+  "results": []
+}
+```
+
+For non-conformance, `status` is `non_conformant` and each result includes stable fields where available: `severity`, `focusNode`, `value`, `resultPath`, `sourceShape`, `sourceConstraint`, `sourceConstraintComponent`, and `message`. For validation execution errors, `status` is `error` and the report includes an `errors` array with stable error codes.
 
 The minimum stable diagnostic codes are:
 

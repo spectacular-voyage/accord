@@ -12,10 +12,7 @@ import {
 
 const { namedNode } = DataFactory;
 
-const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-const SH_FOCUS_NODE = "http://www.w3.org/ns/shacl#focusNode";
 const SH_MESSAGE = "http://www.w3.org/ns/shacl#message";
-const SH_RESULT_MESSAGE = "http://www.w3.org/ns/shacl#resultMessage";
 const SH_SELECT = "http://www.w3.org/ns/shacl#select";
 const SH_SPARQL = "http://www.w3.org/ns/shacl#sparql";
 const SH_SPARQL_CONSTRAINT_COMPONENT =
@@ -38,13 +35,6 @@ export interface ValidateManifestOptions {
 
 type BindingMap = Map<string, Term>;
 
-interface SparqlConstraint {
-  shape: Term;
-  constraint: Term;
-  message: string;
-  select: string;
-}
-
 interface SparqlQuery {
   queryType?: string;
   type?: string;
@@ -52,7 +42,10 @@ interface SparqlQuery {
   limit?: number;
 }
 
-type SparqlPattern = SparqlBgpPattern | SparqlFilterPattern | SparqlUnionPattern;
+type SparqlPattern =
+  | SparqlBgpPattern
+  | SparqlFilterPattern
+  | SparqlUnionPattern;
 
 interface SparqlBgpPattern {
   type: "bgp";
@@ -96,6 +89,13 @@ interface SparqlPath {
   items: Array<SparqlTerm | SparqlPath>;
 }
 
+interface ResultPathStep {
+  end?: string;
+  predicates: Term[];
+  quantifier?: string;
+  start?: string;
+}
+
 export function getShippedShapesPath(): string {
   return SHAPES_DISPLAY_PATH;
 }
@@ -107,13 +107,12 @@ export async function validateManifest(
   const data = new Store(manifest.quads);
   const shapes = await loadShippedShapes();
 
-  const coreResults = await validateShaclCore(data, shapes);
-  const sparqlResults = await validateSparqlConstraints(data, shapes);
+  const results = await validateWithShaclEngine(data, shapes);
 
   return buildValidationReport({
     manifestPath: options.manifestPath,
     shapesPath: SHAPES_DISPLAY_PATH,
-    results: [...coreResults, ...sparqlResults],
+    results,
   });
 }
 
@@ -129,95 +128,126 @@ async function loadShippedShapes(): Promise<Store> {
   }
 }
 
-async function validateShaclCore(
+async function validateWithShaclEngine(
   data: Store,
   shapes: Store,
 ): Promise<ValidationResultRecord[]> {
   try {
-    const validator = new SHACLValidator(shapes);
-    const report = await validator.validate(data);
-    return validationResultsFromReportDataset(report.dataset);
+    const validator = new Validator(shapes, {
+      factory: DataFactory,
+      validations: new Map([[namedNode(SH_SPARQL), compileAccordSparql]]),
+    });
+    const report = await validator.validate({ dataset: data });
+    return validationResultsFromShaclEngine(report.results);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new ValidationExecutionError(
-      `Failed to run SHACL Core validation: ${message}`,
+      `Failed to run SHACL validation: ${message}`,
     );
   }
 }
 
-function validationResultsFromReportDataset(
-  dataset: Iterable<Quad> & {
-    match: (subject?: Term | null, predicate?: Term | null, object?: Term | null, graph?: Term | null) => Iterable<Quad>;
-  },
+function validationResultsFromShaclEngine(
+  rawResults: unknown[],
 ): ValidationResultRecord[] {
-  const results: ValidationResultRecord[] = [];
+  return rawResults.map((result) => {
+    const record = result as {
+      constraintComponent?: Term;
+      focusNode?: { term?: Term; terms?: Term[] };
+      message?: Term[];
+      path?: ResultPathStep[] | null;
+      severity?: Term;
+      shape?: { ptr?: { term?: Term; terms?: Term[] } };
+      source?: Term[];
+      value?: { term?: Term; terms?: Term[] };
+    };
 
-  for (const quad of dataset.match(
-    null,
-    namedNode(RDF_TYPE),
-    namedNode(SH_VALIDATION_RESULT),
-    null,
-  )) {
-    results.push({
-      severity: termLocalName(
-        firstObject(dataset, quad.subject, SH_RESULT_SEVERITY),
-      ) ?? "Violation",
-      focusNode: serializeOptionalTerm(
-        firstObject(dataset, quad.subject, SH_FOCUS_NODE),
-      ),
-      value: serializeOptionalTerm(firstObject(dataset, quad.subject, "http://www.w3.org/ns/shacl#value")),
-      resultPath: serializeOptionalTerm(
-        firstObject(dataset, quad.subject, SH_RESULT_PATH),
-      ),
-      sourceShape: serializeOptionalTerm(
-        firstObject(dataset, quad.subject, SH_SOURCE_SHAPE),
-      ),
-      sourceConstraint: serializeOptionalTerm(
-        firstObject(dataset, quad.subject, SH_SOURCE_CONSTRAINT),
-      ),
-      sourceConstraintComponent: termLocalName(
-        firstObject(dataset, quad.subject, SH_SOURCE_CONSTRAINT_COMPONENT),
-      ),
-      message: messageObjects(dataset, quad.subject, SH_RESULT_MESSAGE).join(
-        " ",
-      ),
-    });
-  }
-
-  return results;
+    return {
+      severity: termLocalName(record.severity) ?? "Violation",
+      focusNode: serializeOptionalTerm(firstPathListTerm(record.focusNode)),
+      value: serializeOptionalTerm(firstPathListTerm(record.value)),
+      resultPath: resultPathToString(record.path),
+      sourceShape: serializeOptionalTerm(firstPathListTerm(record.shape?.ptr)),
+      sourceConstraint: serializeOptionalTerm(record.source?.[0]),
+      sourceConstraintComponent: termLocalName(record.constraintComponent),
+      message: (record.message ?? []).map((term) => term.value).join(" "),
+    };
+  });
 }
 
-async function validateSparqlConstraints(
-  data: Store,
-  shapes: Store,
-): Promise<ValidationResultRecord[]> {
+function compileAccordSparql(shape: {
+  sparql: {
+    [Symbol.iterator]: () => IterableIterator<{
+      out: (terms: Term[]) => { terms: Term[] | null; value?: string };
+      terms: Term[] | null;
+    }>;
+    out: (terms: Term[]) => { terms: Term[] | null; value?: string };
+    terms: Term[] | null;
+  };
+}) {
   const parser = new SparqlJs.Parser();
-  const results: ValidationResultRecord[] = [];
+  const constraints = [...shape.sparql]
+    .map((sparqlConstraint) => {
+      const select = sparqlConstraint.out([namedNode(SH_SELECT)]).value;
 
-  for (const constraint of sparqlConstraints(shapes)) {
-    const focusNodes = resolveFocusNodes(data, shapes, constraint.shape);
-    const query = parseSparqlSelect(parser, constraint.select);
-
-    for (const focusNode of focusNodes) {
-      const bindings = new Map<string, Term>([["this", focusNode]]);
-      const rows = evaluateSelect(data, query, bindings);
-
-      for (const row of rows) {
-        results.push({
-          severity: "Violation",
-          focusNode: serializeTerm(focusNode),
-          value: serializeOptionalTerm(row.get("value") ?? focusNode),
-          resultPath: serializeOptionalTerm(row.get("path")),
-          sourceShape: serializeTerm(constraint.shape),
-          sourceConstraint: serializeTerm(constraint.constraint),
-          sourceConstraintComponent: "SPARQLConstraintComponent",
-          message: constraint.message,
-        });
+      if (select === undefined) {
+        return undefined;
       }
-    }
+
+      return {
+        message: termsOrEmpty(
+          sparqlConstraint.out([namedNode(SH_MESSAGE)]).terms,
+        ),
+        query: parseSparqlSelect(parser, select),
+        source: termsOrEmpty(sparqlConstraint.terms),
+      };
+    })
+    .filter((constraint) => constraint !== undefined);
+
+  if (constraints.length === 0) {
+    return undefined;
   }
 
-  return results;
+  return {
+    generic: async (context: {
+      factory: typeof DataFactory;
+      focusNode: {
+        dataset: Store;
+        node: (terms: Term[]) => unknown;
+        term: Term;
+      };
+      violation: (
+        constraintComponent: Term,
+        args: {
+          message: Term[];
+          source: Term[];
+          value: unknown;
+        },
+      ) => void;
+    }) => {
+      for (const constraint of constraints) {
+        const rows = evaluateSelect(
+          context.focusNode.dataset,
+          constraint.query,
+          new Map([["this", context.focusNode.term]]),
+        );
+
+        for (const row of rows) {
+          context.violation(namedNode(SH_SPARQL_CONSTRAINT_COMPONENT), {
+            message: constraint.message,
+            source: constraint.source,
+            value: context.focusNode.node([
+              row.get("value") ?? context.focusNode.term,
+            ]),
+          });
+        }
+      }
+    },
+  };
+}
+
+function termsOrEmpty(terms: Term[] | null | undefined): Term[] {
+  return terms ?? [];
 }
 
 function parseSparqlSelect(
@@ -242,64 +272,6 @@ function parseSparqlSelect(
   }
 
   return parsed as SparqlQuery;
-}
-
-function sparqlConstraints(shapes: Store): SparqlConstraint[] {
-  const constraints: SparqlConstraint[] = [];
-
-  for (const quad of shapes.match(null, namedNode(SH_SPARQL), null, null)) {
-    const select = firstLiteralValue(shapes, quad.object, SH_SELECT);
-
-    if (select === undefined) {
-      continue;
-    }
-
-    constraints.push({
-      shape: quad.subject,
-      constraint: quad.object,
-      message: messageObjects(shapes, quad.object, SH_MESSAGE).join(" "),
-      select,
-    });
-  }
-
-  return constraints;
-}
-
-function resolveFocusNodes(
-  data: Store,
-  shapes: Store,
-  shape: Term,
-): Term[] {
-  const focusNodes = new TermSet();
-
-  for (const targetClass of objectTerms(shapes, shape, SH_TARGET_CLASS)) {
-    for (const quad of data.match(
-      null,
-      namedNode(RDF_TYPE),
-      targetClass,
-      null,
-    )) {
-      focusNodes.add(quad.subject);
-    }
-  }
-
-  for (const targetNode of objectTerms(shapes, shape, SH_TARGET_NODE)) {
-    focusNodes.add(targetNode);
-  }
-
-  for (const predicate of objectTerms(shapes, shape, SH_TARGET_SUBJECTS_OF)) {
-    for (const quad of data.match(null, predicate, null, null)) {
-      focusNodes.add(quad.subject);
-    }
-  }
-
-  for (const predicate of objectTerms(shapes, shape, SH_TARGET_OBJECTS_OF)) {
-    for (const quad of data.match(null, predicate, null, null)) {
-      focusNodes.add(quad.object);
-    }
-  }
-
-  return focusNodes.values();
 }
 
 function evaluateSelect(
@@ -338,7 +310,9 @@ function evaluatePatterns(
       rows = evaluateUnion(dataset, pattern.patterns, rows);
     } else {
       throw new ValidationExecutionError(
-        `Unsupported SHACL SPARQL pattern type: ${(pattern as { type?: string }).type}`,
+        `Unsupported SHACL SPARQL pattern type: ${
+          (pattern as { type?: string }).type
+        }`,
       );
     }
   }
@@ -406,7 +380,9 @@ function evaluatePathTriplePattern(
   const rows: BindingMap[] = [];
 
   for (const start of starts) {
-    for (const end of followPath(dataset, [start], triple.predicate as SparqlPath)) {
+    for (
+      const end of followPath(dataset, [start], triple.predicate as SparqlPath)
+    ) {
       const nextBinding = bindPatternTerm(triple.subject, start, binding);
 
       if (nextBinding === null) {
@@ -574,7 +550,11 @@ function bindTriplePattern(
   quad: Quad,
   binding: BindingMap,
 ): BindingMap | null {
-  const subjectBinding = bindPatternTerm(pattern.subject, quad.subject, binding);
+  const subjectBinding = bindPatternTerm(
+    pattern.subject,
+    quad.subject,
+    binding,
+  );
 
   if (subjectBinding === null || isSparqlPath(pattern.predicate)) {
     return null;
@@ -700,55 +680,10 @@ function parseRdf(text: string, format: string, baseIri: string): Quad[] {
   }
 }
 
-function firstObject(
-  dataset: Iterable<Quad> & {
-    match: (subject?: Term | null, predicate?: Term | null, object?: Term | null, graph?: Term | null) => Iterable<Quad>;
-  },
-  subject: Term,
-  predicate: string,
-): Term | undefined {
-  for (const quad of dataset.match(subject, namedNode(predicate), null, null)) {
-    return quad.object;
-  }
-
-  return undefined;
-}
-
-function firstLiteralValue(
-  dataset: Store,
-  subject: Term,
-  predicate: string,
-): string | undefined {
-  const object = firstObject(dataset, subject, predicate);
-  return object?.termType === "Literal" ? object.value : undefined;
-}
-
-function messageObjects(
-  dataset: Iterable<Quad> & {
-    match: (subject?: Term | null, predicate?: Term | null, object?: Term | null, graph?: Term | null) => Iterable<Quad>;
-  },
-  subject: Term,
-  predicate: string,
-): string[] {
-  return [...dataset.match(subject, namedNode(predicate), null, null)]
-    .map((quad) => quad.object.value)
-    .sort();
-}
-
-function objectTerms(
-  dataset: Store,
-  subject: Term,
-  predicate: string,
-): Term[] {
-  return [...dataset.match(subject, namedNode(predicate), null, null)].map((
-    quad,
-  ) => quad.object);
-}
-
 function uniqueSubjects(dataset: Store): Term[] {
-  return uniqueTerms([...dataset.match(null, null, null, null)].map((quad) =>
-    quad.subject
-  ));
+  return uniqueTerms(
+    [...dataset.match(null, null, null, null)].map((quad) => quad.subject),
+  );
 }
 
 function uniqueTerms(terms: Term[]): Term[] {
@@ -769,6 +704,38 @@ function stringValue(value: boolean | string | Term | null): string {
   }
 
   return value.value;
+}
+
+function firstPathListTerm(
+  pathList: { term?: Term; terms?: Term[] } | undefined,
+): Term | undefined {
+  return pathList?.term ?? pathList?.terms?.[0];
+}
+
+function resultPathToString(
+  path: ResultPathStep[] | null | undefined,
+): string | undefined {
+  if (path === undefined || path === null || path.length === 0) {
+    return undefined;
+  }
+
+  return path.map((step) => {
+    const predicates = step.predicates.map(serializeTerm).join("|");
+    const direction = step.start === "object" && step.end === "subject"
+      ? "^"
+      : "";
+
+    switch (step.quantifier) {
+      case "oneOrMore":
+        return `${direction}${predicates}+`;
+      case "zeroOrMore":
+        return `${direction}${predicates}*`;
+      case "zeroOrOne":
+        return `${direction}${predicates}?`;
+      default:
+        return `${direction}${predicates}`;
+    }
+  }).join("/");
 }
 
 function serializeOptionalTerm(term: Term | undefined): string | undefined {
@@ -800,7 +767,8 @@ function serializeLiteral(term: Literal): string {
 
   if (
     term.datatype.value !== "http://www.w3.org/2001/XMLSchema#string" &&
-    term.datatype.value !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+    term.datatype.value !==
+      "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
   ) {
     return `${quotedValue}^^${term.datatype.value}`;
   }

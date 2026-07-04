@@ -1,6 +1,4 @@
-import {
-  ManifestLoadError,
-} from "../../manifest/load_jsonld.ts";
+import { ManifestLoadError } from "../../manifest/load_jsonld.ts";
 import {
   buildValidationErrorReport,
   type ValidationReport,

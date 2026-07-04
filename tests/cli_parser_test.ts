@@ -32,6 +32,22 @@ Deno.test("parseCliArgs parses the check command", () => {
   );
 });
 
+Deno.test("parseCliArgs parses the validate command", () => {
+  assertEquals(
+    parseCliArgs([
+      "validate",
+      "testdata/manifests/validate-001-valid.jsonld",
+      "--format",
+      "json",
+    ]),
+    {
+      kind: "validate",
+      manifestPath: "testdata/manifests/validate-001-valid.jsonld",
+      format: "json",
+    },
+  );
+});
+
 Deno.test("parseCliArgs rejects unknown commands", () => {
   assertThrows(
     () => parseCliArgs(["status"]),
@@ -40,7 +56,8 @@ Deno.test("parseCliArgs rejects unknown commands", () => {
   );
 });
 
-Deno.test("renderUsage mentions the check command", () => {
+Deno.test("renderUsage mentions the check and validate commands", () => {
   const usage = renderUsage();
   assertEquals(usage.includes("accord check"), true);
+  assertEquals(usage.includes("accord validate"), true);
 });

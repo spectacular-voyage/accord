@@ -96,12 +96,26 @@ function evaluatePatterns(
   initialBindings: Bindings[],
 ): Bindings[] {
   let currentBindings = initialBindings;
+  const filterPatterns: FilterPattern[] = [];
 
   for (const pattern of patterns) {
+    if (pattern.type === "filter") {
+      filterPatterns.push(pattern);
+      continue;
+    }
+
     currentBindings = evaluatePattern(dataset, pattern, currentBindings);
 
     if (currentBindings.length === 0) {
-      break;
+      return [];
+    }
+  }
+
+  for (const pattern of filterPatterns) {
+    currentBindings = evaluateFilterPattern(dataset, pattern, currentBindings);
+
+    if (currentBindings.length === 0) {
+      return [];
     }
   }
 

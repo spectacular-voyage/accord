@@ -123,6 +123,26 @@ Deno.test("runAskAssertion supports FILTER NOT EXISTS when the pattern is presen
   assertEquals(result, false);
 });
 
+Deno.test("runAskAssertion applies FILTER NOT EXISTS to sibling pattern bindings regardless of source order", async () => {
+  const dataset = encodeRdf(`
+    <urn:alice> a <urn:Relator> .
+    <urn:bob> <urn:endedAt> "2026-07-04T12:00:00Z" .
+  `);
+
+  const result = await runAskAssertion({
+    dataset,
+    path: "graph.ttl",
+    query: `
+      ASK {
+        FILTER NOT EXISTS { ?r <urn:endedAt> ?end . }
+        ?r a <urn:Relator> .
+      }
+    `,
+  });
+
+  assertEquals(result, true);
+});
+
 Deno.test("runAskAssertion supports bare boolean and numeric SPARQL literals", async () => {
   const dataset = encodeRdf(`
     @prefix ex: <https://example.test/> .

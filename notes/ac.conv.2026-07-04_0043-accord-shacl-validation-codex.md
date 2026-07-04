@@ -159,3 +159,231 @@ I’m replacing the two-pass `rdf-validate-shacl` call with one `shacl-engine` v
 # gpt-5.5_2026-07-04_0051_54
 
 I’m making the validation module use `shacl-engine` directly now. The custom SPARQL hook reuses the evaluator I already added, so this is mostly changing where results are produced and normalized.
+
+# gpt-5.5_2026-07-04_0052_32
+
+The engine now runs one `shacl-engine` validation pass with a local `sh:sparql` validator registered. I’m doing another targeted type check to clean up any now-unused helper types from the prior two-pass version.
+
+# gpt-5.5_2026-07-04_0052_40
+
+The remaining errors are from helpers that belonged to the abandoned external SPARQL pass. I’m pruning those and adding the small result-path serializer used for `shacl-engine` output.
+
+# gpt-5.5_2026-07-04_0052_49
+
+I’m pruning the old helper block and adding a serializer for the path steps that `shacl-engine` puts on core SHACL results.
+
+# gpt-5.5_2026-07-04_0053_10
+
+The dead helper block is gone. I’m checking again, then I’ll rerun the CLI samples.
+
+# gpt-5.5_2026-07-04_0053_20
+
+The targeted check is clean with `shacl-engine`. I’m smoke-testing valid and invalid reports again; this will also prove whether the custom `sh:sparql` hook fires.
+
+# gpt-5.5_2026-07-04_0053_30
+
+The first smoke test exposed something useful: the `shacl-engine` core run is working, but my custom `sh:sparql` validation hook isn’t being selected yet, so the compareMode constraints are incorrectly passing. I’m probing that registry path now instead of papering over it.
+
+# gpt-5.5_2026-07-04_0053_41
+
+The hook is selected; the bug is that shapes like `FileExpectationShape` have multiple `sh:sparql` constraints and my compile function only asked the combined pointer for one `sh:select`. I’m changing it to compile each constraint node separately and evaluate them all.
+
+# gpt-5.5_2026-07-04_0053_47
+
+I confirmed compilation is lazy, so I’ll patch directly and let the smoke tests exercise it.
+
+# gpt-5.5_2026-07-04_0053_56
+
+The compile hook now evaluates every `sh:sparql` node attached to a shape. I’m checking and rerunning the manifest samples.
+
+# gpt-5.5_2026-07-04_0054_07
+
+Type check still passes. Now I’m checking that valid stays conformant and the three requested invalid cases produce non-conformance, not execution errors.
+
+# gpt-5.5_2026-07-04_0054_10
+
+The hook is now firing but `shacl-engine` is choking while building a result. I need the stack trace, so I’m running the validator directly outside the CLI wrapper.
+
+# gpt-5.5_2026-07-04_0054_15
+
+The direct run needs the repo import map, so I’m rerunning it with the normal config to get the real stack.
+
+# gpt-5.5_2026-07-04_0054_26
+
+The likely culprit is `grapoi` returning `null` for an empty term list in this path, and `shacl-engine` expects an array on the result message. I’m normalizing those `terms` reads to arrays before calling `context.violation`.
+
+# gpt-5.5_2026-07-04_0054_32
+
+I normalized the constraint messages and source terms. I’m rerunning the failing validation directly first, then the sample set.
+
+# gpt-5.5_2026-07-04_0054_38
+
+That wasn’t it. I’m going to briefly expose the underlying stack from the wrapped `shacl-engine` error, then restore the clean error message once I know where it’s failing.
+
+# gpt-5.5_2026-07-04_0054_47
+
+Found it: the stack is in my result normalization, not `shacl-engine`; some SPARQL results have `path: null`. I’m handling null and restoring the clean wrapper message.
+
+# gpt-5.5_2026-07-04_0054_57
+
+That result-normalization bug is fixed. I’m rerunning all five validation fixtures now.
+
+# gpt-5.5_2026-07-04_0055_05
+
+Validation behavior is now right: valid exits `0`, invalid fixtures exit `1`, and the report includes the SPARQL constraint messages. I’m adding focused CLI tests around those messages and the “check does not preflight SHACL” guarantee.
+
+# gpt-5.5_2026-07-04_0055_09
+
+Parser tests are updated. Now I’m adding the black-box-style validation tests with the fixture materializer for the check command comparison.
+
+# gpt-5.5_2026-07-04_0055_26
+
+I’m extending the public API smoke test so exported validation helpers stay visible to package users.
+
+# gpt-5.5_2026-07-04_0055_35
+
+The validation tests are in place. I’m running the new test file and parser/API tests now before the documentation pass.
+
+# gpt-5.5_2026-07-04_0055_38
+
+The new validation tests pass, including the assertion that `accord check` still passes a manifest that `accord validate` rejects. I’m moving to the spec/user guide/task-note updates now.
+
+# gpt-5.5_2026-07-04_0055_52
+
+For the docs, I’m going to be blunt about the dependency decision: `shacl-engine/sparql.js` works only with physical `node_modules` in this Deno spike, so the landed path uses `shacl-engine` core with a local `sh:sparql` hook over the shipped shapes graph. `rdf-validate-shacl` is recorded as incompatible because it hard-errors on `sh:sparql`, not merely “missing a feature.”
+
+# gpt-5.5_2026-07-04_0056_01
+
+I can see the ASK docs have already been partially updated in the working tree. I’ll keep those intact and only patch the validation command sections around them.
+
+# gpt-5.5_2026-07-04_0056_04
+
+I’m updating the CLI spec first: command surface, dependencies, validation boundary, exit-code meaning, and validation report shape.
+
+# gpt-5.5_2026-07-04_0056_22
+
+The spec now describes `validate` as its own command and keeps ASK preflight out. I’m patching the user guide to match the actual CLI usage and report behavior.
+
+# gpt-5.5_2026-07-04_0056_41
+
+The user guide text has some nearby edits from the ASK work, so I’ll patch it in smaller sections.
+
+# gpt-5.5_2026-07-04_0056_46
+
+Purpose text is updated. Now the command examples and usage block.
+
+# gpt-5.5_2026-07-04_0056_52
+
+I’m adding the library export mention and a dedicated validation section before the examples.
+
+# gpt-5.5_2026-07-04_0057_06
+
+The validation section goes between RDF support and examples, where users are already thinking about manifest behavior.
+
+# gpt-5.5_2026-07-04_0057_17
+
+I’m clarifying output format differences between `check` and `validate` without changing the existing check report wording more than needed.
+
+# gpt-5.5_2026-07-04_0057_23
+
+Exit-code wording is next: same numeric categories, but `validate` reports non-conformance instead of check failure.
+
+# gpt-5.5_2026-07-04_0057_28
+
+I’m adding one concrete `validate` example and the current limitations bullets.
+
+# gpt-5.5_2026-07-04_0057_34
+
+The user guide now reflects the command. I’m updating the task note with the actual Deno spike findings, ASK-preflight decision, duplicate-key decision, and completed checklist.
+
+# gpt-5.5_2026-07-04_0057_43
+
+The task note already had one ASK-preflight line updated; I’ll add the concrete spike findings and mark the landed decisions/checklist.
+
+# gpt-5.5_2026-07-04_0058_09
+
+One durable guidance note still says Accord is centered only on `accord check`. Since the repo now has `validate`, I’m making a small guidance update so future work doesn’t miss the new boundary.
+
+# gpt-5.5_2026-07-04_0058_13
+
+I’ll keep this guidance update concise: one sentence on the second command, a layout bullet, runtime split, and dependency note.
+
+# gpt-5.5_2026-07-04_0058_22
+
+Docs are updated. I’m going to run `deno fmt` now on the repo-managed formatted files so the final `fmt:check` gate has a fair shot.
+
+# gpt-5.5_2026-07-04_0058_25
+
+Formatting touched the new code files and left markdown alone, as configured. I’m running the required gate now: `fmt:check`, `check`, and `test`.
+
+# gpt-5.5_2026-07-04_0058_45
+
+All three required gates passed: `fmt:check`, `check`, and `test` with 111 tests. I’m doing a final diff/status pass now so I can give you an accurate summary and commit message.
+
+# User_2026-07-04_0102_17
+
+codex extension crashed, please continue.
+
+# gpt-5.5_2026-07-04_0102_26
+
+I’ll pick up from the recovered state and do a quick audit before closing this out: worktree shape, dependency entries, and whether anything crash-generated needs to be called out.
+
+# gpt-5.5_2026-07-04_0102_36
+
+The crash left the tree with both the SHACL work and some existing/parallel real-SPARQL ASK edits. I’m going to inspect the ASK-side diff now so I don’t accidentally claim ownership of it or miss a reusable preflight hook.
+
+# gpt-5.5_2026-07-04_0102_43
+
+That ASK diff is small and looks like the separate real-SPARQL task fixing filter order; I’m leaving it as existing adjacent work. The validate implementation is isolated from `accord check`, and I’m checking the staged/index state plus the new test file before I give you the wrap-up.
+
+# gpt-5.5_2026-07-04_0102_48
+
+The main validator diff is clean: it swapped the earlier split core/manual path for `shacl-engine` core plus an Accord-owned `sh:sparql` hook. I’m going to rerun the required gate now against the current post-crash tree so the final status is fresh.
+
+# gpt-5.5_2026-07-04_0102_51
+
+Format is still happy. Next I’m running type/check linting, then the full test suite.
+
+# gpt-5.5_2026-07-04_0102_53
+
+Type checking passed. Last gate is the full tests; this is the one that exercises both the new validate CLI path and the unchanged check behavior.
+
+# gpt-5.5_2026-07-04_0103_26
+
+All three required gates passed on the current tree: format check, type check, and 112 tests. I’m taking one final status snapshot now, then I’ll summarize the exact shape of the work and the commit message.
+
+# gpt-5.5_2026-07-04_0103_39
+
+Continued cleanly after the crash. `accord validate <manifest>` is in place as a separate command, using the local-only JSON-LD loader, the shipped `accord-shacl.ttl` as-is, `shacl-engine` core, and an Accord-owned `sh:sparql` hook for the shipped SPARQL constraints. `accord check` remains untouched by SHACL preflight; there’s a CLI regression test for that.
+
+I also updated the task note/spec/user guide/dev guidance with the validator spike findings: `shacl-engine/sparql.js` is not Deno-clean under the default setup, `rdf-validate-shacl` does not support `sh:SPARQLConstraintComponent`, ASK syntax preflight is not reusable yet, and duplicate JSON key detection is explicitly out of this slice.
+
+Validation passed:
+
+```sh
+deno task fmt:check
+deno task check
+deno task test
+```
+
+`deno task test` finished with `112 passed | 0 failed`.
+
+Worktree note: the Accord repo still shows adjacent ASK/Kato conversation changes (`src/checker/sparql.ts`, `tests/sparql_test.ts`, `notes/ac.conv...`) and the Weave root still has `documentation/notes/wd.todo.md`; I left those intact.
+
+Suggested Accord commit message:
+
+```text
+feat: add standalone SHACL manifest validation
+
+Add accord validate as a separate CLI command with text and JSON reports,
+local-only JSON-LD manifest loading, shipped accord-shacl.ttl execution, and
+non-zero exit behavior for non-conformance. Run SHACL through shacl-engine core
+with an Accord-owned sh:sparql validation hook so the shipped SPARQL constraints
+execute without rewriting the shapes graph.
+
+Cover compareMode required/forbidden rules, same-transition-case RDF targeting,
+duplicate accord:path detection, conformant validation, and unchanged accord
+check behavior through CLI tests. Document validator spike findings, ASK preflight
+status, duplicate-key detection decision, command semantics, and user-facing
+validation workflow.
+```

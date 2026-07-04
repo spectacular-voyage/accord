@@ -10,7 +10,7 @@ created: 1775232375756
 
 This note captures the current working guidance for Accord development. It should describe the implementation that actually exists, not an aspirational framework that has not landed yet.
 
-Accord is currently a thin Deno CLI checker centered on `accord check`. Development should preserve that bias unless repeated real use cases justify broader scope.
+Accord is currently a thin Deno CLI centered on `accord check` for fixture-transition execution and `accord validate` for manifest SHACL authoring validation. Development should preserve that bias unless repeated real use cases justify broader scope.
 
 ## Source of truth
 
@@ -31,11 +31,12 @@ The current code layout is intentionally flat:
 - `src/manifest` for JSON-LD manifest loading and case selection
 - `src/git` for git-backed repository access
 - `src/checker` for file, text, RDF, and SPARQL ASK evaluation
+- `src/shacl` for manifest RDF dataset validation against the shipped Accord SHACL shapes
 - `src/report` for text and JSON reports
 - `tests/harness` for CLI and fixture-repo test helpers
 - `testdata/` for black-box fixture repos, manifests, and scenario indexes
 
-The runtime model is:
+The `accord check` runtime model is:
 
 1. load the manifest as JSON-LD
 2. select a `TransitionCase`
@@ -46,6 +47,8 @@ The runtime model is:
 
 Keep this model explicit and debuggable. Avoid layering in framework abstractions unless they remove a real recurring pain point.
 
+The `accord validate` runtime model is separate: load a manifest through the same fail-closed local-only JSON-LD policy, convert it to an RDF dataset, load the shipped `accord-shacl.ttl`, run SHACL Core and the shipped `sh:sparql` constraints, emit a stable validation report, and return a failing exit status for non-conformance. Do not hide this validation inside `accord check`.
+
 ## Current dependency stance
 
 Accord is Deno-first, but the current implementation deliberately uses a few npm packages where they are the most practical RDF/JSON-LD tools:
@@ -55,6 +58,7 @@ Accord is Deno-first, but the current implementation deliberately uses a few npm
 - `n3` for RDF parsing and the in-memory RDFJS store
 - `rdf-canonize` for RDF canonicalization
 - `sparqljs` for parsing authored SPARQL ASK syntax before Accord evaluates the supported local profile over parsed quads
+- `shacl-engine` for SHACL validation, currently using an Accord-owned `sh:sparql` validation hook because `shacl-engine/sparql.js` hits Deno npm-cache resolver problems
 
 SPARQL `ASK` support is intentionally implemented as a small local evaluator over parsed quads rather than through Comunica. `sparqljs` handles syntax, prefixes, and RDF term parsing; Accord owns the execution profile. The committed profile supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns, IRIs, variables, blank nodes as query-local variables, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters. It deliberately rejects broader SPARQL features such as `SERVICE`, `OPTIONAL`, `UNION`, `GRAPH`, `MINUS`, `BIND`, `VALUES`, property paths, subqueries, `FROM`, non-ASK query forms, and general filter expressions with `sparql_query_error`. That keeps ASK execution local, avoids Deno/npm resolver instability from Comunica's transitive `cross-fetch` chain, and prevents incidental parser support from becoming Accord's product contract. New dependencies should be added cautiously and only when they solve a concrete problem.
 

@@ -241,3 +241,65 @@ Add sparqljs as a bounded syntax/term parser and replace the old ad hoc ASK toke
 
 Add unit and black-box coverage for the Stagecraft-style absence assertion and unsupported SERVICE behavior. Update the ASK task note, CLI spec, developer guidance, SHACL validation task note, and user docs with the committed ASK profile and preflight decision.
 ```
+
+# User_2026-07-04_0101_09
+
+Jimbo reports: "Confirmed bug: FILTER position changes the result
+In SPARQL, a FILTER scopes to its entire group no matter where it's written. The new evaluator in sparql.ts:93-109 applies patterns in syntactic order, so a filter written before its sibling triples is evaluated against not-yet-extended bindings. I verified with this data — <urn:alice> a <urn:Relator> and only <urn:bob> having <urn:endedAt>:
+
+ASK { ?r a <urn:Relator> . FILTER NOT EXISTS { ?r <urn:endedAt> ?end } }  → true  (correct)
+ASK { FILTER NOT EXISTS { ?r <urn:endedAt> ?end } ?r a <urn:Relator> . }  → false (spec says true)
+Both are the same query per the SPARQL algebra. For a tool whose product is evidence, silently returning the wrong boolean for a legally-written manifest is the worst failure mode. The fix is small: in evaluatePatterns, evaluate non-filter patterns first, then apply the group's filters to the surviving bindings (that's exactly the algebra translation), plus a regression test for the filter-first form. Alternatively, rejecting filter-before-triples as outside the profile would also be honest — but reordering is spec-correct and just as easy."
+
+# gpt-5.5_2026-07-04_0101_22
+
+Jimbo’s right, and it’s exactly the kind of bug that’s too polite to announce itself. I’m going to add the filter-first regression first, watch it fail against the current evaluator, then change group evaluation so filters apply after the group’s graph patterns.
+
+# gpt-5.5_2026-07-04_0101_36
+
+The current tests have “filter only” and “filter after pattern” coverage, but not the binding-sensitive filter-first form. I’m adding Jimbo’s minimized case as a regression so the failure is pinned to the algebra issue, not just the Stagecraft-shaped happy path.
+
+# gpt-5.5_2026-07-04_0101_42
+
+The regression is in. I’m running just `tests/sparql_test.ts` now to confirm it fails before the evaluator fix.
+
+# gpt-5.5_2026-07-04_0102_02
+
+The new test fails in the expected way: filter-first returns `false` instead of `true`. I’m changing group evaluation now so top-level filters are collected and applied after the group’s graph patterns, while preserving the existing local-profile rejection path for unsupported pattern types.
+
+# gpt-5.5_2026-07-04_0102_08
+
+The evaluator now treats filters as group-level constraints rather than syntactic-order steps. I’m rerunning the SPARQL unit suite first, then the black-box ASK scenarios.
+
+# gpt-5.5_2026-07-04_0102_27
+
+The regression and black-box suites are green with the fix. I’m doing formatter/type/lint checks now; the repo still has unrelated SHACL/validate work in the tree, so I’ll call out any ambient failures separately from this patch.
+
+# gpt-5.5_2026-07-04_0102_36
+
+Focused formatter, type-check, and lint all pass for the touched ASK files. I’m running the repo-level tasks too, mostly to confirm whether the existing SHACL blockers are unchanged.
+
+# gpt-5.5_2026-07-04_0103_03
+
+The requested gate is now good: `fmt:check`, `check`, and `test` all pass. The extra lint run still has one unrelated SHACL `require-await` finding in `src/shacl/validate_manifest.ts`; I’m leaving that file alone because it’s outside this ASK fix.
+
+# gpt-5.5_2026-07-04_0103_15
+
+Jimbo was right. I fixed the evaluator in [src/checker/sparql.ts](../src/checker/sparql.ts:96) so a group evaluates non-filter patterns first, then applies the group’s `FILTER` constraints to the surviving bindings. That makes filter-first and filter-after forms equivalent for the supported ASK profile.
+
+I also added the regression in [tests/sparql_test.ts](../tests/sparql_test.ts:126) using the exact shape Jimbo described: Alice is the relator, Bob has `endedAt`, and `FILTER NOT EXISTS` appears before `?r a <urn:Relator>`.
+
+Verification:
+- First ran the new test before the fix: failed with `false` vs `true`
+- `deno task fmt:check` passed
+- `deno task check` passed
+- `deno task test` passed, 112 tests
+- Extra `deno task lint` still fails on unrelated SHACL work at `src/shacl/validate_manifest.ts:212` for `require-await`; I left that file alone.
+
+Suggested commit message:
+
+```text
+accord: apply ASK filters after sibling graph patterns
+
+Fix SPARQL ASK evaluation so FILTER NOT EXISTS scopes over the full group rather than only bindings produced earlier in syntactic order. Add a regression for the filter-first form where sibling triples bind the variable used inside the absence check.
+```

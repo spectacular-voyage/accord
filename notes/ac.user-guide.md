@@ -8,7 +8,7 @@ created: 1775228646463
 
 ## Purpose
 
-Accord is a deterministic checker for machine-readable conformance manifests. Today the primary command is `accord check`, which answers a narrow question: does a manifest correctly describe the expected transition between two named refs in a local fixture repository?
+Accord is a deterministic checker and validator for machine-readable conformance manifests. `accord check` answers a narrow execution question: does a manifest correctly describe the expected transition between two named refs in a local fixture repository? `accord validate` answers a separate authoring question: does the manifest RDF graph conform to Accord's shipped SHACL shapes?
 
 This guide describes the current checker behavior that exists in this repository now. It does not describe future packaging or planned commands that have not landed yet.
 
@@ -19,6 +19,7 @@ During development, the checker is run from the repository with Deno:
 ```bash
 deno run -A src/main.ts --help
 deno run -A src/main.ts check <manifest-path>
+deno run -A src/main.ts validate <manifest-path>
 ```
 
 After the JSR package is published, the same CLI entrypoint is available through the package:
@@ -26,6 +27,7 @@ After the JSR package is published, the same CLI entrypoint is available through
 ```bash
 deno run -A jsr:@spectacular-voyage/accord/cli --help
 deno run -A jsr:@spectacular-voyage/accord/cli check <manifest-path>
+deno run -A jsr:@spectacular-voyage/accord/cli validate <manifest-path>
 ```
 
 For repeated local use before native binaries exist:
@@ -38,10 +40,13 @@ The current CLI usage is:
 
 ```text
 accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]
+accord validate <manifest-path> [--format <text|json>]
 accord --help
 ```
 
 The eventual native binary command should preserve this shape. Until then, use either the repository-native invocation or the JSR `./cli` entrypoint.
+
+`accord check` does not run SHACL validation as a hidden preflight. Run `accord validate` explicitly in authoring workflows or CI when you want structural manifest validation.
 
 ## Library use
 
@@ -53,6 +58,7 @@ import {
   readScenarioIndexSource,
   selectTransitionCase,
   type ManifestDocument,
+  validateManifest,
   validateScenarioIndexDocument,
 } from "jsr:@spectacular-voyage/accord";
 ```
@@ -126,7 +132,9 @@ Ignore patterns must be repo-relative POSIX paths. Empty patterns, absolute path
 
 ### Text output
 
-Text is the default format. It prints:
+Text is the default format for both commands.
+
+For `accord check`, it prints:
 
 - manifest path
 - selected case id
@@ -137,11 +145,13 @@ Text is the default format. It prints:
 
 Passing checks are counted in the summary but are not listed individually in text output.
 
+For `accord validate`, it prints the manifest path, shapes path, validation status, conformance boolean, result/error counts, and every validation result.
+
 ### JSON output
 
 Pass `--format json` to receive a machine-readable report.
 
-The current JSON report includes:
+The current `accord check --format json` report includes:
 
 - `manifestPath`
 - `caseId`
@@ -158,6 +168,16 @@ Each check record includes:
 - `message`
 - `path` or `assertionId` where applicable
 
+The current `accord validate --format json` report includes:
+
+- `manifestPath`
+- `shapesPath`
+- `status`
+- `conforms`
+- `summary`
+- `results`
+- `errors` when validation cannot run
+
 ## Exit codes
 
 Accord currently uses:
@@ -168,7 +188,8 @@ Accord currently uses:
 
 The distinction matters:
 
-- a `fail` means the manifest was evaluated successfully and one or more expectations did not match
+- a `fail` for `accord check` means the manifest was evaluated successfully and one or more expectations did not match
+- a `non_conformant` result for `accord validate` means SHACL validation ran successfully and found one or more authoring violations
 - an `error` means Accord could not complete evaluation cleanly, for example because a ref could not be resolved, a manifest could not be loaded, or RDF input could not be parsed
 
 ## What the checker supports today
@@ -223,6 +244,19 @@ The JSON-LD document-loading policy for RDF artifacts matches the manifest loade
 
 When a `.jsonld` artifact is checked from git refs, its local context documents are loaded from the same checked ref, not from the current working tree.
 
+## Manifest validation
+
+Use `accord validate` to validate an authored manifest against Accord's shipped `accord-shacl.ttl`:
+
+```bash
+deno run -A src/main.ts validate path/to/manifest.jsonld
+deno run -A src/main.ts validate path/to/manifest.jsonld --format json
+```
+
+Validation uses the same fail-closed local-only JSON-LD policy as manifest loading for `accord check`. It converts the manifest to RDF, loads the repository's shipped shapes graph, executes SHACL Core constraints, and executes the shipped `sh:sparql` constraints. This catches authoring rules such as required or forbidden `compareMode`, RDF expectations targeting file expectations in the same transition case, and duplicate file expectations for the same `accord:path`.
+
+Validation does not inspect fixture git refs, compare artifact contents, or run `SparqlAskAssertion` queries against RDF artifacts. ASK assertion syntax/profile problems are still reported when `accord check` evaluates the relevant RDF expectation.
+
 ## Examples
 
 Check a one-case manifest against the current working directory:
@@ -243,11 +277,19 @@ Check a specific case and request JSON output:
 deno run -A src/main.ts check path/to/manifest.jsonld --case '#some-case' --fixture-repo-path /path/to/fixture/repo --format json
 ```
 
+Validate a manifest and request JSON output:
+
+```bash
+deno run -A src/main.ts validate path/to/manifest.jsonld --format json
+```
+
 ## Current limitations
 
 - Accord does not yet auto-locate the fixture repository from `fixtureRepo`.
 - Accord does not yet execute replay commands or apply replay materialization/file-operation metadata.
 - `accord check` does not yet consume `ScenarioIndex` documents; they are currently a library-level topology contract for downstream tools.
+- `accord validate` does not preflight `SparqlAskAssertion.query` syntax; ASK query syntax/profile errors remain check-time errors.
+- `accord validate` does not perform duplicate JSON key detection before JSON-LD expansion.
 - Accord does not yet support `json` compare mode.
 - Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.
