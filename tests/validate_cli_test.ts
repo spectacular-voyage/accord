@@ -23,6 +23,26 @@ Deno.test("accord validate reports a conformant manifest", async () => {
   assertEquals(report.results, []);
 });
 
+Deno.test("accord validate reports a conformant scenario index", async () => {
+  const scenarioIndexPath =
+    "testdata/scenarios/black-box-scenario-index.jsonld";
+  const result = await runAccordCli([
+    "validate",
+    scenarioIndexPath,
+    "--format",
+    "json",
+  ]);
+  const report = JSON.parse(result.stdout) as ValidationReport;
+
+  assertEquals(result.code, 0);
+  assertEquals(result.stderr.trim(), "");
+  assertEquals(report.manifestPath, scenarioIndexPath);
+  assertEquals(report.status, "conformant");
+  assertEquals(report.conforms, true);
+  assertEquals(report.summary, { resultCount: 0, errorCount: 0 });
+  assertEquals(report.results, []);
+});
+
 Deno.test("accord validate executes compareMode required sh:sparql constraint", async () => {
   const report = await validateNonConformantManifest(
     "testdata/manifests/validate-101-compare-mode-required.jsonld",
@@ -64,6 +84,17 @@ Deno.test("accord validate executes duplicate path sh:sparql constraint", async 
   assertSparqlMessage(
     report,
     "A transition case must not contain two distinct file expectations for the same path.",
+  );
+});
+
+Deno.test("accord validate rejects malformed JSON assertion authoring", async () => {
+  const report = await validateNonConformantManifest(
+    "testdata/manifests/validate-201-json-count-missing-expected-count.jsonld",
+  );
+
+  assertSparqlMessage(
+    report,
+    "JSON count assertions must declare expectedCount.",
   );
 });
 

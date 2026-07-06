@@ -14,7 +14,9 @@ export function renderTextReport(report: JsonReport): string {
       continue;
     }
 
-    const target = check.path ?? check.assertionId ?? "-";
+    const target = check.path !== undefined && check.jsonPath !== undefined
+      ? `${check.path} ${check.jsonPath}`
+      : check.path ?? check.assertionId ?? "-";
     lines.push(
       `${check.status}: [${check.kind}] ${check.code} target=${target} ${check.message}`,
     );

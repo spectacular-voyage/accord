@@ -1,0 +1,65 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "jsonAssertionKind": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-603-json-equals-count-pass",
+  "dcterms:title": "bb-603 JSON equals and count pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#json-equals-count-pass-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.jsonEqualsCountPass",
+      "fromRef": "r0-empty",
+      "toRef": "r9-json-mix",
+      "hasFileExpectation": [
+        {
+          "id": "#contract-file",
+          "type": "FileExpectation",
+          "path": "contract.json",
+          "changeType": "added",
+          "compareMode": "json"
+        }
+      ],
+      "hasJsonExpectation": [
+        {
+          "id": "#contract-json",
+          "type": "JsonExpectation",
+          "targetsFileExpectation": "#contract-file",
+          "hasJsonAssertion": [
+            {
+              "id": "#status-ok",
+              "type": "JsonAssertion",
+              "jsonPath": "$.summary.status",
+              "jsonAssertionKind": "equals",
+              "expectedValue": "ok"
+            },
+            {
+              "id": "#two-evidence-pointers",
+              "type": "JsonAssertion",
+              "jsonPath": "$.evidence[*].pointer",
+              "jsonAssertionKind": "count",
+              "expectedCount": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

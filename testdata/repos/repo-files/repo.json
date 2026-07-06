@@ -29,6 +29,18 @@
     {
       "name": "r6-text-invalid-utf8",
       "description": "note.txt with invalid UTF-8 bytes."
+    },
+    {
+      "name": "r7-json-clean",
+      "description": "contract.json with resolvable evidence pointers and no participant-aim leakage."
+    },
+    {
+      "name": "r8-json-leak",
+      "description": "contract.json with participant-aim text leakage."
+    },
+    {
+      "name": "r9-json-mix",
+      "description": "contract.json with scalar and count assertion targets."
     }
   ]
 }

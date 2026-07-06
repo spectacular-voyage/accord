@@ -262,6 +262,11 @@ accord-sh:TransitionCaseShape a sh:NodeShape ;
     sh:node accord-sh:RdfExpectationShape ;
     sh:message "If present, each RDF expectation must satisfy the Accord RDF expectation shape." ;
   ] ;
+  sh:property [
+    sh:path accord:hasJsonExpectation ;
+    sh:node accord-sh:JsonExpectationShape ;
+    sh:message "If present, each JSON expectation must satisfy the Accord JSON expectation shape." ;
+  ] ;
   sh:sparql [
     sh:message "ignorePaths values must be repository-relative, must not contain parent traversal or backslashes, and may only use /** as a subtree suffix." ;
     sh:select """
@@ -412,6 +417,131 @@ accord-sh:SparqlAskAssertionShape a sh:NodeShape ;
     sh:maxCount 1 ;
     sh:datatype xsd:boolean ;
     sh:message "A SPARQL ASK assertion must declare exactly one expected boolean result." ;
+  ] .
+
+accord-sh:JsonExpectationShape a sh:NodeShape ;
+  sh:targetClass accord:JsonExpectation ;
+  sh:property [
+    sh:path accord:targetsFileExpectation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:BlankNodeOrIRI ;
+    sh:class accord:FileExpectation ;
+    sh:node accord-sh:JsonTargetFileExpectationShape ;
+    sh:message "A JSON expectation must target exactly one file expectation whose toRef content exists." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasJsonAssertion ;
+    sh:minCount 1 ;
+    sh:node accord-sh:JsonAssertionShape ;
+    sh:message "A JSON expectation must contain at least one well-formed JSON assertion." ;
+  ] ;
+  sh:sparql [
+    sh:message "A JSON expectation must target a file expectation in the same transition case that contains the JSON expectation." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:targetsFileExpectation ?targetFileExpectation .
+        ?case accord:hasJsonExpectation $this .
+        FILTER NOT EXISTS {
+          ?case accord:hasFileExpectation ?targetFileExpectation .
+        }
+      }
+    """ ;
+  ] .
+
+accord-sh:JsonTargetFileExpectationShape a sh:NodeShape ;
+  sh:property [
+    sh:path accord:changeType ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in ( accord:added accord:updated accord:unchanged ) ;
+    sh:message "A file expectation targeted by a JSON expectation must have toRef content: accord:added, accord:updated, or accord:unchanged." ;
+  ] .
+
+accord-sh:JsonAssertionShape a sh:NodeShape ;
+  sh:targetClass accord:JsonAssertion ;
+  sh:property [
+    sh:path accord:jsonPath ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A JSON assertion must declare exactly one JSON path string." ;
+  ] ;
+  sh:property [
+    sh:path accord:jsonAssertionKind ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:in ( accord:exists accord:notExists accord:equals accord:count ) ;
+    sh:message "A JSON assertion must use one supported assertion kind." ;
+  ] ;
+  sh:property [
+    sh:path accord:expectedValue ;
+    sh:maxCount 1 ;
+    sh:or (
+      [ sh:datatype xsd:string ]
+      [ sh:datatype xsd:boolean ]
+      [ sh:datatype xsd:integer ]
+      [ sh:datatype xsd:decimal ]
+      [ sh:datatype xsd:double ]
+    ) ;
+    sh:message "expectedValue, when present, must be a single scalar string, boolean, or number." ;
+  ] ;
+  sh:property [
+    sh:path accord:expectedCount ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:integer ;
+    sh:minInclusive 0 ;
+    sh:message "expectedCount, when present, must be a single non-negative integer." ;
+  ] ;
+  sh:sparql [
+    sh:message "JSON equals assertions must declare expectedValue." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:jsonAssertionKind accord:equals .
+        FILTER NOT EXISTS {
+          $this accord:expectedValue ?expectedValue .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "Only JSON equals assertions may declare expectedValue." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:expectedValue ?expectedValue .
+        FILTER NOT EXISTS {
+          $this accord:jsonAssertionKind accord:equals .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "JSON count assertions must declare expectedCount." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:jsonAssertionKind accord:count .
+        FILTER NOT EXISTS {
+          $this accord:expectedCount ?expectedCount .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "Only JSON count assertions may declare expectedCount." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:expectedCount ?expectedCount .
+        FILTER NOT EXISTS {
+          $this accord:jsonAssertionKind accord:count .
+        }
+      }
+    """ ;
   ] .
 
 accord-sh:StateLocatorShape a sh:NodeShape ;

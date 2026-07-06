@@ -1,0 +1,57 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "jsonAssertionKind": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:validate-201-json-count-missing-expected-count",
+  "dcterms:title": "validate JSON count assertion missing expectedCount",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.validate.jsonCountMissingExpectedCount",
+      "fromRef": "r0-empty",
+      "toRef": "r9-json-mix",
+      "hasFileExpectation": [
+        {
+          "id": "#contract-file",
+          "type": "FileExpectation",
+          "path": "contract.json",
+          "changeType": "added",
+          "compareMode": "json"
+        }
+      ],
+      "hasJsonExpectation": [
+        {
+          "id": "#contract-json",
+          "type": "JsonExpectation",
+          "targetsFileExpectation": "#contract-file",
+          "hasJsonAssertion": [
+            {
+              "id": "#count-pointers",
+              "type": "JsonAssertion",
+              "jsonPath": "$.evidence[*].pointer",
+              "jsonAssertionKind": "count"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,7 @@ The current command surface is:
 
 ```bash
 accord check <manifest-path>
+accord check-scenario <scenario-index-path>
 accord validate <manifest-path>
 ```
 
@@ -37,7 +38,12 @@ Supported `validate` options:
 
 - `--format json` emits machine-readable validation output instead of the default text report
 
-`accord check` and `accord validate` are intentionally separate. `check` does not run SHACL validation as a preflight, not even warning-only. `validate` answers whether the authored manifest graph conforms to the shipped Accord SHACL shapes.
+Supported `check-scenario` options:
+
+- `--fixture-repo-path <path>` selects the local fixture repository root explicitly and overrides any `defaultFixtureRepo` declared by the scenario index
+- `--format json` emits machine-readable output instead of the default text report
+
+`accord check`, `accord check-scenario`, and `accord validate` are intentionally separate. `check` and `check-scenario` do not run SHACL validation as a preflight, not even warning-only. `validate` answers whether the authored JSON-LD graph conforms to the shipped Accord SHACL shapes.
 
 ## Reference Implementation Shape
 
@@ -107,6 +113,8 @@ SPARQL ASK evaluation should stay local and explicit unless real manifests requi
 
 SHACL validation must load the repository's shipped `accord-shacl.ttl` as-is. The current shipped shapes include `sh:sparql` constraints, so validators that cannot execute SHACL-SPARQL are not sufficient for Accord validation. The current implementation registers a local `sh:sparql` executor with `shacl-engine` rather than importing `shacl-engine/sparql.js`, because the plugin path failed under Deno's normal npm-cache resolver during the 2026-07-04 spike.
 
+JSON assertion paths are a deliberately small in-repo JSONPath subset rather than a full RFC 9535 dependency. The committed subset supports root, dot/bracket child access, wildcard, recursive descent, and array index only. Unsupported JSONPath constructs must return `json_path_unsupported` rather than being accidentally interpreted.
+
 ## Exit Codes
 
 The checker should use stable exit codes so it can back black-box tests cleanly:
@@ -114,6 +122,12 @@ The checker should use stable exit codes so it can back black-box tests cleanly:
 - `0` means the selected case ran successfully and all checks passed
 - `1` means the selected case ran successfully and one or more checks failed
 - `2` means the checker could not evaluate the case correctly because of usage error, manifest load error, JSON-LD processing error, repository access error, unsupported feature, or another execution error
+
+The scenario runner uses the same status precedence across all ordered steps:
+
+- `0` means every step ran and all wrapped check reports passed
+- `1` means no step errored and at least one wrapped check report failed
+- `2` means at least one step produced an error report, including an unloadable manifest or other setup error, even when other steps pass or fail
 
 The validator uses the same broad exit-code categories:
 
@@ -146,9 +160,9 @@ To keep manifest evaluation reproducible, v1 must not fetch arbitrary remote JSO
 
 The ontology and SHACL define the Accord data model and authoring constraints. They are a good starting point and should remain the first place to express reusable manifest semantics.
 
-`accord validate <manifest-path>` executes that authoring validation explicitly. It loads the manifest through the same fail-closed local-only JSON-LD document policy used by the checker, converts the manifest to an RDF dataset, loads the shipped `accord-shacl.ttl`, runs SHACL Core and the shipped `sh:sparql` constraints, emits a stable text or JSON report, and exits non-zero on non-conformance.
+`accord validate <manifest-path>` executes that authoring validation explicitly. It loads the JSON-LD document through the same fail-closed local-only JSON-LD document policy used by the checker, converts the document to an RDF dataset, loads the shipped `accord-shacl.ttl`, runs SHACL Core and the shipped `sh:sparql` constraints, emits a stable text or JSON report, and exits non-zero on non-conformance. The shipped shapes already include `ScenarioIndex`, `ScenarioStep`, `StateLane`, and `LaneStateBinding` constraints, so `accord validate` can validate scenario index authoring constraints through the same report shape without adding a separate validate subcommand or changing existing manifest validation output.
 
-`accord validate` does not select a transition case, resolve fixture repositories, inspect git refs, compare files, or execute `SparqlAskAssertion` queries against artifact graphs. If ASK syntax/profile preflight becomes reusable later, it may be added to validation. Until then, ASK assertion syntax failures remain check-time errors.
+`accord validate` does not select a transition case, resolve fixture repositories, inspect git refs, compare files, execute scenario steps, or execute `SparqlAskAssertion` queries against artifact graphs. If ASK syntax/profile preflight becomes reusable later, it may be added to validation. Until then, ASK assertion syntax failures remain check-time errors.
 
 The CLI still needs execution semantics beyond the ontology and SHACL. Examples include:
 
@@ -173,7 +187,17 @@ The current `accord check` command does not execute replay commands, materialize
 
 Accord scenario indexes are JSON-LD topology documents shaped by the Accord vocabulary. They are intended for fixture-owned documents that order transition manifests into scenarios, declare fixture-level defaults, and bind multi-step state lanes such as source and publication lanes.
 
-`accord check` does not accept or execute a `ScenarioIndex` document today. The checker input remains a transition manifest. Scenario indexes are currently exposed through the library loader and validator so downstream tools can consume shared topology metadata without turning Accord into a workflow engine.
+`accord check` does not accept or execute a `ScenarioIndex` document. The checker input remains a transition manifest.
+
+`accord check-scenario <scenario-index-path>` executes a `ScenarioIndex` document by loading it through the existing scenario JSON-LD loader and running each listed `ScenarioStep` in order. Each step resolves its `manifestPath` relative to the scenario index document location, selects the step `caseId` when provided, and runs the same single-check pipeline used by `accord check`. A step whose manifest cannot be read, expanded, selected, or set up produces a per-step `setup` error report and does not stop later steps from running.
+
+The runner resolves the fixture repository once for the scenario. Resolution order is:
+
+1. If `--fixture-repo-path` is provided, use it.
+2. Otherwise, if the scenario index declares `defaultFixtureRepo`, resolve it relative to the scenario index document location.
+3. Otherwise, use the current working directory.
+
+Lane bindings are ignored-with-warning for execution in this first runner slice. They are topology metadata for downstream tooling, but they do not override the selected manifest case's `fromRef` / `toRef`; there is not yet a stable rule for choosing one lane as the executable fixture lane when a step binds multiple lanes. Reports should surface a step warning when lane bindings are present so consumers can see that the bindings were loaded but not used to drive git ref selection.
 
 The scenario index validation contract is deliberately local: a valid index has at least one ordered `ScenarioStep`, safe repository-relative manifest references that exist on disk, no duplicated step ids, no duplicated state lane keys, and lane bindings that reference declared lanes. Accord does not yet validate referenced transition-manifest compatibility, branch/ref existence for lane states, or runner execution semantics.
 
@@ -339,6 +363,36 @@ Each ASK assertion should be executed exactly as authored within the supported A
 
 The committed ASK profile is intentionally narrower than full SPARQL. It supports local graph-pattern ASK checks over the already-loaded target artifact graph, including `FILTER NOT EXISTS` absence checks and ordinary SPARQL literal syntax for booleans and numbers. It rejects `SERVICE`, remote graph loading, `OPTIONAL`, `UNION`, `GRAPH`, `MINUS`, `BIND`, `VALUES`, property paths, subqueries, `FROM`, non-ASK query forms, and general filter expressions with a stable `sparql_query_error` result. Parser support for any construct outside this list is incidental and must not become observable product contract without tests and documentation.
 
+## JSON Assertion Semantics
+
+A `JsonExpectation` is evaluated against the `toRef` version of its targeted file expectation. It is a transition-case sibling of `RdfExpectation` and uses the existing `targetsFileExpectation` property to bind assertions to a `FileExpectation`. Each `JsonAssertion` hangs from the expectation with `hasJsonAssertion`.
+
+JSON assertions are raw-artifact checks. They parse the checked git blob as JSON from `toRef`; they do not read from the working tree, do not load remote documents, and do not expand `.jsonld` artifacts to RDF before assertion. Duplicate keys in the asserted artifact are a parse-stage error because silent overwrite would make evidence checks ambiguous.
+
+The first assertion kinds are:
+
+- `exists`: the JSONPath matches at least one value
+- `notExists`: the JSONPath matches no values
+- `equals`: the JSONPath matches at least one value strictly equal to `expectedValue`
+- `count`: the JSONPath match count equals `expectedCount`
+
+`notExists` is first-class, not an inversion flag. It exists to express absence proofs such as leak scans.
+
+`equals` supports scalar JSON values authored as strings, booleans, and numbers. JSON `null`, arrays, and objects are not supported as `expectedValue` in this slice.
+
+The supported JSONPath subset is exactly:
+
+- `$` for the root value
+- dot child names, such as `$.artifact.status`; dot names must match `[A-Za-z_][A-Za-z0-9_-]*`
+- bracket child names with quoted strings, such as `$["artifact"]["status"]` or `$['artifact']`; use this form for member names outside the dot-name grammar
+- child wildcards with `.*` and `[*]`
+- recursive descent to names or wildcards, such as `$..text`, `$.."participantAim"`, and `$..*`
+- non-negative array indexes, such as `$.items[0]`
+
+The checker rejects unsupported JSONPath constructs with `json_path_unsupported`. Unsupported constructs include filters, slices, unions, script expressions, current-node expressions, parent operators, function selectors, descendant indexes, and negative indexes. This rejection is part of the product contract, not a parser accident.
+
+JSON assertion evaluation happens after the targeted file expectation's presence check passes. If the targeted file expectation does not resolve or the file is absent at `toRef`, the checker skips the JSON assertions because the file-presence result already describes the failure.
+
 ## Report Semantics
 
 The top-level report status must follow the same precedence as the exit codes:
@@ -379,6 +433,49 @@ The minimum JSON shape is:
 
 For report stability, `caseId` in JSON output must use the authored case `@id` value exactly when one is present in the manifest. Only if the case has no authored `@id` may the checker emit a resolved absolute IRI instead.
 
+The `accord check-scenario` JSON report is a stable envelope around the existing single-check JSON report shape:
+
+```json
+{
+  "scenarioPath": "string",
+  "scenarioId": "string",
+  "fixtureRepoPath": "string",
+  "status": "pass",
+  "summary": {
+    "pass": 0,
+    "fail": 0,
+    "error": 0
+  },
+  "steps": [
+    {
+      "stepId": "string",
+      "index": 0,
+      "manifestPath": "string",
+      "caseId": "string",
+      "fromRef": "string",
+      "toRef": "string",
+      "warnings": [],
+      "report": {
+        "manifestPath": "string",
+        "caseId": "string",
+        "fixtureRepoPath": "string",
+        "status": "pass",
+        "summary": {
+          "pass": 0,
+          "fail": 0,
+          "error": 0
+        },
+        "checks": []
+      }
+    }
+  ]
+}
+```
+
+The `steps` array order must match the `hasStep` list order from the loaded scenario index. Step `report` objects must preserve the existing single-check JSON report structure. Step metadata such as `fromRef` and `toRef` is copied from the selected transition case when selection succeeds; if setup fails before case selection, those fields may be omitted while the wrapped report carries the stable setup error. The scenario `summary` counts step verdicts, not individual wrapped checks.
+
+The `accord check-scenario` text report is grouped by step. It includes scenario path, scenario id, fixture repository path, scenario status, a step summary, then one group per step with the step id, resolved manifest path, selected case id when available, transition refs when available, lane-binding warning text when applicable, the wrapped check summary, and the same failed or errored check lines emitted by the single-check text report. Passing checks remain counted but not individually listed.
+
 Each per-check record should include at least:
 
 - check kind
@@ -394,6 +491,7 @@ The minimum check kinds are:
 - `file_compare`
 - `rdf_compare`
 - `sparql_ask`
+- `json_assertion`
 
 `accord validate` has a separate report shape. The text report includes the manifest path, shapes path, validation status, conformance boolean, summary counts, and every validation result. The JSON report includes:
 
@@ -427,6 +525,11 @@ The minimum stable diagnostic codes are:
 - `rdf_parse_error`
 - `sparql_ask_mismatch`
 - `sparql_query_error`
+- `json_assertion_ok`
+- `json_assertion_mismatch`
+- `json_parse_error`
+- `json_duplicate_key`
+- `json_path_unsupported`
 
 Check-counting for black-box tests should use this granularity:
 

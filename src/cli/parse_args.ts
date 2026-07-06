@@ -14,13 +14,24 @@ export interface CheckCommand {
   format: OutputFormat;
 }
 
+export interface CheckScenarioCommand {
+  kind: "check-scenario";
+  scenarioIndexPath: string;
+  fixtureRepoPath?: string;
+  format: OutputFormat;
+}
+
 export interface ValidateCommand {
   kind: "validate";
   manifestPath: string;
   format: OutputFormat;
 }
 
-export type ParsedCommand = CheckCommand | HelpCommand | ValidateCommand;
+export type ParsedCommand =
+  | CheckCommand
+  | CheckScenarioCommand
+  | HelpCommand
+  | ValidateCommand;
 
 export class CliParseError extends Error {
   constructor(message: string) {
@@ -33,6 +44,7 @@ export function renderUsage(): string {
   return [
     "Usage:",
     "  accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]",
+    "  accord check-scenario <scenario-index-path> [--fixture-repo-path <path>] [--format <text|json>]",
     "  accord validate <manifest-path> [--format <text|json>]",
     "  accord --help",
   ].join("\n");
@@ -59,7 +71,10 @@ export function parseCliArgs(args: string[]): ParsedCommand {
     return { kind: "help" };
   }
 
-  if (subcommand !== "check" && subcommand !== "validate") {
+  if (
+    subcommand !== "check" && subcommand !== "check-scenario" &&
+    subcommand !== "validate"
+  ) {
     throw new CliParseError(`Unknown command: ${subcommand}`);
   }
 
@@ -83,6 +98,27 @@ export function parseCliArgs(args: string[]): ParsedCommand {
     return {
       kind: "validate",
       manifestPath: rest[0],
+      format,
+    };
+  }
+
+  if (subcommand === "check-scenario") {
+    if (rest.length !== 1) {
+      throw new CliParseError(
+        "The check-scenario command requires exactly one scenario index path.",
+      );
+    }
+
+    if (parsed.case !== undefined) {
+      throw new CliParseError(
+        "The check-scenario command only accepts --fixture-repo-path and --format.",
+      );
+    }
+
+    return {
+      kind: "check-scenario",
+      scenarioIndexPath: rest[0],
+      fixtureRepoPath: parsed["fixture-repo-path"],
       format,
     };
   }

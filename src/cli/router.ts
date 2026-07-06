@@ -1,5 +1,6 @@
 import { CliParseError, parseCliArgs, renderUsage } from "./parse_args.ts";
 import { handleCheckCommand } from "./commands/check.ts";
+import { handleCheckScenarioCommand } from "./commands/check_scenario.ts";
 import { handleValidateCommand } from "./commands/validate.ts";
 
 export async function runCli(args: string[]): Promise<number> {
@@ -13,6 +14,10 @@ export async function runCli(args: string[]): Promise<number> {
 
     if (command.kind === "check") {
       return await handleCheckCommand(command);
+    }
+
+    if (command.kind === "check-scenario") {
+      return await handleCheckScenarioCommand(command);
     }
 
     return await handleValidateCommand(command);

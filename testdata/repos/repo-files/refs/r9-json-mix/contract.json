@@ -1,0 +1,25 @@
+{
+  "shape": "evidencePointers",
+  "summary": {
+    "status": "ok",
+    "reviewed": true
+  },
+  "evidence": [
+    {
+      "pointer": "/records/0"
+    },
+    {
+      "pointer": "/records/1"
+    }
+  ],
+  "records": [
+    {
+      "id": "a",
+      "status": "resolved"
+    },
+    {
+      "id": "b",
+      "status": "resolved"
+    }
+  ]
+}

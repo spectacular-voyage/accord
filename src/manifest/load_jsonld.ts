@@ -15,6 +15,9 @@ import type {
   FileExpectation,
   FileOperation,
   InputMaterialization,
+  JsonAssertion,
+  JsonExpectation,
+  JsonScalar,
   ManifestDocument,
   RdfExpectation,
   ReplayProfile,
@@ -264,6 +267,9 @@ function mapSourceTransitionCase(
     hasRdfExpectation: getSourceNodeArray(source, "hasRdfExpectation").map((
       node,
     ) => mapSourceRdfExpectation(node, documentUrl)),
+    hasJsonExpectation: getSourceNodeArray(source, "hasJsonExpectation").map((
+      node,
+    ) => mapSourceJsonExpectation(node, documentUrl)),
   };
 }
 
@@ -313,6 +319,40 @@ function mapSourceAskAssertion(
     type: getSourceType(source),
     query: getSourceString(source, "query"),
     expectedBoolean: getSourceBoolean(source, "expectedBoolean"),
+  };
+}
+
+function mapSourceJsonExpectation(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): JsonExpectation {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    targetsFileExpectation: getSourceString(source, "targetsFileExpectation"),
+    hasJsonAssertion: getSourceNodeArray(source, "hasJsonAssertion").map((
+      node,
+    ) => mapSourceJsonAssertion(node, documentUrl)),
+  };
+}
+
+function mapSourceJsonAssertion(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): JsonAssertion {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    jsonPath: getSourceString(source, "jsonPath"),
+    jsonAssertionKind: getSourceString(source, "jsonAssertionKind"),
+    expectedValue: getSourceScalar(source, "expectedValue"),
+    expectedCount: getSourceNumber(source, "expectedCount"),
   };
 }
 
@@ -532,6 +572,9 @@ function mapExpandedTransitionCase(
     hasRdfExpectation: getExpandedNodeArray(source, "hasRdfExpectation").map((
       node,
     ) => mapExpandedRdfExpectation(node)),
+    hasJsonExpectation: getExpandedNodeArray(source, "hasJsonExpectation").map((
+      node,
+    ) => mapExpandedJsonExpectation(node)),
   };
 }
 
@@ -578,6 +621,38 @@ function mapExpandedAskAssertion(
     type: getExpandedType(source),
     query: getExpandedString(source, "query"),
     expectedBoolean: getExpandedBoolean(source, "expectedBoolean"),
+  };
+}
+
+function mapExpandedJsonExpectation(
+  source: Record<string, unknown>,
+): JsonExpectation {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    targetsFileExpectation: getExpandedIri(source, "targetsFileExpectation"),
+    hasJsonAssertion: getExpandedNodeArray(source, "hasJsonAssertion").map((
+      node,
+    ) => mapExpandedJsonAssertion(node)),
+  };
+}
+
+function mapExpandedJsonAssertion(
+  source: Record<string, unknown>,
+): JsonAssertion {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    jsonPath: getExpandedString(source, "jsonPath"),
+    jsonAssertionKind: getExpandedIriLocalName(source, "jsonAssertionKind"),
+    expectedValue: getExpandedScalar(source, "expectedValue"),
+    expectedCount: getExpandedNumber(source, "expectedCount"),
   };
 }
 
@@ -785,6 +860,17 @@ function getSourceNumber(
   return typeof source[key] === "number" ? source[key] : undefined;
 }
 
+function getSourceScalar(
+  source: Record<string, unknown>,
+  key: string,
+): JsonScalar | undefined {
+  const value = source[key];
+  return typeof value === "string" || typeof value === "number" ||
+      typeof value === "boolean"
+    ? value
+    : undefined;
+}
+
 function mapOptionalSourceNode<T>(
   source: Record<string, unknown>,
   key: string,
@@ -940,6 +1026,33 @@ function getExpandedNumber(
 
     if (typeof entry["@value"] === "number") {
       return entry["@value"];
+    }
+  }
+
+  return undefined;
+}
+
+function getExpandedScalar(
+  source: Record<string, unknown>,
+  term: string,
+): JsonScalar | undefined {
+  const rawValue = source[expandTerm(term)];
+
+  if (!Array.isArray(rawValue)) {
+    return undefined;
+  }
+
+  for (const entry of rawValue) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const value = entry["@value"];
+    if (
+      typeof value === "string" || typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
     }
   }
 

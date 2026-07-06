@@ -26,12 +26,22 @@ export type {
   FileChangeType,
   PresenceEvaluation,
 } from "./checker/file_expectations.ts";
+export {
+  evaluateJsonAssertion,
+  evaluateJsonPath,
+  JsonAssertionError,
+  parseJsonArtifact,
+} from "./checker/json_assertions.ts";
+export type { JsonAssertionEvaluation } from "./checker/json_assertions.ts";
 export { runAskAssertion, SparqlAskError } from "./checker/sparql.ts";
 export type { RunAskAssertionOptions } from "./checker/sparql.ts";
+export { runScenarioCheck } from "./cli/commands/check_scenario.ts";
+export type { ScenarioCheckRunOptions } from "./cli/commands/check_scenario.ts";
 export { runCli } from "./cli/router.ts";
 export { CliParseError, parseCliArgs, renderUsage } from "./cli/parse_args.ts";
 export type {
   CheckCommand,
+  CheckScenarioCommand,
   HelpCommand,
   OutputFormat,
   ParsedCommand,
@@ -65,6 +75,9 @@ export type {
   FileExpectation,
   FileOperation,
   InputMaterialization,
+  JsonAssertion,
+  JsonExpectation,
+  JsonScalar,
   ManifestDocument,
   RdfExpectation,
   ReplayProfile,
@@ -107,6 +120,13 @@ export type {
   ReportStatus,
   ReportSummary,
 } from "./report/json_report.ts";
+export { buildScenarioReport } from "./report/scenario_report.ts";
+export type {
+  ScenarioReport,
+  ScenarioStepReport,
+  ScenarioStepWarning,
+} from "./report/scenario_report.ts";
+export { renderScenarioTextReport } from "./report/scenario_text_report.ts";
 export { renderTextReport } from "./report/text_report.ts";
 export {
   buildValidationErrorReport,

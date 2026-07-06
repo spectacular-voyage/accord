@@ -59,13 +59,13 @@ Accord is not becoming a JSON Schema validator or a general test framework. Stru
 - Existing checker behavior and report formats for file, text, RDF, and ASK evaluation are unchanged.
 - New vocabulary is covered by `accord-ontology.ttl` and `accord-shacl.ttl` shapes so `accord validate` can enforce authoring rules once it lands.
 
-## Open Issues
+## Resolved Questions
 
-- JSONPath dependency versus in-repo subset: what does the Deno spike show?
-- Should JSON assertions attach to `FileExpectation` nodes like `hasAskAssertion` does for RDF expectations, or stand alongside `RdfExpectation` as a sibling `JsonExpectation` targeting a path? The manifest model should follow whichever reads better next to the existing vocabulary.
-- Is `containsString` (or a match-kind discriminator) needed in slice one for the leak-scan case, or can Stagecraft's first uses land with exact-value matching?
-- Do `.jsonld` artifacts get JSON assertions against their raw JSON form, their expanded form, or both? Raw-form-only is the simple, defensible first answer.
-- How should numeric equality behave (JSON number versus string, integer versus float)?
+- JSONPath dependency versus in-repo subset: the spike found viable dependencies, but the shipped implementation uses a declared in-repo subset so filters, slices, unions, and other broader constructs cannot become accidental contract.
+- Attachment model: JSON assertions stand beside RDF expectations as `JsonExpectation` nodes that target `FileExpectation` nodes.
+- `containsString`: out of scope for slice one; exact scalar equality plus `notExists` cover the first Stagecraft-shaped leak-scan fixtures.
+- `.jsonld` artifacts: JSON assertions operate against the raw JSON form, not expanded JSON-LD/RDF.
+- Numeric equality: `equals` uses strict JavaScript/JSON scalar equality after parsing. JSON numbers compare as numbers; strings do not coerce to numbers.
 
 ## Decisions
 
@@ -74,12 +74,18 @@ Accord is not becoming a JSON Schema validator or a general test framework. Stru
 - Artifact content comes from the checked git ref only.
 - No JSON Schema validation, no remote loading, no working-tree reads.
 - Conditional (iff) assertions are out of scope for the first slice.
+- Use an in-repo declared JSONPath subset rather than an RFC 9535 dependency. The Deno spike found usable packages, but the first slice needs only root, child access, wildcard, recursive descent, and array index; pulling a full RFC implementation would make filters, slices, unions, function expressions, and other grammar easy to accept accidentally. The checked package footprints were: `jsonpath-rfc9535@1.3.0`, 0 unique dependencies, 1.05 MB; `@swaggerexpert/jsonpath@4.0.4`, 1 unique dependency, 983.87 KB; `@jsonpath-tools/jsonpath@1.0.0`, 3 unique dependencies, 776.41 KB; `jsonpath-plus@10.3.0`, 3 unique dependencies, 1.03 MB; legacy `jsonpath@1.3.0`, 8 unique dependencies, 3.55 MB. The local subset keeps Accord's contract smaller than all of those options.
+- Supported JSONPath syntax for this slice is exactly: `$`; dot child names such as `$.artifact.status`, where dot names match `[A-Za-z_][A-Za-z0-9_-]*`; bracket child names with quoted strings such as `$["artifact"]["status"]` or `$['artifact']`; child wildcards `.*` and `[*]`; recursive descent to names or wildcards such as `$..text`, `$.."participantAim"`, and `$..*`; and non-negative array indexes such as `$.items[0]`. Filters, slices, unions, script/current-node expressions, negative indexes, parent operators, function selectors, and descendant indexes are rejected as unsupported path syntax.
+- Duplicate keys in asserted JSON artifacts fail closed with a dedicated duplicate-key report code before assertion evaluation.
+- JSON assertions follow the existing RDF expectation style: `JsonExpectation` is a transition-case sibling that `targetsFileExpectation`, and each `JsonAssertion` hangs from it through `hasJsonAssertion`.
+- JSON assertions operate on the raw JSON form of `.json` or `.jsonld` artifacts, not JSON-LD expanded RDF form.
+- `equals` uses strict JSON scalar equality for strings, booleans, and numbers. `null`, arrays, and objects are out of scope for `expectedValue` in this slice.
 
 ## Contract Changes
 
 - New ontology terms for JSON assertions (class, attachment property, path property, assertion-kind properties) in `accord-ontology.ttl`.
 - New SHACL shapes for the vocabulary in `accord-shacl.ttl`.
-- New checker report codes for JSON assertion pass, fail, parse error, and unsupported-path error.
+- New checker report codes for JSON assertion pass, fail, parse error, duplicate-key error, and unsupported-path error.
 - Documented supported path syntax as part of the checker contract.
 
 ## Testing
@@ -87,8 +93,8 @@ Accord is not becoming a JSON Schema validator or a general test framework. Stru
 - Unit tests per assertion kind, including absence over wildcard/recursive paths and mismatch reporting.
 - Unit tests for parse errors, duplicate-key behavior, and unsupported path syntax rejection.
 - Black-box manifests covering a passing absence proof, a failing absence proof, and an `equals`/`count` mix.
-- If a dependency is adopted, a pinned-version note and coverage that exercises the constructs Accord commits to.
-- Run `deno task fmt:check`, `deno task check`, and `deno task test`.
+- Focused run passed for JSON assertion, validation, and black-box suites: `deno task test -- tests/json_assertions_test.ts tests/validate_cli_test.ts tests/black_box_test.ts`.
+- Gate passed: `deno task fmt:check`, `deno task check`, and `deno task test` (140 passed).
 
 ## Non-Goals
 
@@ -100,10 +106,10 @@ Accord is not becoming a JSON Schema validator or a general test framework. Stru
 
 ## Implementation Plan
 
-- [ ] Spike RFC 9535 JSONPath options under Deno; record the dependency-versus-subset decision and its rationale here.
-- [ ] Design the manifest vocabulary alongside the existing `FileExpectation`/`RdfExpectation` pattern and extend [[ac.spec.2026.2026-04-03-accord-cli]] first.
-- [ ] Add ontology terms and SHACL shapes.
-- [ ] Implement artifact loading from the checked ref with explicit duplicate-key policy.
-- [ ] Implement the four assertion kinds with distinguishable report codes.
-- [ ] Add unit and black-box coverage, including the Stagecraft-shaped leak-scan absence proof.
-- [ ] Update [[ac.user-guide]], README, and [[ac.dev.general-guidance]] with the supported path syntax.
+- [x] Spike RFC 9535 JSONPath options under Deno; record the dependency-versus-subset decision and its rationale here.
+- [x] Design the manifest vocabulary alongside the existing `FileExpectation`/`RdfExpectation` pattern and extend [[ac.spec.2026.2026-04-03-accord-cli]] first.
+- [x] Add ontology terms and SHACL shapes.
+- [x] Implement artifact loading from the checked ref with explicit duplicate-key policy.
+- [x] Implement the four assertion kinds with distinguishable report codes.
+- [x] Add unit and black-box coverage, including the Stagecraft-shaped leak-scan absence proof.
+- [x] Update [[ac.user-guide]], README, and [[ac.dev.general-guidance]] with the supported path syntax.

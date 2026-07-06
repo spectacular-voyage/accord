@@ -175,6 +175,7 @@ The important point is that this command validates authored contract data, not f
 - Always use the repository’s shipped `accord-shacl.ttl` in the first command version; defer shape overrides.
 - Do not add duplicate JSON key detection in this slice. `accord validate` uses the existing JSON parse and local-only JSON-LD expansion policy. A duplicate-key-aware parser should be a separate non-SHACL authoring-check decision because it changes JSON parsing behavior before expansion.
 - Do not add ASK syntax/profile preflight in this slice. The current [[ac.task.2026.2026-07-04-real-sparql-ask]] worktree did not expose a reusable preflight, so ASK query syntax/profile failures remain check-time errors.
+- The Accord-owned SHACL-SPARQL evaluator now matches the ASK profile's filter scoping behavior for supported graph patterns: filters are applied after sibling non-filter patterns in the same group, including inside `UNION` branches, so filter-first and filter-last authored `sh:sparql` constraints agree.
 
 ## Contract Changes
 

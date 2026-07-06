@@ -1,6 +1,7 @@
 import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import type { JsonReport } from "../src/report/json_report.ts";
+import type { ScenarioReport } from "../src/report/scenario_report.ts";
 import { runAccordCli } from "./harness/cli_runner.ts";
 import { materializeRepoFixture } from "./harness/fixture_materializer.ts";
 
@@ -57,6 +58,9 @@ const executableScenarioIds = [
   "bb-503-ignore-path-conflict-error",
   "bb-504-ignore-path-absolute-error",
   "bb-505-ignore-path-traversal-error",
+  "bb-601-json-not-exists-pass",
+  "bb-602-json-not-exists-fail",
+  "bb-603-json-equals-count-pass",
 ] as const;
 
 const scenarioIndex = await loadScenarioIndex();
@@ -89,6 +93,79 @@ Deno.test("fixture materializer creates git repos with the declared refs", async
 
     assertEquals(tags.includes("r0-empty"), true);
     assertEquals(tags.includes("r6-text-invalid-utf8"), true);
+  } finally {
+    await Deno.remove(materialized.repoPath, { recursive: true });
+  }
+});
+
+Deno.test("accord check-scenario reports ordered pass, error, and fail steps", async () => {
+  const materialized = await materializeRepoFixture("repo-files");
+
+  try {
+    const result = await runAccordCli([
+      "check-scenario",
+      "testdata/check-scenario-mixed.jsonld",
+      "--fixture-repo-path",
+      materialized.repoPath,
+      "--format",
+      "json",
+    ]);
+    const report = JSON.parse(result.stdout) as ScenarioReport;
+
+    assertEquals(result.code, 2);
+    assertEquals(result.stderr.trim(), "");
+    assertEquals(report.scenarioPath, "testdata/check-scenario-mixed.jsonld");
+    assertEquals(report.scenarioId, "urn:accord:testdata:check-scenario-mixed");
+    assertEquals(report.fixtureRepoPath, materialized.repoPath);
+    assertEquals(report.status, "error");
+    assertEquals(report.summary, { pass: 1, fail: 1, error: 1 });
+    assertEquals(report.steps.map((step) => step.stepId), [
+      "#pass",
+      "#error",
+      "#fail",
+    ]);
+    assertEquals(report.steps.map((step) => step.report.status), [
+      "pass",
+      "error",
+      "fail",
+    ]);
+    assertEquals(report.steps[0].report.checks[0].kind, "file_presence");
+    assertEquals(report.steps[1].report.checks[0].kind, "setup");
+    assertEquals(report.steps[1].report.checks[0].code, "manifest_load_error");
+    assertEquals(
+      report.steps[2].report.checks.some((check) => check.status === "fail"),
+      true,
+    );
+  } finally {
+    await Deno.remove(materialized.repoPath, { recursive: true });
+  }
+});
+
+Deno.test("accord check JSON assertions read checked git refs, not the working tree", async () => {
+  const materialized = await materializeRepoFixture("repo-files");
+
+  try {
+    await Deno.writeTextFile(
+      join(materialized.repoPath, "contract.json"),
+      JSON.stringify({
+        participants: [{ participantAim: "working-tree-only" }],
+      }),
+    );
+
+    const result = await runAccordCli([
+      "check",
+      "testdata/manifests/bb-601-json-not-exists-pass.jsonld",
+      "--fixture-repo-path",
+      materialized.repoPath,
+      "--format",
+      "json",
+    ]);
+    const report = JSON.parse(result.stdout) as JsonReport;
+
+    assertEquals(result.code, 0);
+    assertEquals(result.stderr.trim(), "");
+    assertEquals(report.status, "pass");
+    assertEquals(report.summary, { pass: 2, fail: 0, error: 0 });
   } finally {
     await Deno.remove(materialized.repoPath, { recursive: true });
   }
@@ -152,6 +229,50 @@ for (const scenarioId of executableScenarioIds) {
           .filter((check) => check.status !== "pass")
           .map((check) => check.code);
         assertArrayIncludes(actualCodes, scenario.expectedCodes);
+      }
+
+      if (scenario.id === "bb-601-json-not-exists-pass") {
+        const jsonChecks = report.checks.filter((check) =>
+          check.kind === "json_assertion"
+        );
+
+        assertEquals(jsonChecks.length, 1);
+        assertEquals(jsonChecks[0].status, "pass");
+        assertEquals(jsonChecks[0].code, "json_assertion_ok");
+        assertEquals(jsonChecks[0].path, "contract.json");
+        assertEquals(jsonChecks[0].jsonPath, "$..participantAim");
+        assertEquals(jsonChecks[0].assertionId, "#no-participant-aim-leak");
+      }
+
+      if (scenario.id === "bb-602-json-not-exists-fail") {
+        const jsonChecks = report.checks.filter((check) =>
+          check.kind === "json_assertion"
+        );
+
+        assertEquals(jsonChecks.length, 1);
+        assertEquals(jsonChecks[0].status, "fail");
+        assertEquals(jsonChecks[0].code, "json_assertion_mismatch");
+        assertEquals(jsonChecks[0].path, "contract.json");
+        assertEquals(jsonChecks[0].jsonPath, "$..participantAim");
+      }
+
+      if (scenario.id === "bb-603-json-equals-count-pass") {
+        const jsonChecks = report.checks.filter((check) =>
+          check.kind === "json_assertion"
+        );
+
+        assertEquals(jsonChecks.length, 2);
+        assertEquals(jsonChecks.map((check) => check.assertionId), [
+          "#status-ok",
+          "#two-evidence-pointers",
+        ]);
+        assertEquals(
+          jsonChecks.map((check) => [check.status, check.code]),
+          [
+            ["pass", "json_assertion_ok"],
+            ["pass", "json_assertion_ok"],
+          ],
+        );
       }
     } finally {
       await Deno.remove(materialized.repoPath, { recursive: true });

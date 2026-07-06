@@ -45,6 +45,7 @@ interface SparqlQuery {
 type SparqlPattern =
   | SparqlBgpPattern
   | SparqlFilterPattern
+  | SparqlGroupPattern
   | SparqlUnionPattern;
 
 interface SparqlBgpPattern {
@@ -55,6 +56,11 @@ interface SparqlBgpPattern {
 interface SparqlFilterPattern {
   type: "filter";
   expression: SparqlExpression;
+}
+
+interface SparqlGroupPattern {
+  type: "group";
+  patterns: SparqlPattern[];
 }
 
 interface SparqlUnionPattern {
@@ -114,6 +120,13 @@ export async function validateManifest(
     shapesPath: SHAPES_DISPLAY_PATH,
     results,
   });
+}
+
+export async function validateWithShaclEngineForTest(
+  data: Store,
+  shapes: Store,
+): Promise<ValidationResultRecord[]> {
+  return await validateWithShaclEngine(data, shapes);
 }
 
 async function loadShippedShapes(): Promise<Store> {
@@ -209,7 +222,7 @@ function compileAccordSparql(shape: {
   }
 
   return {
-    generic: async (context: {
+    generic: (context: {
       factory: typeof DataFactory;
       focusNode: {
         dataset: Store;
@@ -298,26 +311,62 @@ function evaluatePatterns(
   bindings: BindingMap[],
 ): BindingMap[] {
   let rows = bindings;
+  const filters: SparqlFilterPattern[] = [];
 
   for (const pattern of patterns) {
-    if (pattern.type === "bgp") {
-      rows = evaluateBgp(dataset, pattern.triples, rows);
-    } else if (pattern.type === "filter") {
-      rows = rows.filter((binding) =>
-        evaluateBooleanExpression(dataset, pattern.expression, binding)
-      );
-    } else if (pattern.type === "union") {
-      rows = evaluateUnion(dataset, pattern.patterns, rows);
-    } else {
-      throw new ValidationExecutionError(
-        `Unsupported SHACL SPARQL pattern type: ${
-          (pattern as { type?: string }).type
-        }`,
-      );
+    if (pattern.type === "filter") {
+      filters.push(pattern);
+      continue;
+    }
+
+    rows = evaluatePattern(dataset, pattern, rows);
+
+    if (rows.length === 0) {
+      return [];
+    }
+  }
+
+  for (const filter of filters) {
+    rows = rows.filter((binding) =>
+      evaluateBooleanExpression(dataset, filter.expression, binding)
+    );
+
+    if (rows.length === 0) {
+      return [];
     }
   }
 
   return rows;
+}
+
+function evaluatePattern(
+  dataset: Store,
+  pattern: SparqlPattern,
+  bindings: BindingMap[],
+): BindingMap[] {
+  if (pattern.type === "bgp") {
+    return evaluateBgp(dataset, pattern.triples, bindings);
+  }
+
+  if (pattern.type === "group") {
+    return evaluatePatterns(dataset, pattern.patterns, bindings);
+  }
+
+  if (pattern.type === "union") {
+    return evaluateUnion(dataset, pattern.patterns, bindings);
+  }
+
+  if (pattern.type === "filter") {
+    return bindings.filter((binding) =>
+      evaluateBooleanExpression(dataset, pattern.expression, binding)
+    );
+  }
+
+  throw new ValidationExecutionError(
+    `Unsupported SHACL SPARQL pattern type: ${
+      (pattern as { type?: string }).type
+    }`,
+  );
 }
 
 function evaluateBgp(
@@ -815,7 +864,8 @@ function isVariable(value: unknown): value is SparqlVariable {
 
 function isPattern(value: unknown): value is SparqlPattern {
   return isRecord(value) &&
-    (value.type === "bgp" || value.type === "filter" || value.type === "union");
+    (value.type === "bgp" || value.type === "filter" ||
+      value.type === "group" || value.type === "union");
 }
 
 function isOperation(value: unknown): value is SparqlOperation {

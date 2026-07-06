@@ -32,6 +32,25 @@ Deno.test("parseCliArgs parses the check command", () => {
   );
 });
 
+Deno.test("parseCliArgs parses the check-scenario command", () => {
+  assertEquals(
+    parseCliArgs([
+      "check-scenario",
+      "testdata/check-scenario-mixed.jsonld",
+      "--fixture-repo-path",
+      "/tmp/repo",
+      "--format",
+      "json",
+    ]),
+    {
+      kind: "check-scenario",
+      scenarioIndexPath: "testdata/check-scenario-mixed.jsonld",
+      fixtureRepoPath: "/tmp/repo",
+      format: "json",
+    },
+  );
+});
+
 Deno.test("parseCliArgs parses the validate command", () => {
   assertEquals(
     parseCliArgs([
@@ -48,6 +67,20 @@ Deno.test("parseCliArgs parses the validate command", () => {
   );
 });
 
+Deno.test("parseCliArgs rejects case selection for check-scenario", () => {
+  assertThrows(
+    () =>
+      parseCliArgs([
+        "check-scenario",
+        "testdata/check-scenario-mixed.jsonld",
+        "--case",
+        "#case",
+      ]),
+    CliParseError,
+    "check-scenario command only accepts",
+  );
+});
+
 Deno.test("parseCliArgs rejects unknown commands", () => {
   assertThrows(
     () => parseCliArgs(["status"]),
@@ -59,5 +92,6 @@ Deno.test("parseCliArgs rejects unknown commands", () => {
 Deno.test("renderUsage mentions the check and validate commands", () => {
   const usage = renderUsage();
   assertEquals(usage.includes("accord check"), true);
+  assertEquals(usage.includes("accord check-scenario"), true);
   assertEquals(usage.includes("accord validate"), true);
 });

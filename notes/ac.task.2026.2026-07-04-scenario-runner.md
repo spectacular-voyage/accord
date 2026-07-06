@@ -76,12 +76,17 @@ The temporal rung also wants post-merge drift evidence: proving the final ref di
 - Default to run-all-steps with non-zero exit on any failure; no fail-fast in the first slice.
 - Wrap the existing per-check report structure rather than redesigning it.
 - Keep execution deterministic and local-only under the existing document-loading policy.
+- Lane bindings are ignored-with-warning for execution in this first slice. They are loaded as topology metadata and surfaced in scenario reports, but they do not override the selected manifest case's `fromRef` / `toRef` because there is not yet a stable rule for choosing an executable lane when a step binds multiple lanes.
+- Whole-index execution is enough for this slice; step filtering is deferred until a real consumer needs partial scenario runs.
+- Scenario index SHACL shapes were already present in `accord-shacl.ttl`; this slice keeps them and adds a validate CLI regression fixture for a conformant scenario index rather than changing `accord validate` report shape.
+- The text report includes a scenario-level step summary line from day one.
 
 ## Contract Changes
 
 - New CLI command `accord check-scenario <scenario-index-path> [--fixture-repo-path <path>] [--format <text|json>]`.
 - New scenario-level text and JSON report formats, defined as wrappers around the existing check report.
-- No ontology changes expected; the scenario vocabulary already exists.
+- No ontology changes needed; the scenario vocabulary already exists.
+- No SHACL changes needed; scenario index shapes already exist in `accord-shacl.ttl`.
 
 ## Testing
 
@@ -90,6 +95,14 @@ The temporal rung also wants post-merge drift evidence: proving the final ref di
 - JSON report snapshot coverage for the scenario envelope.
 - Confirm the existing `accord check` black-box suite is untouched.
 - Run `deno task fmt:check`, `deno task check`, and `deno task test`.
+
+## Verification
+
+- Added `tests/check_scenario_test.ts` for step ordering, manifest path resolution, `defaultFixtureRepo`, CLI override, lane-binding warnings, and per-step error isolation.
+- Added black-box CLI coverage for `testdata/check-scenario-mixed.jsonld`, which reports one passing step, one missing-manifest error step, and one failing step in the ordered scenario JSON envelope.
+- Added a validate CLI regression for the existing scenario index SHACL shapes.
+- Ran `deno task fmt:check`, `deno task check`, and `deno task test`; all passed.
+- Ran `deno task lint`; it currently fails on an existing `require-await` lint in `src/shacl/validate_manifest.ts`, outside the scenario-runner changes.
 
 ## Non-Goals
 
@@ -100,9 +113,9 @@ The temporal rung also wants post-merge drift evidence: proving the final ref di
 
 ## Implementation Plan
 
-- [ ] Define the scenario-level text and JSON report shapes as wrappers around the existing check report, and extend [[ac.spec.2026.2026-04-03-accord-cli]] first.
-- [ ] Add `check-scenario` parsing to `src/cli/parse_args.ts` and routing in `src/cli/router.ts`.
-- [ ] Implement the runner: load index via `src/scenario`, resolve manifests relative to the index, run the existing check pipeline per step, isolate per-step errors.
-- [ ] Decide and document lane-binding handling for the first slice.
-- [ ] Add unit and black-box tests including the mixed pass/fail/error scenario.
-- [ ] Update [[ac.user-guide]] and README command usage.
+- [x] Define the scenario-level text and JSON report shapes as wrappers around the existing check report, and extend [[ac.spec.2026.2026-04-03-accord-cli]] first.
+- [x] Add `check-scenario` parsing to `src/cli/parse_args.ts` and routing in `src/cli/router.ts`.
+- [x] Implement the runner: load index via `src/scenario`, resolve manifests relative to the index, run the existing check pipeline per step, isolate per-step errors.
+- [x] Decide and document lane-binding handling for the first slice.
+- [x] Add unit and black-box tests including the mixed pass/fail/error scenario.
+- [x] Update [[ac.user-guide]] and README command usage.

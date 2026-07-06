@@ -10,6 +10,9 @@
     "compareMode": {
       "@type": "@vocab"
     },
+    "jsonAssertionKind": {
+      "@type": "@vocab"
+    },
     "locatorKind": {
       "@type": "@vocab"
     },
@@ -23,6 +26,9 @@
       "@type": "@vocab"
     },
     "lane": {
+      "@type": "@id"
+    },
+    "targetsFileExpectation": {
       "@type": "@id"
     },
     "argv": {

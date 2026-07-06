@@ -3,6 +3,7 @@ import type { CheckCode } from "./codes.ts";
 export type CheckKind =
   | "file_compare"
   | "file_presence"
+  | "json_assertion"
   | "rdf_compare"
   | "setup"
   | "sparql_ask"
@@ -18,6 +19,7 @@ export interface CheckRecord {
   message: string;
   path?: string;
   assertionId?: string;
+  jsonPath?: string;
 }
 
 export interface ReportSummary {
