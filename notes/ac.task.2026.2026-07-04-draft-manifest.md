@@ -17,7 +17,7 @@ created: 1783149845965
 This task lands product bet 3 from [[ac.product-ideas.runner-neutral-test-spec]]. Authoring a transition manifest today means hand-listing every added, updated, and removed path between two refs, which is exactly the kind of mechanical work that produces stale or incomplete manifests. The command shape is:
 
 ```sh
-accord draft-manifest --from a.03 --to a.04 [--fixture-repo-path <path>] [--out <manifest.jsonld>]
+accord draft-manifest --from a.03 --to a.04 [--fixture-repo-path <path>] [--out <manifest.jsonld>] [--force]
 ```
 
 It reads `git diff --name-status` between the two refs (via the existing `src/git` access layer, not worktree materialization), emits one file expectation per changed path with status mapped to `added`, `updated`, or `removed`, and infers a likely `compareMode` by extension: `rdfCanonical` for RDF artifact extensions the checker already supports, text for known text extensions, byte otherwise. The output is a valid JSON-LD manifest document with a single transition case and placeholder identifiers, written to stdout by default or to `--out`.
@@ -56,12 +56,12 @@ The drafted manifest should pass `accord validate` once that command exists. Unt
 - The drafted manifest loads and evaluates under `accord check` against the same ref pair, with all drafted file expectations passing before human edits.
 - The command never touches the working tree state and requires no network access.
 
-## Open Issues
+## Resolved Questions
 
-- What existing manifest id/IRI conventions should the drafter mint? Survey `testdata/manifests` and the Semantic Flow corpus before deciding.
-- Should the draft reference a shared context document or inline its context? Follow whatever existing manifests do.
-- Is `--include-unchanged` in the first slice, or recorded as the immediate follow-up for immutability ladders?
-- Should the drafter accept an ignore-pattern option mirroring the checker's `ignorePaths`, or is post-draft human deletion enough initially?
+- Existing manifest id/IRI conventions: `testdata/manifests` and the Semantic Flow conformance manifests use inline JSON-LD contexts, URN manifest ids, fragment case ids, and readable path-derived file expectation fragment ids such as `#mesh-inventory-ttl`.
+- Context style: the drafter emits an inline context with the existing manifest terms it uses. It does not reference a shared context document in this slice.
+- Unchanged paths: `--include-unchanged` is deferred. The first slice emits changed paths only from `git diff --name-status`.
+- Ignore patterns: no draft-time ignore option in this slice. Authors can delete expectations or add `ignorePaths` after reviewing the draft.
 
 ## Decisions
 
@@ -70,20 +70,27 @@ The drafted manifest should pass `accord validate` once that command exists. Unt
 - Deterministic, idempotent output is a hard requirement.
 - Renames draft as remove-plus-add.
 - Unchanged paths are omitted by default.
+- Manifest ids use `urn:accord:draft:<from-slug>-to-<to-slug>`. The single case id is `#draft-<from-slug>-to-<to-slug>`.
+- File expectation ids use `#<changeType>-<path-slug>` derived from the repository path. If two paths slug to the same fragment, later collisions get a stable numeric suffix in output order.
+- Drafts omit `fixtureRepo` to avoid baking local machine paths into generated manifests. The fixture repository remains a CLI input used to compute the diff.
+- The output is pretty-printed JSON with a trailing newline. Re-running with the same refs and repository state produces byte-identical output.
+- Because the drafter emits file expectations only, `rdfCanonical` file expectations are valid without a companion `RdfExpectation`. The checker performs direct graph comparison for untargeted `updated`/`unchanged` `rdfCanonical` file expectations with no ignored predicates; `RdfExpectation` remains the place for `ignorePredicate` and ASK assertions.
 
 ## Contract Changes
 
 - New CLI command `accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]`.
 - A documented compare-mode inference table as part of the command contract.
-- No ontology changes; the drafter emits existing vocabulary only.
+- No ontology vocabulary changes; the drafter emits existing vocabulary only.
+- SHACL no longer requires every `rdfCanonical` file expectation to be inversely targeted by an `RdfExpectation`, because that rule was stronger than the file-expectation comparison model.
 
 ## Testing
 
 - Unit tests for status mapping (including renames), compare-mode inference, deterministic id minting, and idempotent output.
 - Black-box test: draft a manifest from a fixture repo ref pair, then run `accord check` on the draft and require a pass.
 - Overwrite-protection test for `--out`.
-- Once `accord validate` exists, a round-trip test that drafted output validates cleanly.
-- Run `deno task fmt:check`, `deno task check`, and `deno task test`.
+- Round-trip test: drafted output validates cleanly with `accord validate`.
+- Focused run passed: `deno test --allow-read --allow-write --allow-run --allow-env tests/draft_manifest_test.ts tests/check_scenario_test.ts tests/cli_parser_test.ts tests/validate_cli_test.ts`.
+- Full gate passed: `deno task fmt:check`, `deno task check`, `deno task lint`, and `deno task test`.
 
 ## Non-Goals
 
@@ -94,9 +101,9 @@ The drafted manifest should pass `accord validate` once that command exists. Unt
 
 ## Implementation Plan
 
-- [ ] Survey existing manifest conventions (context reference, id patterns) in `testdata/manifests` and the Semantic Flow corpus; record the chosen minting convention here.
-- [ ] Extend [[ac.spec.2026.2026-04-03-accord-cli]] with the command contract and inference table.
-- [ ] Add CLI parsing and routing for `draft-manifest`.
-- [ ] Implement diff reading over `src/git` and the expectation emitter with deterministic serialization.
-- [ ] Add unit and black-box coverage including the draft-then-check round trip.
-- [ ] Update [[ac.user-guide]] and README.
+- [x] Survey existing manifest conventions (context reference, id patterns) in `testdata/manifests` and the Semantic Flow corpus; record the chosen minting convention here.
+- [x] Extend [[ac.spec.2026.2026-04-03-accord-cli]] with the command contract and inference table.
+- [x] Add CLI parsing and routing for `draft-manifest`.
+- [x] Implement diff reading over `src/git` and the expectation emitter with deterministic serialization.
+- [x] Add unit and black-box coverage including the draft-then-check round trip.
+- [x] Update [[ac.user-guide]] and README.

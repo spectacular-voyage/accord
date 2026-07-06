@@ -54,17 +54,30 @@ export async function runScenarioCheck(
       defaultFixtureRepo: loaded.document.defaultFixtureRepo,
       scenarioDir,
     });
+    const scenarioId = loaded.document.id ?? loaded.document.resolvedId ?? "";
+    const scenarioSteps = loaded.document.hasStep ?? [];
+
+    if (scenarioSteps.length === 0) {
+      return buildScenarioSetupErrorReport({
+        scenarioPath: options.scenarioIndexPath,
+        scenarioId,
+        fixtureRepoPath: fixtureRepoCandidate ?? Deno.cwd(),
+        code: CHECK_CODES.SCENARIO_STEPS_REQUIRED,
+        message: "Scenario index must contain at least one step.",
+      });
+    }
+
     const steps = await runScenarioSteps({
       scenarioDir,
       fixtureRepoCandidate,
-      steps: loaded.document.hasStep ?? [],
+      steps: scenarioSteps,
     });
     const fixtureRepoPath = steps[0]?.report.fixtureRepoPath ??
       fixtureRepoCandidate ?? Deno.cwd();
 
     return buildScenarioReport({
       scenarioPath: options.scenarioIndexPath,
-      scenarioId: loaded.document.id ?? loaded.document.resolvedId ?? "",
+      scenarioId,
       fixtureRepoPath,
       steps,
     });
@@ -205,6 +218,7 @@ function buildSingleCheckSetupErrorReport(input: {
 
 function buildScenarioSetupErrorReport(input: {
   scenarioPath: string;
+  scenarioId?: string;
   fixtureRepoPath: string;
   code: CheckCode;
   message: string;
@@ -225,7 +239,7 @@ function buildScenarioSetupErrorReport(input: {
 
   return buildScenarioReport({
     scenarioPath: input.scenarioPath,
-    scenarioId: "",
+    scenarioId: input.scenarioId ?? "",
     fixtureRepoPath: input.fixtureRepoPath,
     steps: [step],
   });

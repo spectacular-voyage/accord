@@ -25,6 +25,7 @@ The current command surface is:
 ```bash
 accord check <manifest-path>
 accord check-scenario <scenario-index-path>
+accord draft-manifest --from <ref> --to <ref>
 accord validate <manifest-path>
 ```
 
@@ -43,7 +44,15 @@ Supported `check-scenario` options:
 - `--fixture-repo-path <path>` selects the local fixture repository root explicitly and overrides any `defaultFixtureRepo` declared by the scenario index
 - `--format json` emits machine-readable output instead of the default text report
 
-`accord check`, `accord check-scenario`, and `accord validate` are intentionally separate. `check` and `check-scenario` do not run SHACL validation as a preflight, not even warning-only. `validate` answers whether the authored JSON-LD graph conforms to the shipped Accord SHACL shapes.
+Supported `draft-manifest` options:
+
+- `--from <ref>` selects the starting git ref
+- `--to <ref>` selects the ending git ref
+- `--fixture-repo-path <path>` selects the local fixture repository root explicitly
+- `--out <path>` writes the draft manifest to a file instead of stdout
+- `--force` permits `--out` to overwrite an existing file
+
+`accord check`, `accord check-scenario`, `accord draft-manifest`, and `accord validate` are intentionally separate. `check` and `check-scenario` do not run SHACL validation as a preflight, not even warning-only. `draft-manifest` scaffolds a reviewable manifest but does not validate or check it implicitly. `validate` answers whether the authored JSON-LD graph conforms to the shipped Accord SHACL shapes.
 
 ## Reference Implementation Shape
 
@@ -135,6 +144,12 @@ The validator uses the same broad exit-code categories:
 - `1` means validation ran successfully and found one or more non-conformance results
 - `2` means validation could not run correctly because of usage error, manifest load error, JSON-LD processing error, SHACL setup error, or unsupported SHACL-SPARQL profile in the shipped shapes
 
+The drafter is not a semantic evaluator:
+
+- `0` means the draft manifest was written successfully
+- `2` means the draft could not be produced because of usage error, git repository/ref access error, unsupported diff status, or output-file error
+- it has no `1` failure result
+
 Overall result precedence is:
 
 1. `error` if any setup step or evaluation check ends in `error`
@@ -191,6 +206,8 @@ Accord scenario indexes are JSON-LD topology documents shaped by the Accord voca
 
 `accord check-scenario <scenario-index-path>` executes a `ScenarioIndex` document by loading it through the existing scenario JSON-LD loader and running each listed `ScenarioStep` in order. Each step resolves its `manifestPath` relative to the scenario index document location, selects the step `caseId` when provided, and runs the same single-check pipeline used by `accord check`. A step whose manifest cannot be read, expanded, selected, or set up produces a per-step `setup` error report and does not stop later steps from running.
 
+If the scenario index itself cannot be read or loaded, `accord check-scenario` returns a scenario-level setup error represented as a synthetic `#scenario-setup` step in the `steps` array. If the scenario index loads but declares no steps because `hasStep` is missing or empty, `accord check-scenario` also returns a synthetic `#scenario-setup` step with stable code `scenario_steps_required`. A zero-step scenario is an authoring error, not a vacuous pass.
+
 The runner resolves the fixture repository once for the scenario. Resolution order is:
 
 1. If `--fixture-repo-path` is provided, use it.
@@ -233,8 +250,49 @@ The v1 access model should use targeted git commands equivalent to:
 - `git rev-parse --verify <ref>`
 - `git cat-file -e <ref>:<path>`
 - `git show <ref>:<path>`
+- `git diff --name-status --find-renames <fromRef> <toRef>`
 
 The checker must verify that both `fromRef` and `toRef` resolve before beginning per-file checks.
+
+## Draft Manifest Command
+
+`accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]` scaffolds a transition manifest from the git diff between two refs in a local fixture repository.
+
+The drafter is conservative:
+
+- it emits exactly one `Manifest` with exactly one `TransitionCase`
+- it emits `FileExpectation` nodes only
+- it never fabricates `RdfExpectation`, `SparqlAskAssertion`, `JsonExpectation`, or `JsonAssertion` nodes
+- it reads git object metadata through the git access layer and does not inspect the working tree
+- it performs no network access
+- it omits unchanged paths
+
+The fixture repository resolution order matches `accord check`: use `--fixture-repo-path` when provided, otherwise use the current working directory. The generated manifest omits `fixtureRepo` so local machine paths are not baked into the scaffold.
+
+The drafter maps `git diff --name-status --find-renames` status codes as follows:
+
+| Git status | Drafted expectations |
+| --- | --- |
+| `A` | one `added` expectation for the path |
+| `M` | one `updated` expectation for the path |
+| `D` | one `removed` expectation for the path |
+| `R*` | one `removed` expectation for the old path, then one `added` expectation for the new path |
+
+Any unsupported diff status is a draft-time error. Rename similarity scores are ignored because Accord has no rename expectation kind.
+
+Compare mode inference is deterministic and extension-based:
+
+| Extension set | Drafted `compareMode` |
+| --- | --- |
+| `.ttl`, `.nt`, `.nq`, `.trig`, `.jsonld` | `rdfCanonical` |
+| `.txt`, `.md`, `.markdown`, `.json`, `.yaml`, `.yml`, `.toml`, `.csv`, `.html`, `.htm`, `.css`, `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.xml`, `.svg`, `.sh` | `text` |
+| anything else, including no extension | `bytes` |
+
+`removed` expectations do not declare `compareMode`, matching the manifest authoring rules.
+
+Drafted ids must be deterministic. The manifest id is `urn:accord:draft:<from-slug>-to-<to-slug>`, the case id is `#draft-<from-slug>-to-<to-slug>`, and file expectation ids are path-derived fragments of the form `#<changeType>-<path-slug>` with stable numeric suffixes only if path slug collisions occur. Slugs use lowercase ASCII letters and digits, replacing other runs with `-`.
+
+Output is byte-stable for the same input refs and repository state: pretty-printed JSON, stable property order, and a trailing newline. By default the manifest is written to stdout. With `--out`, the command must refuse to overwrite an existing path unless `--force` is present.
 
 ## Path Rules
 
@@ -349,7 +407,7 @@ For `.jsonld` RDF artifacts, the checker must:
 
 ## RDF Expectation Semantics
 
-An `RdfExpectation` is evaluated against the `toRef` version of its targeted file expectation.
+An `rdfCanonical` file expectation can be evaluated with no authored `RdfExpectation`; in that case graph comparison uses no ignored predicates and has no ASK assertions. An `RdfExpectation` is evaluated against the `toRef` version of its targeted file expectation when the manifest needs RDF-specific options such as `ignorePredicate` or `SparqlAskAssertion`.
 
 Evaluation order:
 
@@ -472,7 +530,7 @@ The `accord check-scenario` JSON report is a stable envelope around the existing
 }
 ```
 
-The `steps` array order must match the `hasStep` list order from the loaded scenario index. Step `report` objects must preserve the existing single-check JSON report structure. Step metadata such as `fromRef` and `toRef` is copied from the selected transition case when selection succeeds; if setup fails before case selection, those fields may be omitted while the wrapped report carries the stable setup error. The scenario `summary` counts step verdicts, not individual wrapped checks.
+The `steps` array order must match the `hasStep` list order from the loaded scenario index. Scenario-index load failures and scenario-level setup errors are represented as a synthetic `#scenario-setup` step in the same array so JSON consumers can inspect one stable envelope. Step `report` objects must preserve the existing single-check JSON report structure. Step metadata such as `fromRef` and `toRef` is copied from the selected transition case when selection succeeds; if setup fails before case selection, those fields may be omitted while the wrapped report carries the stable setup error. The scenario `summary` counts step verdicts, not individual wrapped checks.
 
 The `accord check-scenario` text report is grouped by step. It includes scenario path, scenario id, fixture repository path, scenario status, a step summary, then one group per step with the step id, resolved manifest path, selected case id when available, transition refs when available, lane-binding warning text when applicable, the wrapped check summary, and the same failed or errored check lines emitted by the single-check text report. Passing checks remain counted but not individually listed.
 
@@ -516,6 +574,7 @@ The minimum stable diagnostic codes are:
 - `case_selection_required`
 - `case_not_found`
 - `remote_context_disallowed`
+- `scenario_steps_required`
 - `fixture_repo_not_found`
 - `git_ref_unresolved`
 - `file_presence_mismatch`

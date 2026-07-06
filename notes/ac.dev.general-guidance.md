@@ -10,7 +10,7 @@ created: 1775232375756
 
 This note captures the current working guidance for Accord development. It should describe the implementation that actually exists, not an aspirational framework that has not landed yet.
 
-Accord is currently a thin Deno CLI centered on `accord check` for fixture-transition execution and `accord validate` for manifest SHACL authoring validation. Development should preserve that bias unless repeated real use cases justify broader scope.
+Accord is currently a thin Deno CLI centered on `accord check` for fixture-transition execution, `accord check-scenario` for ordered scenario execution, `accord draft-manifest` for conservative authoring scaffolds, and `accord validate` for manifest SHACL authoring validation. Development should preserve that bias unless repeated real use cases justify broader scope.
 
 ## Source of truth
 
@@ -28,6 +28,7 @@ If runtime behavior changes and the spec is affected, update the spec and then t
 The current code layout is intentionally flat:
 
 - `src/cli` for command parsing and routing
+- `src/draft` for deterministic draft-manifest rendering
 - `src/manifest` for JSON-LD manifest loading and case selection
 - `src/git` for git-backed repository access
 - `src/checker` for file, text, JSON assertion, RDF, and SPARQL ASK evaluation
@@ -48,6 +49,8 @@ The `accord check` runtime model is:
 Keep this model explicit and debuggable. Avoid layering in framework abstractions unless they remove a real recurring pain point.
 
 The `accord validate` runtime model is separate: load a manifest through the same fail-closed local-only JSON-LD policy, convert it to an RDF dataset, load the shipped `accord-shacl.ttl`, run SHACL Core and the shipped `sh:sparql` constraints, emit a stable validation report, and return a failing exit status for non-conformance. Do not hide this validation inside `accord check`.
+
+The `accord draft-manifest` runtime model is also separate: resolve a local git repository, read `git diff --name-status --find-renames` through `src/git`, map changed paths to file expectations, infer compare modes from the documented extension table, and write deterministic JSON-LD. It must not read the working tree, run validation/checking implicitly, fabricate ASK or JSON assertions, or bake local fixture paths into the generated manifest.
 
 ## Current dependency stance
 
@@ -89,7 +92,7 @@ Preserve that behavior unless there is a strong reason to change it, and if it c
 
 ### Direct git object access is intentional
 
-The current checker reads refs and blobs directly with git commands. That is simpler and more deterministic than worktree materialization during normal runtime.
+The current checker reads refs and blobs directly with git commands. The drafter reads diff metadata directly with `git diff --name-status --find-renames`. Both paths are simpler and more deterministic than worktree materialization during normal runtime.
 
 Keep temporary git repo materialization inside tests and `testdata/` harness code, not in the runtime checker.
 
@@ -112,6 +115,10 @@ The current RDF checker path supports:
 The `.jsonld` path is a real JSON-LD-to-quads ingestion layer using `jsonld.js`, not an `n3` parser shortcut.
 
 RDF/XML is still not supported. Do not pretend it is until there is a real parser path and black-box coverage.
+
+### Draft compare-mode inference is intentionally small
+
+`accord draft-manifest` infers `rdfCanonical` for `.ttl`, `.nt`, `.nq`, `.trig`, and `.jsonld`; `text` for the documented known text extensions; and `bytes` for everything else. Keep this table explicit in [[ac.spec.2026.2026-04-03-accord-cli]] and [[ac.user-guide]], and do not broaden it silently.
 
 ## Testing guidance
 

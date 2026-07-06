@@ -184,6 +184,54 @@ Deno.test("runScenarioCheck isolates per-step manifest errors and continues", as
   }
 });
 
+Deno.test("runScenarioCheck reports empty scenario indexes as setup errors", async () => {
+  const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
+
+  try {
+    const scenarioPath = join(tempDir, "empty-scenario-index.jsonld");
+    await writeScenarioIndex(scenarioPath, { steps: [] });
+
+    const report = await runScenarioCheck({ scenarioIndexPath: scenarioPath });
+
+    assertEquals(report.status, "error");
+    assertEquals(report.summary, { pass: 0, fail: 0, error: 1 });
+    assertEquals(report.steps.length, 1);
+    assertEquals(report.steps[0].stepId, "#scenario-setup");
+    assertEquals(
+      report.steps[0].report.checks[0].code,
+      CHECK_CODES.SCENARIO_STEPS_REQUIRED,
+    );
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
+Deno.test("runScenarioCheck reports missing scenario steps as setup errors", async () => {
+  const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
+
+  try {
+    const scenarioPath = join(tempDir, "missing-steps-scenario-index.jsonld");
+    await writeScenarioIndexWithoutSteps(scenarioPath);
+
+    const report = await runScenarioCheck({ scenarioIndexPath: scenarioPath });
+
+    assertEquals(report.status, "error");
+    assertEquals(report.summary, { pass: 0, fail: 0, error: 1 });
+    assertEquals(
+      report.scenarioId,
+      "urn:accord:test:missing-steps-scenario-index.jsonld",
+    );
+    assertEquals(report.steps[0].stepId, "#scenario-setup");
+    assertEquals(report.steps[0].report.checks[0].kind, "setup");
+    assertEquals(
+      report.steps[0].report.checks[0].code,
+      CHECK_CODES.SCENARIO_STEPS_REQUIRED,
+    );
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("runScenarioCheck reports lane bindings as ignored warnings", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
   const materialized = await materializeRepoFixture("repo-files");
@@ -303,6 +351,22 @@ async function writeScenarioIndex(
         },
       })),
     })),
+  };
+
+  await Deno.writeTextFile(scenarioPath, JSON.stringify(document, null, 2));
+}
+
+async function writeScenarioIndexWithoutSteps(
+  scenarioPath: string,
+): Promise<void> {
+  const document = {
+    "@context": {
+      "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+      id: "@id",
+      type: "@type",
+    },
+    type: "ScenarioIndex",
+    id: `urn:accord:test:${basename(scenarioPath)}`,
   };
 
   await Deno.writeTextFile(scenarioPath, JSON.stringify(document, null, 2));

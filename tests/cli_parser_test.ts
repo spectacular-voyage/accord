@@ -67,6 +67,53 @@ Deno.test("parseCliArgs parses the validate command", () => {
   );
 });
 
+Deno.test("parseCliArgs parses the draft-manifest command", () => {
+  assertEquals(
+    parseCliArgs([
+      "draft-manifest",
+      "--from",
+      "r10-draft-from",
+      "--to",
+      "r11-draft-to",
+      "--fixture-repo-path",
+      "/tmp/repo",
+      "--out",
+      "/tmp/draft.jsonld",
+      "--force",
+    ]),
+    {
+      kind: "draft-manifest",
+      fromRef: "r10-draft-from",
+      toRef: "r11-draft-to",
+      fixtureRepoPath: "/tmp/repo",
+      outPath: "/tmp/draft.jsonld",
+      force: true,
+    },
+  );
+});
+
+Deno.test("parseCliArgs requires refs for draft-manifest", () => {
+  assertThrows(
+    () => parseCliArgs(["draft-manifest", "--from", "r10-draft-from"]),
+    CliParseError,
+    "requires --from and --to",
+  );
+});
+
+Deno.test("parseCliArgs rejects draft options for check", () => {
+  assertThrows(
+    () =>
+      parseCliArgs([
+        "check",
+        "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+        "--from",
+        "r10-draft-from",
+      ]),
+    CliParseError,
+    "check command only accepts",
+  );
+});
+
 Deno.test("parseCliArgs rejects case selection for check-scenario", () => {
   assertThrows(
     () =>
@@ -93,5 +140,6 @@ Deno.test("renderUsage mentions the check and validate commands", () => {
   const usage = renderUsage();
   assertEquals(usage.includes("accord check"), true);
   assertEquals(usage.includes("accord check-scenario"), true);
+  assertEquals(usage.includes("accord draft-manifest"), true);
   assertEquals(usage.includes("accord validate"), true);
 });

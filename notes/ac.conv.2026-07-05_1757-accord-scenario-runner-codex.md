@@ -641,3 +641,219 @@ I’ll start by reading the draft-manifest task note and the Accord developer gu
 # gpt-5.5_2026-07-05_1841_23
 
 I’ve read the task note and guidance. Before changing code, I’m committing the leftover scenario-runner conversation note by itself so the new draft-manifest work stays cleanly separated.
+
+# gpt-5.5_2026-07-05_1841_27
+
+The conversation note is committed (`42833a9`). I’m surveying the scenario runner, git helpers, CLI parser, and manifest conventions next so the carry-over fixes and drafter fit the existing shape instead of adding a side path.
+
+# gpt-5.5_2026-07-05_1841_56
+
+For the first carry-over, `runScenarioCheck` currently bypasses scenario-index validation and happily builds a report from an empty step array. I’m adding a dedicated scenario setup code and routing empty/missing `hasStep` through the existing synthetic `#scenario-setup` mechanism.
+
+# gpt-5.5_2026-07-05_1841_59
+
+I’m adding `scenario_steps_required` as a setup diagnostic rather than reusing manifest-load errors. That gives CI and report consumers a clear distinction between “couldn’t load the index” and “loaded an index with nothing to run.”
+
+# gpt-5.5_2026-07-05_1842_11
+
+I’m adding tests for both empty `hasStep: []` and a missing `hasStep`, since the loader reaches those cases through slightly different JSON-LD paths.
+
+# gpt-5.5_2026-07-05_1842_24
+
+The scenario runner behavior is covered in tests now. I’m updating the spec in the scenario/report sections so the new setup error and the existing synthetic load-failure step are explicit contract.
+
+# gpt-5.5_2026-07-05_1842_41
+
+The carry-over implementation and spec docs are in place. I’m surveying manifest conventions now: in-repo test manifests first, then the nearby Semantic Flow corpus if it’s checked out, before deciding the drafter’s deterministic IDs and context style.
+
+# gpt-5.5_2026-07-05_1844_32
+
+Survey result: in-repo and Semantic Flow manifests use inline JSON-LD contexts, URN manifest IDs, fragment case IDs, and readable path-derived file expectation fragments like `#mesh-inventory-ttl`. I’m recording a generated variant of that convention now, then updating the normative spec and inference table before implementation.
+
+# gpt-5.5_2026-07-05_1844_36
+
+I’m choosing inline context plus path-derived fragment IDs, following the dominant manifest style already in `testdata` and the Semantic Flow examples. For generated IDs, collisions get a deterministic numeric suffix rather than random or hash-based noise.
+
+# gpt-5.5_2026-07-05_1844_49
+
+Now I’m updating the spec with the command contract, status mapping, output policy, and compare-mode inference table before touching the CLI implementation.
+
+# gpt-5.5_2026-07-05_1845_31
+
+The spec is updated. I’m adding the implementation in three layers: a git `name-status` diff helper, a pure draft-manifest builder that can be unit-tested, and the CLI command wrapper for stdout/`--out` behavior.
+
+# gpt-5.5_2026-07-05_1846_29
+
+The core drafter is in place. I’m wiring the new subcommand into parsing and routing now, and tightening option validation so draft-only flags don’t silently get ignored by other commands.
+
+# gpt-5.5_2026-07-05_1846_51
+
+I’m adding a small reusable fixture pair for the drafter acceptance round trip. It includes an add, modify, delete, and rename, with text/RDF/bytes inference all exercised.
+
+# gpt-5.5_2026-07-05_1847_13
+
+I’m adding draft-manifest tests next. They’ll cover pure status/mode/id behavior, deterministic stdout, refusal to overwrite, and the important draft → check → validate round trip.
+
+# gpt-5.5_2026-07-05_1847_39
+
+I’m updating parser coverage for the new command and the tighter option validation.
+
+# gpt-5.5_2026-07-05_1847_57
+
+The parser, router, public exports, and draft tests are wired. I’m doing a type/format pass now before deeper docs so I can catch implementation mistakes early.
+
+# gpt-5.5_2026-07-05_1848_03
+
+Type check caught two small implementation details: Deno’s write options don’t need `truncate`, and the rename branch wants an explicit discriminant check. I’m fixing those now.
+
+# gpt-5.5_2026-07-05_1848_27
+
+TypeScript still isn’t happy with the union shape because the non-rename variant groups three statuses. I’m rewriting that mapper as a switch, which is clearer anyway.
+
+# gpt-5.5_2026-07-05_1849_17
+
+Type check is clean. I’m running the new draft tests and scenario-runner tests next, since those touch the new behavior directly.
+
+# gpt-5.5_2026-07-05_1849_46
+
+The direct tests found that the drafted manifest checks cleanly but fails SHACL validation. I’m inspecting the validation result now; that should tell whether the drafter or shape contract needs a small adjustment.
+
+# gpt-5.5_2026-07-05_1850_25
+
+The round trip exposed a real contract mismatch: `draft-manifest` is supposed to emit file expectations only, but SHACL currently requires every `rdfCanonical` file expectation to have a companion `RdfExpectation`. I’m going to relax that authoring rule and make the checker compare untargeted `rdfCanonical` file expectations directly with no ignored predicates, while preserving the existing RDF expectation path when one is authored.
+
+# gpt-5.5_2026-07-05_1850_33
+
+I’m removing the overstrict SHACL inverse requirement and adding an implicit RDF comparison path for untargeted `rdfCanonical` file expectations. Authored `RdfExpectation` nodes still own ignores and ASK assertions.
+
+# gpt-5.5_2026-07-05_1850_56
+
+The checker now compares untargeted RDF canonical updated/unchanged files directly. I’m making the spec wording explicit that `RdfExpectation` is for per-file RDF options/assertions, not a prerequisite for RDF comparison.
+
+# gpt-5.5_2026-07-05_1851_07
+
+The spec now says the quiet part out loud: `rdfCanonical` comparison is available from the file expectation, and `RdfExpectation` adds RDF-specific options/assertions. I’m rerunning the focused tests.
+
+# gpt-5.5_2026-07-05_1851_28
+
+Focused tests are green, including draft → check → validate. I’m updating the user-facing and developer docs now: command usage, inference table, stdout/overwrite behavior, and the new RDF comparison nuance.
+
+# gpt-5.5_2026-07-05_1852_15
+
+I’m picking back up from the compacted state: the main implementation is in place and focused tests passed. I’m going to finish the docs/task-note updates, run the full gate in the requested order, then commit the whole draft-manifest slice.
+
+# gpt-5.5_2026-07-05_1852_24
+
+The status shows the scenario conversation note changed again after the earlier standalone commit, likely because Kato appended the live transcript. I’ll inspect that alongside the docs so I can include only the intentional documentation/code changes and avoid trampling anything odd.
+
+# gpt-5.5_2026-07-05_1852_36
+
+The user guide still talks as if there are only report-producing commands, so I’m separating `draft-manifest` as an authoring command: it emits JSON-LD, not a check/validate report. I’m also documenting the extension table and the small RDF nuance the round trip forced into the contract.
+
+# User_2026-07-05_1931_11
+
+continue
+
+# gpt-5.5_2026-07-05_1931_23
+
+Continuing. The implementation pieces are already green in focused tests; I’m finishing the prose contract now, then I’ll let the full gate have the last word before committing.
+
+# gpt-5.5_2026-07-05_1931_33
+
+I’m about to edit the docs and task note. The notable contract cleanup is this: `rdfCanonical` comparison belongs to the file expectation itself; an authored `RdfExpectation` is only needed for RDF-specific options like `ignorePredicate` and ASK assertions.
+
+# gpt-5.5_2026-07-05_1931_58
+
+User-facing docs now describe the drafter as a separate authoring path. I’m updating the README and developer guidance next so the quick-start view and maintenance notes agree with the spec.
+
+# gpt-5.5_2026-07-05_1932_05
+
+The README is intentionally brief, so I kept draft-manifest there to the command line and one sentence of behavior. The deeper extension table stays in the user guide and spec where authors will look for it.
+
+# gpt-5.5_2026-07-05_1932_26
+
+I’m adding one small normative detail the implementation already follows: the drafter has success/error exit codes but no semantic failure status, since it only scaffolds output.
+
+# gpt-5.5_2026-07-05_1932_31
+
+The normative spec is complete. I’m marking the task note with the decisions made during implementation, including the SHACL/checker adjustment that made the draft → check → validate acceptance round trip honest.
+
+# gpt-5.5_2026-07-05_1932_49
+
+One small cleanup: the task note’s opening command example was from before `--force` was settled. I’m aligning that so future readers don’t get a stale option list at the top.
+
+# gpt-5.5_2026-07-05_1932_58
+
+The docs and task note are aligned. I’m running formatter now before the full gate so any mechanical cleanup happens before the real checks.
+
+# gpt-5.5_2026-07-05_1933_04
+
+Formatter is clean. Now I’m running the requested gate in order: format check, type check, lint, then the full test suite.
+
+# gpt-5.5_2026-07-05_1933_07
+
+`fmt:check` passed. Moving on to the TypeScript/check task.
+
+# gpt-5.5_2026-07-05_1933_11
+
+`check` passed too. Next up is lint, which may be a little fussier about docs-adjacent exports or unused helpers.
+
+# gpt-5.5_2026-07-05_1933_13
+
+`lint` passed. I’m starting the full test suite now; this is the last gate before commit.
+
+# gpt-5.5_2026-07-05_1933_41
+
+Full gate passed: `fmt:check`, `check`, `lint`, and `test` are all green. I’m recording that in the task note, then I’ll review the final diff and commit.
+
+# gpt-5.5_2026-07-05_1933_48
+
+I’ve only changed a task note after the gate to record the successful run. Now I’m doing a final diff/status pass so the commit captures exactly this Accord slice.
+
+# gpt-5.5_2026-07-05_1934_16
+
+The final diff caught one subtle mismatch I don’t want to let through: my first renderer sorted expanded expectations globally, which could split a rename pair even though the spec says rename drafts as removed then added. I’m tightening that now by sorting changes first and expanding each rename as an adjacent remove/add pair.
+
+# gpt-5.5_2026-07-05_1934_19
+
+The renderer now keeps rename pairs together while still making overall output stable. I’m updating the unit expectation to lock that down.
+
+# gpt-5.5_2026-07-05_1934_30
+
+That behavioral tweak touches code, so I’m rerunning formatter and the full gate rather than relying on the previous green run.
+
+# gpt-5.5_2026-07-05_1934_35
+
+Formatter is still clean. I’m rerunning the requested gate in the same order.
+
+# gpt-5.5_2026-07-05_1934_43
+
+`fmt:check` passed again. Continuing with `deno task check`.
+
+# gpt-5.5_2026-07-05_1934_45
+
+`check` passed. Now `lint`.
+
+# gpt-5.5_2026-07-05_1934_49
+
+`lint` passed. Last run is the full test suite.
+
+# gpt-5.5_2026-07-05_1935_16
+
+The gate is green after the rename-order fix too: 151 tests passed. I’m checking the final status and then I’ll stage and commit.
+
+# gpt-5.5_2026-07-05_1935_22
+
+Everything in status belongs to this slice: draft command, scenario carry-over, docs, fixtures, tests, plus the live conversation note updates. I’m staging the full set and committing it with a detailed message.
+
+# gpt-5.5_2026-07-05_1935_24
+
+Staged diff looks right: new drafter layers, fixture refs, docs/tests, and the scenario setup fix. Committing now.
+
+# gpt-5.5_2026-07-05_1935_29
+
+Commit landed as `dd0d790`. I’m doing one last status check so I can tell you whether the repo is clean.
+
+# gpt-5.5_2026-07-05_1935_44
+
+One live conversation note appended after the commit because I sent a status update. I’m folding that into the just-created commit and then I’ll avoid more commentary until the final answer.

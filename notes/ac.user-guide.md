@@ -8,7 +8,7 @@ created: 1775228646463
 
 ## Purpose
 
-Accord is a deterministic checker and validator for machine-readable conformance manifests. `accord check` answers a narrow execution question: does a manifest correctly describe the expected transition between two named refs in a local fixture repository? `accord validate` answers a separate authoring question: does the manifest RDF graph conform to Accord's shipped SHACL shapes?
+Accord is a deterministic checker, scenario runner, manifest drafter, and validator for machine-readable conformance manifests. `accord check` answers a narrow execution question: does a manifest correctly describe the expected transition between two named refs in a local fixture repository? `accord draft-manifest` answers a separate authoring question: what conservative file expectations can be scaffolded from a git diff? `accord validate` checks whether an authored manifest RDF graph conforms to Accord's shipped SHACL shapes.
 
 This guide describes the current checker behavior that exists in this repository now. It does not describe future packaging or planned commands that have not landed yet.
 
@@ -20,6 +20,7 @@ During development, the checker is run from the repository with Deno:
 deno run -A src/main.ts --help
 deno run -A src/main.ts check <manifest-path>
 deno run -A src/main.ts check-scenario <scenario-index-path>
+deno run -A src/main.ts draft-manifest --from <ref> --to <ref>
 deno run -A src/main.ts validate <manifest-path>
 ```
 
@@ -29,6 +30,7 @@ After the JSR package is published, the same CLI entrypoint is available through
 deno run -A jsr:@spectacular-voyage/accord/cli --help
 deno run -A jsr:@spectacular-voyage/accord/cli check <manifest-path>
 deno run -A jsr:@spectacular-voyage/accord/cli check-scenario <scenario-index-path>
+deno run -A jsr:@spectacular-voyage/accord/cli draft-manifest --from <ref> --to <ref>
 deno run -A jsr:@spectacular-voyage/accord/cli validate <manifest-path>
 ```
 
@@ -43,13 +45,14 @@ The current CLI usage is:
 ```text
 accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]
 accord check-scenario <scenario-index-path> [--fixture-repo-path <path>] [--format <text|json>]
+accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]
 accord validate <manifest-path> [--format <text|json>]
 accord --help
 ```
 
 The eventual native binary command should preserve this shape. Until then, use either the repository-native invocation or the JSR `./cli` entrypoint.
 
-`accord check` does not run SHACL validation as a hidden preflight. Run `accord validate` explicitly in authoring workflows or CI when you want structural manifest validation.
+`accord check` does not run SHACL validation as a hidden preflight. `accord draft-manifest` also does not validate or check its own output. Run `accord validate` explicitly in authoring workflows or CI when you want structural manifest validation.
 
 ## Library use
 
@@ -59,6 +62,7 @@ Accord is also published as a Deno-first TypeScript library. The default package
 import {
   readManifestSource,
   readScenarioIndexSource,
+  renderDraftManifest,
   runScenarioCheck,
   selectTransitionCase,
   type ManifestDocument,
@@ -108,9 +112,10 @@ Today the runtime fixture resolution behavior is intentionally simple:
 - for `accord check`, otherwise Accord uses the current working directory
 - for `accord check-scenario`, `--fixture-repo-path` overrides the scenario index `defaultFixtureRepo`
 - for `accord check-scenario`, `defaultFixtureRepo` is resolved relative to the scenario index document when no override is provided
+- for `accord draft-manifest`, `--fixture-repo-path` selects the repository to diff; otherwise Accord uses the current working directory
 - the selected path must already be a git repository
 
-The manifest’s `fixtureRepo` value is still useful as semantic metadata, but the checker does not yet resolve local repositories from that field automatically.
+The manifest’s `fixtureRepo` value is still useful as semantic metadata, but the checker does not yet resolve local repositories from that field automatically. Drafted manifests omit `fixtureRepo` so local machine paths are not baked into generated JSON-LD.
 
 ### Case selection
 
@@ -157,6 +162,8 @@ For `accord check-scenario`, text output prints scenario metadata and a scenario
 
 For `accord validate`, it prints the manifest path, shapes path, validation status, conformance boolean, result/error counts, and every validation result.
 
+`accord draft-manifest` is not a report-producing command. It writes the drafted JSON-LD manifest to stdout by default, or to `--out <path>` when provided.
+
 ### JSON output
 
 Pass `--format json` to receive a machine-readable report.
@@ -199,6 +206,8 @@ The current `accord validate --format json` report includes:
 - `results`
 - `errors` when validation cannot run
 
+`accord draft-manifest` does not accept `--format`; its successful output is always the drafted manifest JSON-LD.
+
 ## Exit codes
 
 Accord currently uses:
@@ -213,8 +222,34 @@ The distinction matters:
 - a `fail` for `accord check-scenario` means no step errored and at least one step's wrapped check report failed
 - a `non_conformant` result for `accord validate` means SHACL validation ran successfully and found one or more authoring violations
 - an `error` means Accord could not complete evaluation cleanly, for example because a ref could not be resolved, a manifest could not be loaded, or RDF input could not be parsed
+- `accord draft-manifest` uses `0` for successful draft output and `2` for usage, git access, or file-output errors; it has no semantic `fail` result
 
 ## What the checker supports today
+
+### Drafting manifests
+
+`accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]` scaffolds one JSON-LD manifest with one transition case from `git diff --name-status --find-renames`.
+
+The drafter is intentionally conservative:
+
+- it emits `FileExpectation` nodes only
+- it never fabricates RDF ASK assertions or JSON assertions
+- it reads git object metadata, not the working tree
+- it performs no network access
+- unchanged paths are omitted
+- renames draft as one `removed` expectation for the old path plus one `added` expectation for the new path
+
+Output is deterministic for the same refs and repository state. By default it is written to stdout. `--out <path>` refuses to overwrite an existing file unless `--force` is present.
+
+The compare-mode inference table is small and stable:
+
+| Extension set | Drafted `compareMode` |
+| --- | --- |
+| `.ttl`, `.nt`, `.nq`, `.trig`, `.jsonld` | `rdfCanonical` |
+| `.txt`, `.md`, `.markdown`, `.json`, `.yaml`, `.yml`, `.toml`, `.csv`, `.html`, `.htm`, `.css`, `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.xml`, `.svg`, `.sh` | `text` |
+| anything else, including no extension | `bytes` |
+
+Removed file expectations do not declare `compareMode`.
 
 ### File expectation change types
 
@@ -272,6 +307,8 @@ For `rdfCanonical` expectations, Accord currently supports:
 - graph equivalence comparison
 - ignored predicate filtering
 - SPARQL `ASK` assertions attached through `RdfExpectation`
+
+An `updated` or `unchanged` `rdfCanonical` file expectation can be checked without an authored `RdfExpectation`; Accord compares the graphs with no ignored predicates. Add an `RdfExpectation` when the manifest needs `ignorePredicate` or `SparqlAskAssertion` behavior.
 
 The current ASK evaluator is intentionally small and local. It supports `ASK` and `ASK WHERE`, `PREFIX`, basic graph patterns such as `ASK { ?s a <Type> ; <name> "Alice" . }`, IRIs, variables, blank nodes used as query-local bindings, RDF `a`, repeated-variable joins, semicolon predicate-object lists, comma object lists, typed and language-tagged literals, bare boolean and numeric literals, and `FILTER NOT EXISTS` graph-pattern filters over the parsed RDF artifact quads.
 
@@ -332,6 +369,12 @@ Run all steps in a scenario index:
 
 ```bash
 deno run -A src/main.ts check-scenario path/to/scenario-index.jsonld --fixture-repo-path /path/to/fixture/repo --format json
+```
+
+Draft a starting manifest from a fixture diff:
+
+```bash
+deno run -A src/main.ts draft-manifest --from r10-draft-from --to r11-draft-to --fixture-repo-path /path/to/fixture/repo --out draft.jsonld
 ```
 
 Validate a manifest and request JSON output:

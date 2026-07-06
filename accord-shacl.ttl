@@ -331,32 +331,7 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
         FILTER (?changeType IN (accord:removed, accord:absent))
       }
     """ ;
-  ] ;
-  sh:or (
-    [
-      sh:not [
-        sh:property [
-          sh:path accord:compareMode ;
-          sh:hasValue accord:rdfCanonical ;
-        ]
-      ]
-    ]
-    [
-      sh:property [
-        sh:path accord:compareMode ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:hasValue accord:rdfCanonical ;
-      ] ;
-      sh:property [
-        sh:path [ sh:inversePath accord:targetsFileExpectation ] ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:class accord:RdfExpectation ;
-        sh:message "A file expectation with compareMode accord:rdfCanonical must be targeted by exactly one RDF expectation." ;
-      ]
-    ]
-  ) .
+  ] .
 
 accord-sh:RdfExpectationShape a sh:NodeShape ;
   sh:targetClass accord:RdfExpectation ;

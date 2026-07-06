@@ -27,6 +27,7 @@ This initial repository is intentionally small:
 - `accord-ontology.ttl` defines the core vocabulary
 - `accord-shacl.ttl` defines authoring and validation constraints
 - JSON-LD manifests and scenario indexes can use the ontology terms directly
+- `accord draft-manifest` can scaffold conservative file expectations from a git diff
 - future runners or executors can consume the same manifests without owning the semantics
 
 The goal is to start with a semantic kernel, not a framework tower.
@@ -83,15 +84,16 @@ For deterministic execution, file expectations that describe present files shoul
 
 ## CLI usage
 
-The current CLI provides three commands:
+The current CLI provides four commands:
 
 ```text
 accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]
 accord check-scenario <scenario-index-path> [--fixture-repo-path <path>] [--format <text|json>]
+accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]
 accord validate <manifest-path> [--format <text|json>]
 ```
 
-`accord check` runs one transition case. `accord check-scenario` runs every step in a `ScenarioIndex` in order and groups the wrapped check report by step. `accord validate` checks the authored JSON-LD graph against the shipped SHACL shapes.
+`accord check` runs one transition case. `accord check-scenario` runs every step in a `ScenarioIndex` in order and groups the wrapped check report by step. `accord draft-manifest` writes a deterministic JSON-LD scaffold from `git diff --name-status --find-renames`, emitting file expectations only and never inventing ASK or JSON assertions. `accord validate` checks the authored JSON-LD graph against the shipped SHACL shapes.
 
 ## Validation strategy
 

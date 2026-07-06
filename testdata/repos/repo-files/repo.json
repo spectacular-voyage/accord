@@ -41,6 +41,14 @@
     {
       "name": "r9-json-mix",
       "description": "contract.json with scalar and count assertion targets."
+    },
+    {
+      "name": "r10-draft-from",
+      "description": "Baseline tree for draft-manifest coverage."
+    },
+    {
+      "name": "r11-draft-to",
+      "description": "Changed tree for draft-manifest coverage, including add, modify, delete, and rename statuses."
     }
   ]
 }

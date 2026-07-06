@@ -344,6 +344,7 @@ async function evaluateRdfExpectationChecks(
   presenceByExpectation: Map<FileExpectation, boolean>,
 ): Promise<CheckRecord[]> {
   const checks: CheckRecord[] = [];
+  const rdfTargetFileExpectations = new Set<FileExpectation>();
 
   for (const rdfExpectation of transitionCase.hasRdfExpectation ?? []) {
     const targetFileExpectation = resolveTargetFileExpectation(
@@ -354,6 +355,7 @@ async function evaluateRdfExpectationChecks(
     if (targetFileExpectation === undefined) {
       continue;
     }
+    rdfTargetFileExpectations.add(targetFileExpectation);
 
     if (!presenceByExpectation.get(targetFileExpectation)) {
       continue;
@@ -395,6 +397,39 @@ async function evaluateRdfExpectationChecks(
         }),
       );
     }
+  }
+
+  for (const fileExpectation of fileExpectations) {
+    if (
+      rdfTargetFileExpectations.has(fileExpectation) ||
+      !presenceByExpectation.get(fileExpectation)
+    ) {
+      continue;
+    }
+
+    const path = fileExpectation.path;
+    const changeType = fileExpectation.changeType as
+      | FileChangeType
+      | undefined;
+
+    if (
+      path === undefined ||
+      changeType === undefined ||
+      fileExpectation.compareMode !== "rdfCanonical" ||
+      (changeType !== "updated" && changeType !== "unchanged")
+    ) {
+      continue;
+    }
+
+    checks.push(
+      await evaluateRdfComparison({
+        repoPath,
+        fromRef: transitionCase.fromRef!,
+        toRef: transitionCase.toRef!,
+        path,
+        changeType,
+      }),
+    );
   }
 
   return checks;
@@ -546,7 +581,7 @@ async function evaluateRdfComparison(
     toRef: string;
     path: string;
     changeType: FileChangeType;
-    rdfExpectation: RdfExpectation;
+    rdfExpectation?: RdfExpectation;
   },
 ): Promise<CheckRecord> {
   const { repoPath, fromRef, toRef, path, changeType, rdfExpectation } =
@@ -563,7 +598,7 @@ async function evaluateRdfComparison(
       left: fromBytes,
       right: toBytes,
       path,
-      ignorePredicates: rdfExpectation.ignorePredicate,
+      ignorePredicates: rdfExpectation?.ignorePredicate,
       leftDocumentContext: createGitJsonLdDocumentContext(
         repoPath,
         fromRef,

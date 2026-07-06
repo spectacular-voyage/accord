@@ -33,6 +33,17 @@ export {
   parseJsonArtifact,
 } from "./checker/json_assertions.ts";
 export type { JsonAssertionEvaluation } from "./checker/json_assertions.ts";
+export {
+  buildDraftManifestDocument,
+  draftFileExpectations,
+  inferCompareMode,
+  renderDraftManifest,
+} from "./draft/manifest.ts";
+export type {
+  DraftCompareMode,
+  DraftFileExpectation,
+  DraftManifestInput,
+} from "./draft/manifest.ts";
 export { runAskAssertion, SparqlAskError } from "./checker/sparql.ts";
 export type { RunAskAssertionOptions } from "./checker/sparql.ts";
 export { runScenarioCheck } from "./cli/commands/check_scenario.ts";
@@ -42,6 +53,7 @@ export { CliParseError, parseCliArgs, renderUsage } from "./cli/parse_args.ts";
 export type {
   CheckCommand,
   CheckScenarioCommand,
+  DraftManifestCommand,
   HelpCommand,
   OutputFormat,
   ParsedCommand,
@@ -60,6 +72,8 @@ export type {
   JsonLdErrorFactory,
   LoadedJsonLdDocument,
 } from "./jsonld/documents.ts";
+export { parseGitNameStatusDiff, readGitNameStatusDiff } from "./git/diff.ts";
+export type { GitNameStatusChange } from "./git/diff.ts";
 export {
   ManifestLoadError,
   readManifestRdfSource,
