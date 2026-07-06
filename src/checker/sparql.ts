@@ -1,21 +1,30 @@
-import { DataFactory } from "n3";
 import type { Quad, Term } from "n3";
+// @deno-types="npm:@types/sparqljs@3.1.12"
+import { Parser } from "sparqljs";
+import type {
+  AskQuery,
+  BgpPattern,
+  Expression,
+  FilterPattern,
+  OperationExpression,
+  Pattern,
+  Term as SparqlTerm,
+  Triple,
+} from "sparqljs";
 import type { JsonLdDocumentContext } from "../jsonld/documents.ts";
 import { CHECK_CODES, type CheckCode } from "../report/codes.ts";
 import { parseRdfContent, RdfCompareError } from "./compare_rdf.ts";
 
-const { literal, namedNode, variable } = DataFactory;
-
-const RDF_TYPE_IRI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-
-interface TriplePattern {
-  subject: Term;
-  predicate: Term;
-  object: Term;
-}
-
-type Position = "subject" | "predicate" | "object";
 type Bindings = Map<string, Term>;
+type TermPosition = "subject" | "predicate" | "object";
+type TripleTerm = Triple["subject"] | Triple["predicate"] | Triple["object"];
+
+interface QuadIndex {
+  all: Quad[];
+  byObject: Map<string, Quad[]>;
+  byPredicate: Map<string, Quad[]>;
+  bySubject: Map<string, Quad[]>;
+}
 
 export class SparqlAskError extends Error {
   code: CheckCode;
@@ -43,9 +52,9 @@ export async function runAskAssertion(
       path: options.path,
       documentContext: options.documentContext,
     });
-    const patterns = parseAskPatterns(options.query);
+    const askQuery = parseSupportedAskQuery(options.query);
 
-    return hasMatchingBindings(dataset, patterns, 0, new Map());
+    return evaluateAskQuery(dataset, askQuery);
   } catch (error) {
     if (error instanceof RdfCompareError) {
       throw error;
@@ -59,209 +68,258 @@ export async function runAskAssertion(
   }
 }
 
-function parseAskPatterns(query: string): TriplePattern[] {
-  const body = extractAskBody(query);
-  const stream = new TokenStream(tokenizeAskBody(body));
-  const patterns: TriplePattern[] = [];
+function parseSupportedAskQuery(query: string): AskQuery {
+  const parsedQuery = new Parser().parse(query);
 
-  while (!stream.done()) {
-    if (stream.consumeIf(".")) {
+  if (parsedQuery.type !== "query" || parsedQuery.queryType !== "ASK") {
+    throw new Error("Only ASK queries are supported.");
+  }
+
+  if (parsedQuery.from !== undefined) {
+    throw unsupportedProfileError("FROM and FROM NAMED are not supported.");
+  }
+
+  if (parsedQuery.values !== undefined) {
+    throw unsupportedProfileError(
+      "top-level VALUES clauses are not supported.",
+    );
+  }
+
+  return parsedQuery;
+}
+
+function evaluateAskQuery(dataset: Quad[], query: AskQuery): boolean {
+  const index = buildQuadIndex(dataset);
+  const finalBindings = evaluatePatterns(
+    index,
+    query.where ?? [],
+    [new Map()],
+  );
+  return finalBindings.length > 0;
+}
+
+function evaluatePatterns(
+  dataset: QuadIndex,
+  patterns: Pattern[],
+  initialBindings: Bindings[],
+): Bindings[] {
+  let currentBindings = initialBindings;
+  const filterPatterns: FilterPattern[] = [];
+
+  for (const pattern of patterns) {
+    if (pattern.type === "filter") {
+      filterPatterns.push(pattern);
       continue;
     }
 
-    const subject = parseTerm(stream.consume("subject term"), "subject");
-    patterns.push(...parsePredicateObjectList(stream, subject));
+    currentBindings = evaluatePattern(dataset, pattern, currentBindings);
 
-    if (!stream.consumeIf(".") && !stream.done()) {
-      throw new Error(
-        `Expected "." after ASK triple pattern, found ${stream.describeNext()}.`,
+    if (currentBindings.length === 0) {
+      return [];
+    }
+  }
+
+  for (const pattern of filterPatterns) {
+    currentBindings = evaluateFilterPattern(dataset, pattern, currentBindings);
+
+    if (currentBindings.length === 0) {
+      return [];
+    }
+  }
+
+  return currentBindings;
+}
+
+function evaluatePattern(
+  dataset: QuadIndex,
+  pattern: Pattern,
+  bindings: Bindings[],
+): Bindings[] {
+  switch (pattern.type) {
+    case "bgp":
+      return evaluateBgpPattern(dataset, pattern, bindings);
+    case "filter":
+      return evaluateFilterPattern(dataset, pattern, bindings);
+    default:
+      throw unsupportedProfileError(
+        `${describePatternType(pattern)} patterns are not supported.`,
       );
-    }
   }
-
-  if (patterns.length === 0) {
-    throw new Error("ASK query must contain at least one triple pattern.");
-  }
-
-  return patterns;
 }
 
-function extractAskBody(query: string): string {
-  const trimmedQuery = query.trim();
-  const match = trimmedQuery.match(
-    /^ASK\s*(?:WHERE\s*)?\{\s*([\s\S]*?)\s*\}\s*$/i,
-  );
+function evaluateBgpPattern(
+  dataset: QuadIndex,
+  pattern: BgpPattern,
+  initialBindings: Bindings[],
+): Bindings[] {
+  let currentBindings = initialBindings;
 
-  if (match === null) {
-    throw new Error("Only ASK { ... } queries are supported.");
-  }
+  for (const triple of pattern.triples) {
+    assertSupportedTriple(triple);
 
-  return match[1];
-}
+    const nextBindings: Bindings[] = [];
+    for (const bindings of currentBindings) {
+      for (const candidate of candidateQuads(dataset, triple, bindings)) {
+        const matchedBindings = quadMatchesTriple(candidate, triple, bindings);
 
-function parsePredicateObjectList(
-  stream: TokenStream,
-  subject: Term,
-): TriplePattern[] {
-  const patterns: TriplePattern[] = [];
-
-  while (true) {
-    const predicate = parseVerb(stream.consume("predicate term"));
-    const objects = parseObjectList(stream);
-
-    for (const object of objects) {
-      patterns.push({ subject, predicate, object });
+        if (matchedBindings !== null) {
+          nextBindings.push(matchedBindings);
+        }
+      }
     }
 
-    if (!stream.consumeIf(";")) {
-      break;
-    }
+    currentBindings = nextBindings;
 
-    if (stream.done() || stream.peek() === ".") {
+    if (currentBindings.length === 0) {
       break;
     }
   }
 
-  return patterns;
+  return currentBindings;
 }
 
-function parseObjectList(stream: TokenStream): Term[] {
-  const objects = [parseTerm(stream.consume("object term"), "object")];
-
-  while (stream.consumeIf(",")) {
-    objects.push(parseTerm(stream.consume("object term"), "object"));
-  }
-
-  return objects;
-}
-
-function parseVerb(token: string): Term {
-  if (token === "a") {
-    return namedNode(RDF_TYPE_IRI);
-  }
-
-  return parseTerm(token, "predicate");
-}
-
-function tokenizeAskBody(body: string): string[] {
-  const tokens: string[] = [];
-  const matcher =
-    /<[^>]*>|"(?:[^"\\]|\\.)*"(?:@[A-Za-z]+(?:-[A-Za-z0-9]+)*|\^\^<[^>]*>)?|_:[A-Za-z][A-Za-z0-9_-]*|\?[A-Za-z_][A-Za-z0-9_]*|[.;,]|[A-Za-z][A-Za-z0-9_-]*/g;
-  let match: RegExpExecArray | null;
-  let cursor = 0;
-
-  while ((match = matcher.exec(body)) !== null) {
-    const skipped = body.slice(cursor, match.index);
-    if (/\S/.test(skipped)) {
-      throw new Error(`Unsupported ASK syntax near ${skipped.trim()}.`);
-    }
-
-    tokens.push(match[0]);
-    cursor = matcher.lastIndex;
-  }
-
-  const remainder = body.slice(cursor);
-  if (/\S/.test(remainder)) {
-    throw new Error(`Unsupported ASK syntax near ${remainder.trim()}.`);
-  }
-
-  return tokens;
-}
-
-function parseTerm(
-  token: string,
-  position: "subject" | "predicate" | "object",
-): Term {
-  if (token.startsWith("?")) {
-    return variable(token.slice(1));
-  }
-
-  if (token.startsWith("_:")) {
-    return variable(`blank_${token.slice(2)}`);
-  }
-
-  if (token.startsWith("<") && token.endsWith(">")) {
-    return namedNode(token.slice(1, -1));
-  }
-
-  if (position === "object" && token.startsWith('"')) {
-    return parseLiteral(token);
-  }
-
-  throw new Error(`Unsupported ${position} term in ASK query: ${token}`);
-}
-
-function parseLiteral(token: string): Term {
-  const match = token.match(
-    /^"((?:[^"\\]|\\.)*)"(?:@([A-Za-z]+(?:-[A-Za-z0-9]+)*)|\^\^<([^>]*)>)?$/,
+function evaluateFilterPattern(
+  dataset: QuadIndex,
+  pattern: FilterPattern,
+  bindings: Bindings[],
+): Bindings[] {
+  return bindings.filter((candidateBindings) =>
+    evaluateFilterExpression(dataset, pattern.expression, candidateBindings)
   );
-
-  if (match === null) {
-    throw new Error(`Unsupported literal in ASK query: ${token}`);
-  }
-
-  const value = unescapeQuotedString(match[1]);
-
-  if (match[2] !== undefined) {
-    return literal(value, match[2]);
-  }
-
-  if (match[3] !== undefined) {
-    return literal(value, namedNode(match[3]));
-  }
-
-  return literal(value);
 }
 
-function unescapeQuotedString(value: string): string {
-  return value.replace(/\\(["\\nrt])/g, (_match, escaped: string) => {
-    switch (escaped) {
-      case "n":
-        return "\n";
-      case "r":
-        return "\r";
-      case "t":
-        return "\t";
-      default:
-        return escaped;
-    }
-  });
-}
-
-function hasMatchingBindings(
-  dataset: Quad[],
-  patterns: TriplePattern[],
-  patternIndex: number,
+function evaluateFilterExpression(
+  dataset: QuadIndex,
+  expression: Expression,
   bindings: Bindings,
 ): boolean {
-  if (patternIndex >= patterns.length) {
-    return true;
+  if (!isOperationExpression(expression)) {
+    throw unsupportedProfileError("only FILTER NOT EXISTS is supported.");
   }
 
-  const pattern = patterns[patternIndex];
-
-  for (const candidate of dataset) {
-    const nextBindings = quadMatchesPattern(candidate, pattern, bindings);
-    if (
-      nextBindings !== null &&
-      hasMatchingBindings(dataset, patterns, patternIndex + 1, nextBindings)
-    ) {
-      return true;
-    }
+  if (expression.operator.toLowerCase() !== "notexists") {
+    throw unsupportedProfileError("only FILTER NOT EXISTS is supported.");
   }
 
-  return false;
+  if (expression.args.length !== 1 || !isPattern(expression.args[0])) {
+    throw unsupportedProfileError(
+      "FILTER NOT EXISTS must contain a graph pattern.",
+    );
+  }
+
+  return evaluatePattern(dataset, expression.args[0], [bindings]).length === 0;
 }
 
-function quadMatchesPattern(
+function buildQuadIndex(dataset: Quad[]): QuadIndex {
+  const index: QuadIndex = {
+    all: dataset,
+    byObject: new Map(),
+    byPredicate: new Map(),
+    bySubject: new Map(),
+  };
+
+  for (const quad of dataset) {
+    addIndexedQuad(index.bySubject, quad.subject, quad);
+    addIndexedQuad(index.byPredicate, quad.predicate, quad);
+    addIndexedQuad(index.byObject, quad.object, quad);
+  }
+
+  return index;
+}
+
+function addIndexedQuad(
+  index: Map<string, Quad[]>,
+  term: Term,
+  quad: Quad,
+): void {
+  const key = termIndexKey(term);
+  const quads = index.get(key);
+
+  if (quads === undefined) {
+    index.set(key, [quad]);
+    return;
+  }
+
+  quads.push(quad);
+}
+
+function candidateQuads(
+  index: QuadIndex,
+  triple: Triple,
+  bindings: Bindings,
+): Quad[] {
+  const candidates = [
+    candidateList(
+      index.bySubject,
+      indexedPatternTerm(triple.subject, bindings),
+    ),
+    candidateList(
+      index.byPredicate,
+      indexedPatternTerm(triple.predicate, bindings),
+    ),
+    candidateList(index.byObject, indexedPatternTerm(triple.object, bindings)),
+  ].filter((list) => list !== undefined);
+
+  if (candidates.length === 0) {
+    return index.all;
+  }
+
+  return candidates.reduce((smallest, candidate) =>
+    candidate.length < smallest.length ? candidate : smallest
+  );
+}
+
+function candidateList(
+  index: Map<string, Quad[]>,
+  term: Term | null,
+): Quad[] | undefined {
+  if (term === null) {
+    return undefined;
+  }
+
+  return index.get(termIndexKey(term)) ?? [];
+}
+
+function indexedPatternTerm(
+  pattern: TripleTerm,
+  bindings: Bindings,
+): Term | null {
+  if (!("termType" in pattern)) {
+    return null;
+  }
+
+  const bindingKey = getBindingKey(pattern);
+
+  if (bindingKey !== null) {
+    return bindings.get(bindingKey) ?? null;
+  }
+
+  return pattern;
+}
+
+function termIndexKey(term: Term): string {
+  if (term.termType === "Literal") {
+    return [
+      term.termType,
+      term.value,
+      term.language,
+      term.datatype.value,
+    ].join("\u0000");
+  }
+
+  return [term.termType, term.value].join("\u0000");
+}
+
+function quadMatchesTriple(
   candidate: Quad,
-  pattern: TriplePattern,
+  triple: Triple,
   bindings: Bindings,
 ): Bindings | null {
   const subjectBindings = termMatchesPattern(
     candidate.subject,
-    pattern.subject,
+    triple.subject,
     bindings,
+    "subject",
   );
   if (subjectBindings === null) {
     return null;
@@ -269,8 +327,9 @@ function quadMatchesPattern(
 
   const predicateBindings = termMatchesPattern(
     candidate.predicate,
-    pattern.predicate,
+    triple.predicate,
     subjectBindings,
+    "predicate",
   );
   if (predicateBindings === null) {
     return null;
@@ -278,67 +337,140 @@ function quadMatchesPattern(
 
   return termMatchesPattern(
     candidate.object,
-    pattern.object,
+    triple.object,
     predicateBindings,
+    "object",
   );
 }
 
 function termMatchesPattern(
   candidate: Term,
-  pattern: Term,
+  pattern: TripleTerm,
   bindings: Bindings,
+  position: TermPosition,
 ): Bindings | null {
-  if (pattern.termType !== "Variable") {
-    return candidate.equals(pattern) ? bindings : null;
+  assertSupportedTerm(pattern, position);
+
+  const bindingKey = getBindingKey(pattern);
+  if (bindingKey !== null) {
+    const boundTerm = bindings.get(bindingKey);
+
+    if (boundTerm !== undefined) {
+      return termsEqual(candidate, boundTerm) ? bindings : null;
+    }
+
+    const nextBindings = new Map(bindings);
+    nextBindings.set(bindingKey, candidate);
+    return nextBindings;
   }
 
-  const boundTerm = bindings.get(pattern.value);
-  if (boundTerm !== undefined) {
-    return candidate.equals(boundTerm) ? bindings : null;
-  }
-
-  const nextBindings = new Map(bindings);
-  nextBindings.set(pattern.value, candidate);
-  return nextBindings;
+  return termsEqual(candidate, pattern) ? bindings : null;
 }
 
-class TokenStream {
-  #tokens: string[];
-  #index = 0;
-
-  constructor(tokens: string[]) {
-    this.#tokens = tokens;
+function getBindingKey(term: SparqlTerm): string | null {
+  if (term.termType === "Variable") {
+    return `?${term.value}`;
   }
 
-  done(): boolean {
-    return this.#index >= this.#tokens.length;
+  if (term.termType === "BlankNode") {
+    return `_:${term.value}`;
   }
 
-  peek(): string | undefined {
-    return this.#tokens[this.#index];
+  return null;
+}
+
+function termsEqual(left: Term, right: Term | SparqlTerm): boolean {
+  if (left.termType !== right.termType || left.value !== right.value) {
+    return false;
   }
 
-  consume(expected: string): string {
-    const token = this.peek();
-    if (token === undefined) {
-      throw new Error(`Expected ${expected}, found end of ASK query.`);
+  if (left.termType === "Literal" && right.termType === "Literal") {
+    return left.language === right.language &&
+      left.datatype.value === right.datatype.value;
+  }
+
+  return true;
+}
+
+function assertSupportedTriple(triple: Triple): void {
+  assertSupportedTerm(triple.subject, "subject");
+  assertSupportedTerm(triple.predicate, "predicate");
+  assertSupportedTerm(triple.object, "object");
+}
+
+function assertSupportedTerm(
+  term: TripleTerm,
+  position: TermPosition,
+): asserts term is SparqlTerm {
+  if (!("termType" in term)) {
+    if (position === "predicate") {
+      throw unsupportedProfileError("property paths are not supported.");
     }
 
-    this.#index += 1;
-    return token;
+    throw unsupportedProfileError(`${position} expressions are not supported.`);
   }
 
-  consumeIf(token: string): boolean {
-    if (this.peek() !== token) {
-      return false;
-    }
+  if (term.termType === "Quad") {
+    throw unsupportedProfileError("RDF-star quoted triples are not supported.");
+  }
+}
 
-    this.#index += 1;
-    return true;
+function isOperationExpression(
+  expression: Expression,
+): expression is OperationExpression {
+  return isRecord(expression) && expression.type === "operation";
+}
+
+function isPattern(value: Expression | Pattern): value is Pattern {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    return false;
   }
 
-  describeNext(): string {
-    const token = this.peek();
-    return token === undefined ? "end of ASK query" : `"${token}"`;
+  return [
+    "bgp",
+    "bind",
+    "filter",
+    "graph",
+    "group",
+    "minus",
+    "optional",
+    "service",
+    "union",
+    "values",
+  ].includes(value.type);
+}
+
+function describePatternType(pattern: Pattern): string {
+  switch (pattern.type) {
+    case "bgp":
+      return "basic graph";
+    case "filter":
+      return "filter";
+    case "optional":
+      return "OPTIONAL";
+    case "union":
+      return "UNION";
+    case "group":
+      return "nested group";
+    case "graph":
+      return "GRAPH";
+    case "minus":
+      return "MINUS";
+    case "service":
+      return "SERVICE";
+    case "bind":
+      return "BIND";
+    case "values":
+      return "VALUES";
+    default:
+      return "subquery";
   }
+}
+
+function unsupportedProfileError(message: string): Error {
+  return new Error(`Unsupported SPARQL ASK profile: ${message}`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

@@ -17,6 +17,28 @@ export interface RdfExpectation {
   [key: string]: unknown;
 }
 
+export type JsonScalar = string | number | boolean;
+
+export interface JsonAssertion {
+  id?: string;
+  resolvedId?: string;
+  type?: string;
+  jsonPath?: string;
+  jsonAssertionKind?: string;
+  expectedValue?: JsonScalar;
+  expectedCount?: number;
+  [key: string]: unknown;
+}
+
+export interface JsonExpectation {
+  id?: string;
+  resolvedId?: string;
+  type?: string;
+  targetsFileExpectation?: string;
+  hasJsonAssertion?: JsonAssertion[];
+  [key: string]: unknown;
+}
+
 export interface FileExpectation {
   id?: string;
   resolvedId?: string;
@@ -128,6 +150,7 @@ export interface TransitionCase {
   hasReplayProfile?: ReplayProfile;
   hasFileExpectation?: FileExpectation[];
   hasRdfExpectation?: RdfExpectation[];
+  hasJsonExpectation?: JsonExpectation[];
   [key: string]: unknown;
 }
 

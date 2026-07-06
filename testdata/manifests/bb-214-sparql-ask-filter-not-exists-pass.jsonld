@@ -1,0 +1,54 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-214-sparql-ask-filter-not-exists-pass",
+  "dcterms:title": "bb-214 SPARQL ASK FILTER NOT EXISTS pass",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#sparql-ask-filter-not-exists-case",
+      "fixtureRepo": "testdata/repos/repo-rdf",
+      "operationId": "test.sparqlAskFilterNotExists",
+      "fromRef": "r0-empty",
+      "toRef": "r1-graph-v1",
+      "hasFileExpectation": [
+        {
+          "id": "#graph-file",
+          "type": "FileExpectation",
+          "path": "graph.ttl",
+          "changeType": "added",
+          "compareMode": "rdfCanonical"
+        }
+      ],
+      "hasRdfExpectation": [
+        {
+          "id": "#graph-rdf",
+          "type": "RdfExpectation",
+          "targetsFileExpectation": "#graph-file",
+          "hasAskAssertion": [
+            {
+              "id": "#ask-no-ended-at",
+              "type": "SparqlAskAssertion",
+              "query": "ASK { FILTER NOT EXISTS { ?relator <https://example.test/endedAt> ?end . } }",
+              "expectedBoolean": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

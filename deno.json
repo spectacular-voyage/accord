@@ -1,6 +1,6 @@
 {
   "name": "@spectacular-voyage/accord",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/mod.ts",
@@ -25,9 +25,14 @@
     "@std/path": "jsr:@std/path@1",
     "jsonld": "npm:jsonld@9.0.0",
     "n3": "npm:n3@2.0.3",
-    "rdf-canonize": "npm:rdf-canonize@5.0.0"
+    "rdf-canonize": "npm:rdf-canonize@5.0.0",
+    "shacl-engine": "npm:shacl-engine@1.1.2",
+    "sparqljs": "npm:sparqljs@3.7.4"
   },
-  "exclude": [".test-tmp/**", "documentation/notes/**"],
+  "exclude": [
+    ".test-tmp/**",
+    "documentation/notes/**"
+  ],
   "publish": {
     "include": [
       "README.md",
@@ -37,10 +42,17 @@
       "deno.lock",
       "src/**/*.ts"
     ],
-    "exclude": ["documentation/**", "testdata/**", "tests/**"]
+    "exclude": [
+      "documentation/**",
+      "testdata/**",
+      "tests/**"
+    ]
   },
   "fmt": {
     "proseWrap": "preserve",
-    "exclude": ["documentation/notes/**", "**/*.md"]
+    "exclude": [
+      "documentation/notes/**",
+      "**/*.md"
+    ]
   }
 }

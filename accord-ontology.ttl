@@ -1,14 +1,37 @@
-@prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
+@base <https://spectacular-voyage.github.io/accord/ontology/> .
+@prefix accord: <https://spectacular-voyage.github.io/accord/ontology/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sflo: <https://semantic-flow.github.io/sflo/ontology/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://spectacular-voyage.github.io/accord/accord-ontology> a owl:Ontology ;
-  dcterms:title "Accord ontology" ;
+<https://spectacular-voyage.github.io/accord/ontology> a owl:Ontology ;
+  dcterms:title "Accord Ontology" ;
   dcterms:description "A small ontology for machine-readable conformance manifests and reusable acceptance checks." ;
+  dcterms:creator <https://djradon.github.io/ns/dave-richardson> ;
+  dcterms:hasVersion <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0> ;
+  dcterms:modified "2026-05-23"^^xsd:date ;
+  owl:versionIRI <https://raw.githubusercontent.com/spectacular-voyage/accord/refs/tags/v0.1.0/accord-ontology.ttl> ;
+  owl:versionInfo "0.1.0" ;
+  vann:preferredNamespacePrefix "accord" ;
+  vann:preferredNamespaceUri "https://spectacular-voyage.github.io/accord/ontology/" ;
   rdfs:comment "Accord models manifests as executable acceptance metadata rather than long-form prose specifications." .
+
+<https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0>
+  a owl:Ontology, sflo:HistoricalState ;
+  dcterms:isVersionOf <https://spectacular-voyage.github.io/accord/ontology> ;
+  dcterms:issued "2026-05-23"^^xsd:date ;
+  owl:versionInfo "0.1.0" ;
+  schema:contentUrl <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl/accord-ontology.ttl> ;
+  sflo:hasManifestation <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl> .
+
+<https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl>
+  dcat:downloadURL <https://spectacular-voyage.github.io/accord/ontology/releases/v0.1.0/ttl/accord-ontology.ttl> .
 
 accord:Manifest a owl:Class ;
   rdfs:label "Manifest" ;
@@ -26,9 +49,17 @@ accord:RdfExpectation a owl:Class ;
   rdfs:label "RDF expectation" ;
   rdfs:comment "An expectation about RDF graph or dataset validation for a specific targeted file expectation, including ignored predicates and explicit graph assertions." .
 
+accord:JsonExpectation a owl:Class ;
+  rdfs:label "JSON expectation" ;
+  rdfs:comment "An expectation about JSON document validation for a specific targeted file expectation, including explicit JSON path assertions." .
+
 accord:SparqlAskAssertion a owl:Class ;
   rdfs:label "SPARQL ASK assertion" ;
   rdfs:comment "A SPARQL ASK query paired with the boolean value that must result during validation." .
+
+accord:JsonAssertion a owl:Class ;
+  rdfs:label "JSON assertion" ;
+  rdfs:comment "A JSON path assertion paired with the expected existence, absence, scalar value, or match count." .
 
 accord:StateLocator a owl:Class ;
   rdfs:label "State locator" ;
@@ -82,6 +113,10 @@ accord:CompareMode a owl:Class ;
   rdfs:label "Compare mode" ;
   rdfs:comment "A controlled set of comparison strategies for expected outputs." .
 
+accord:JsonAssertionKind a owl:Class ;
+  rdfs:label "JSON assertion kind" ;
+  rdfs:comment "A controlled set of JSON assertion operations supported by accord check." .
+
 accord:StateLocatorKind a owl:Class ;
   rdfs:label "State locator kind" ;
   rdfs:comment "A controlled set of state locator categories." .
@@ -116,17 +151,28 @@ accord:hasRdfExpectation a owl:ObjectProperty ;
   rdfs:range accord:RdfExpectation ;
   rdfs:comment "Links a transition case to RDF-specific validation expectations." .
 
+accord:hasJsonExpectation a owl:ObjectProperty ;
+  rdfs:label "has JSON expectation" ;
+  rdfs:domain accord:TransitionCase ;
+  rdfs:range accord:JsonExpectation ;
+  rdfs:comment "Links a transition case to JSON-specific validation expectations." .
+
 accord:targetsFileExpectation a owl:ObjectProperty ;
   rdfs:label "targets file expectation" ;
-  rdfs:domain accord:RdfExpectation ;
   rdfs:range accord:FileExpectation ;
-  rdfs:comment "Binds an RDF expectation to the file expectation whose RDF-bearing content it validates." .
+  rdfs:comment "Binds an artifact-level expectation to the file expectation whose content it validates." .
 
 accord:hasAskAssertion a owl:ObjectProperty ;
   rdfs:label "has ASK assertion" ;
   rdfs:domain accord:RdfExpectation ;
   rdfs:range accord:SparqlAskAssertion ;
   rdfs:comment "Associates an RDF expectation with a SPARQL ASK assertion that must evaluate to the expected boolean." .
+
+accord:hasJsonAssertion a owl:ObjectProperty ;
+  rdfs:label "has JSON assertion" ;
+  rdfs:domain accord:JsonExpectation ;
+  rdfs:range accord:JsonAssertion ;
+  rdfs:comment "Associates a JSON expectation with a JSON path assertion that must satisfy its declared assertion kind." .
 
 accord:fromState a owl:ObjectProperty ;
   rdfs:label "from state" ;
@@ -250,6 +296,12 @@ accord:ignorePredicate a owl:ObjectProperty ;
   rdfs:label "ignore predicate" ;
   rdfs:domain accord:RdfExpectation ;
   rdfs:comment "Identifies an RDF predicate IRI that should be ignored during strict equivalence checks, for example volatile timestamps." .
+
+accord:jsonAssertionKind a owl:ObjectProperty ;
+  rdfs:label "JSON assertion kind" ;
+  rdfs:domain accord:JsonAssertion ;
+  rdfs:range accord:JsonAssertionKind ;
+  rdfs:comment "Declares whether a JSON assertion checks existence, absence, scalar equality, or match count." .
 
 accord:operationId a owl:DatatypeProperty ;
   rdfs:label "operation id" ;
@@ -474,6 +526,23 @@ accord:expectedBoolean a owl:DatatypeProperty ;
   rdfs:range xsd:boolean ;
   rdfs:comment "The expected boolean result for a SPARQL ASK assertion." .
 
+accord:jsonPath a owl:DatatypeProperty ;
+  rdfs:label "JSON path" ;
+  rdfs:domain accord:JsonAssertion ;
+  rdfs:range xsd:string ;
+  rdfs:comment "The Accord JSON path expression used for an explicit JSON assertion." .
+
+accord:expectedValue a owl:DatatypeProperty ;
+  rdfs:label "expected value" ;
+  rdfs:domain accord:JsonAssertion ;
+  rdfs:comment "The expected scalar value for a JSON equality assertion." .
+
+accord:expectedCount a owl:DatatypeProperty ;
+  rdfs:label "expected count" ;
+  rdfs:domain accord:JsonAssertion ;
+  rdfs:range xsd:integer ;
+  rdfs:comment "The expected number of matches for a JSON count assertion." .
+
 accord:added a accord:FileChangeType ;
   rdfs:label "added" ;
   rdfs:comment "The file is expected to be added by the transition." .
@@ -509,6 +578,22 @@ accord:json a accord:CompareMode ;
 accord:rdfCanonical a accord:CompareMode ;
   rdfs:label "RDF canonical" ;
   rdfs:comment "Compare RDF content after dataset canonicalization and configured volatility exclusions." .
+
+accord:exists a accord:JsonAssertionKind ;
+  rdfs:label "exists" ;
+  rdfs:comment "The JSON path must match at least one value." .
+
+accord:notExists a accord:JsonAssertionKind ;
+  rdfs:label "not exists" ;
+  rdfs:comment "The JSON path must match no values." .
+
+accord:equals a accord:JsonAssertionKind ;
+  rdfs:label "equals" ;
+  rdfs:comment "At least one JSON path match must equal the declared scalar expected value." .
+
+accord:count a accord:JsonAssertionKind ;
+  rdfs:label "count" ;
+  rdfs:comment "The JSON path match count must equal the declared expected count." .
 
 accord:gitRefState a accord:StateLocatorKind ;
   rdfs:label "git ref state" ;

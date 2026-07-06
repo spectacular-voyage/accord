@@ -1,9 +1,38 @@
-@prefix accord: <https://spectacular-voyage.github.io/accord/ns#> .
-@prefix accord-sh: <https://spectacular-voyage.github.io/accord/shapes#> .
+@base <https://spectacular-voyage.github.io/accord/shacl/> .
+@prefix accord: <https://spectacular-voyage.github.io/accord/ontology/> .
+@prefix accord-sh: <https://spectacular-voyage.github.io/accord/shacl/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sflo: <https://semantic-flow.github.io/sflo/ontology/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://spectacular-voyage.github.io/accord/shacl> a owl:Ontology ;
+  dcterms:title "Accord SHACL Shapes" ;
+  dcterms:description "SHACL shapes for validating Accord conformance manifests, replay metadata, and scenario indexes." ;
+  dcterms:creator <https://djradon.github.io/ns/dave-richardson> ;
+  dcterms:hasVersion <https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0> ;
+  dcterms:modified "2026-05-23"^^xsd:date ;
+  owl:versionIRI <https://raw.githubusercontent.com/spectacular-voyage/accord/refs/tags/v0.1.0/accord-shacl.ttl> ;
+  owl:versionInfo "0.1.0" ;
+  vann:preferredNamespacePrefix "accord-sh" ;
+  vann:preferredNamespaceUri "https://spectacular-voyage.github.io/accord/shacl/" .
+
+<https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0>
+  a owl:Ontology, sflo:HistoricalState ;
+  dcterms:isVersionOf <https://spectacular-voyage.github.io/accord/shacl> ;
+  dcterms:issued "2026-05-23"^^xsd:date ;
+  owl:versionInfo "0.1.0" ;
+  schema:contentUrl <https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0/ttl/accord-shacl.ttl> ;
+  sflo:hasManifestation <https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0/ttl> .
+
+<https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0/ttl>
+  dcat:downloadURL <https://spectacular-voyage.github.io/accord/shacl/releases/v0.1.0/ttl/accord-shacl.ttl> .
 
 accord-sh:ManifestShape a sh:NodeShape ;
   sh:targetClass accord:Manifest ;
@@ -49,7 +78,7 @@ accord-sh:ScenarioIndexShape a sh:NodeShape ;
   sh:sparql [
     sh:message "A scenario index must not declare two distinct state lanes with the same laneKey." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:hasStateLane ?laneA, ?laneB .
         FILTER (?laneA != ?laneB)
@@ -85,7 +114,7 @@ accord-sh:ScenarioStepShape a sh:NodeShape ;
   sh:sparql [
     sh:message "manifestPath values must be repository-relative, must not contain parent traversal or backslashes, and must not be absolute." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:manifestPath ?path .
         FILTER (
@@ -141,7 +170,7 @@ accord-sh:LaneStateBindingShape a sh:NodeShape ;
   sh:sparql [
     sh:message "A lane state binding must reference a state lane declared by the same scenario index." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
       SELECT $this WHERE {
         $this accord:lane ?lane .
@@ -233,10 +262,15 @@ accord-sh:TransitionCaseShape a sh:NodeShape ;
     sh:node accord-sh:RdfExpectationShape ;
     sh:message "If present, each RDF expectation must satisfy the Accord RDF expectation shape." ;
   ] ;
+  sh:property [
+    sh:path accord:hasJsonExpectation ;
+    sh:node accord-sh:JsonExpectationShape ;
+    sh:message "If present, each JSON expectation must satisfy the Accord JSON expectation shape." ;
+  ] ;
   sh:sparql [
     sh:message "ignorePaths values must be repository-relative, must not contain parent traversal or backslashes, and may only use /** as a subtree suffix." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:ignorePaths ?path .
         FILTER (
@@ -277,7 +311,7 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
   sh:sparql [
     sh:message "File expectations with changeType accord:added, accord:updated, or accord:unchanged must declare compareMode." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:changeType ?changeType .
         FILTER (?changeType IN (accord:added, accord:updated, accord:unchanged))
@@ -290,39 +324,14 @@ accord-sh:FileExpectationShape a sh:NodeShape ;
   sh:sparql [
     sh:message "File expectations with changeType accord:removed or accord:absent must not declare compareMode." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:changeType ?changeType ;
               accord:compareMode ?compareMode .
         FILTER (?changeType IN (accord:removed, accord:absent))
       }
     """ ;
-  ] ;
-  sh:or (
-    [
-      sh:not [
-        sh:property [
-          sh:path accord:compareMode ;
-          sh:hasValue accord:rdfCanonical ;
-        ]
-      ]
-    ]
-    [
-      sh:property [
-        sh:path accord:compareMode ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:hasValue accord:rdfCanonical ;
-      ] ;
-      sh:property [
-        sh:path [ sh:inversePath accord:targetsFileExpectation ] ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:class accord:RdfExpectation ;
-        sh:message "A file expectation with compareMode accord:rdfCanonical must be targeted by exactly one RDF expectation." ;
-      ]
-    ]
-  ) .
+  ] .
 
 accord-sh:RdfExpectationShape a sh:NodeShape ;
   sh:targetClass accord:RdfExpectation ;
@@ -348,7 +357,7 @@ accord-sh:RdfExpectationShape a sh:NodeShape ;
   sh:sparql [
     sh:message "An RDF expectation must target a file expectation in the same transition case that contains the RDF expectation." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:targetsFileExpectation ?targetFileExpectation .
         ?case accord:hasRdfExpectation $this .
@@ -383,6 +392,131 @@ accord-sh:SparqlAskAssertionShape a sh:NodeShape ;
     sh:maxCount 1 ;
     sh:datatype xsd:boolean ;
     sh:message "A SPARQL ASK assertion must declare exactly one expected boolean result." ;
+  ] .
+
+accord-sh:JsonExpectationShape a sh:NodeShape ;
+  sh:targetClass accord:JsonExpectation ;
+  sh:property [
+    sh:path accord:targetsFileExpectation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:BlankNodeOrIRI ;
+    sh:class accord:FileExpectation ;
+    sh:node accord-sh:JsonTargetFileExpectationShape ;
+    sh:message "A JSON expectation must target exactly one file expectation whose toRef content exists." ;
+  ] ;
+  sh:property [
+    sh:path accord:hasJsonAssertion ;
+    sh:minCount 1 ;
+    sh:node accord-sh:JsonAssertionShape ;
+    sh:message "A JSON expectation must contain at least one well-formed JSON assertion." ;
+  ] ;
+  sh:sparql [
+    sh:message "A JSON expectation must target a file expectation in the same transition case that contains the JSON expectation." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:targetsFileExpectation ?targetFileExpectation .
+        ?case accord:hasJsonExpectation $this .
+        FILTER NOT EXISTS {
+          ?case accord:hasFileExpectation ?targetFileExpectation .
+        }
+      }
+    """ ;
+  ] .
+
+accord-sh:JsonTargetFileExpectationShape a sh:NodeShape ;
+  sh:property [
+    sh:path accord:changeType ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in ( accord:added accord:updated accord:unchanged ) ;
+    sh:message "A file expectation targeted by a JSON expectation must have toRef content: accord:added, accord:updated, or accord:unchanged." ;
+  ] .
+
+accord-sh:JsonAssertionShape a sh:NodeShape ;
+  sh:targetClass accord:JsonAssertion ;
+  sh:property [
+    sh:path accord:jsonPath ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "A JSON assertion must declare exactly one JSON path string." ;
+  ] ;
+  sh:property [
+    sh:path accord:jsonAssertionKind ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:in ( accord:exists accord:notExists accord:equals accord:count ) ;
+    sh:message "A JSON assertion must use one supported assertion kind." ;
+  ] ;
+  sh:property [
+    sh:path accord:expectedValue ;
+    sh:maxCount 1 ;
+    sh:or (
+      [ sh:datatype xsd:string ]
+      [ sh:datatype xsd:boolean ]
+      [ sh:datatype xsd:integer ]
+      [ sh:datatype xsd:decimal ]
+      [ sh:datatype xsd:double ]
+    ) ;
+    sh:message "expectedValue, when present, must be a single scalar string, boolean, or number." ;
+  ] ;
+  sh:property [
+    sh:path accord:expectedCount ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:integer ;
+    sh:minInclusive 0 ;
+    sh:message "expectedCount, when present, must be a single non-negative integer." ;
+  ] ;
+  sh:sparql [
+    sh:message "JSON equals assertions must declare expectedValue." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:jsonAssertionKind accord:equals .
+        FILTER NOT EXISTS {
+          $this accord:expectedValue ?expectedValue .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "Only JSON equals assertions may declare expectedValue." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:expectedValue ?expectedValue .
+        FILTER NOT EXISTS {
+          $this accord:jsonAssertionKind accord:equals .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "JSON count assertions must declare expectedCount." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:jsonAssertionKind accord:count .
+        FILTER NOT EXISTS {
+          $this accord:expectedCount ?expectedCount .
+        }
+      }
+    """ ;
+  ] ;
+  sh:sparql [
+    sh:message "Only JSON count assertions may declare expectedCount." ;
+    sh:select """
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
+      SELECT $this WHERE {
+        $this accord:expectedCount ?expectedCount .
+        FILTER NOT EXISTS {
+          $this accord:jsonAssertionKind accord:count .
+        }
+      }
+    """ ;
   ] .
 
 accord-sh:StateLocatorShape a sh:NodeShape ;
@@ -563,7 +697,7 @@ accord-sh:FileOperationShape a sh:NodeShape ;
   sh:sparql [
     sh:message "createFile, replaceFile, and copyPath file operations must declare source provenance." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:operationKind ?operationKind .
         FILTER (?operationKind IN (accord:createFile, accord:replaceFile, accord:copyPath))
@@ -623,7 +757,7 @@ accord-sh:SourceProvenanceShape a sh:NodeShape ;
   sh:sparql [
     sh:message "URL-backed source provenance must include contentDigest unless nondeterministicSource is true." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:sourceKind accord:remoteUrlSource .
         FILTER NOT EXISTS {
@@ -646,7 +780,7 @@ accord-sh:TransitionCaseShape
   sh:sparql [
     sh:message "A transition case must not contain two distinct file expectations for the same path." ;
     sh:select """
-      PREFIX accord: <https://spectacular-voyage.github.io/accord/ns#>
+      PREFIX accord: <https://spectacular-voyage.github.io/accord/ontology/>
       SELECT $this WHERE {
         $this accord:hasFileExpectation ?fileExpectationA, ?fileExpectationB .
         FILTER (?fileExpectationA != ?fileExpectationB)

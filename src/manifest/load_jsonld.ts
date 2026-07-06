@@ -1,4 +1,6 @@
 import jsonld from "jsonld";
+import { Parser } from "n3";
+import type { Quad } from "n3";
 import {
   assertContextReferencesAllowed,
   createFileJsonLdDocumentContext,
@@ -13,6 +15,9 @@ import type {
   FileExpectation,
   FileOperation,
   InputMaterialization,
+  JsonAssertion,
+  JsonExpectation,
+  JsonScalar,
   ManifestDocument,
   RdfExpectation,
   ReplayProfile,
@@ -22,12 +27,18 @@ import type {
   TransitionCase,
 } from "./model.ts";
 
-const ACCORD_NS = "https://spectacular-voyage.github.io/accord/ns#";
+const ACCORD_NS = "https://spectacular-voyage.github.io/accord/ontology/";
 
 export interface LoadedManifestSource {
   path: string;
   documentUrl: string;
   document: ManifestDocument;
+}
+
+export interface LoadedManifestRdfSource {
+  path: string;
+  documentUrl: string;
+  quads: Quad[];
 }
 
 export class ManifestLoadError extends Error {
@@ -79,6 +90,35 @@ export async function readManifestSource(
   };
 }
 
+export async function readManifestRdfSource(
+  manifestPath: string,
+): Promise<LoadedManifestRdfSource> {
+  const documentContext = createFileJsonLdDocumentContext(
+    manifestPath,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+  );
+  const sourceText = await readManifestText(manifestPath, documentContext);
+  const rawDocument = parseJsonSource(
+    sourceText,
+    manifestPath,
+    documentContext.documentUrl,
+    createManifestLoadError,
+    CHECK_CODES.MANIFEST_LOAD_ERROR,
+    "JSON-LD manifest document",
+  );
+  assertContextReferencesAllowed(
+    getTopLevelContext(rawDocument),
+    createManifestLoadError,
+  );
+
+  return {
+    path: manifestPath,
+    documentUrl: documentContext.documentUrl,
+    quads: await manifestToRdfQuads(rawDocument, documentContext),
+  };
+}
+
 async function readManifestText(
   manifestPath: string,
   documentContext: JsonLdDocumentContext,
@@ -114,6 +154,35 @@ async function expandManifest(
     throw new ManifestLoadError(
       CHECK_CODES.MANIFEST_LOAD_ERROR,
       `Failed to load JSON-LD manifest: ${message}`,
+    );
+  }
+}
+
+async function manifestToRdfQuads(
+  rawDocument: unknown,
+  documentContext: JsonLdDocumentContext,
+): Promise<Quad[]> {
+  try {
+    const nquads = await jsonld.toRDF(rawDocument, {
+      base: documentContext.documentUrl,
+      safe: true,
+      format: "application/n-quads",
+      documentLoader: documentContext.documentLoader,
+    });
+
+    return new Parser({
+      format: "application/n-quads",
+      baseIRI: documentContext.documentUrl,
+    }).parse(nquads);
+  } catch (error) {
+    if (error instanceof ManifestLoadError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ManifestLoadError(
+      CHECK_CODES.MANIFEST_LOAD_ERROR,
+      `Failed to convert JSON-LD manifest to RDF: ${message}`,
     );
   }
 }
@@ -198,6 +267,9 @@ function mapSourceTransitionCase(
     hasRdfExpectation: getSourceNodeArray(source, "hasRdfExpectation").map((
       node,
     ) => mapSourceRdfExpectation(node, documentUrl)),
+    hasJsonExpectation: getSourceNodeArray(source, "hasJsonExpectation").map((
+      node,
+    ) => mapSourceJsonExpectation(node, documentUrl)),
   };
 }
 
@@ -247,6 +319,40 @@ function mapSourceAskAssertion(
     type: getSourceType(source),
     query: getSourceString(source, "query"),
     expectedBoolean: getSourceBoolean(source, "expectedBoolean"),
+  };
+}
+
+function mapSourceJsonExpectation(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): JsonExpectation {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    targetsFileExpectation: getSourceString(source, "targetsFileExpectation"),
+    hasJsonAssertion: getSourceNodeArray(source, "hasJsonAssertion").map((
+      node,
+    ) => mapSourceJsonAssertion(node, documentUrl)),
+  };
+}
+
+function mapSourceJsonAssertion(
+  source: Record<string, unknown>,
+  documentUrl: string,
+): JsonAssertion {
+  const id = getSourceId(source);
+
+  return {
+    id,
+    resolvedId: resolveIri(id, documentUrl),
+    type: getSourceType(source),
+    jsonPath: getSourceString(source, "jsonPath"),
+    jsonAssertionKind: getSourceString(source, "jsonAssertionKind"),
+    expectedValue: getSourceScalar(source, "expectedValue"),
+    expectedCount: getSourceNumber(source, "expectedCount"),
   };
 }
 
@@ -466,6 +572,9 @@ function mapExpandedTransitionCase(
     hasRdfExpectation: getExpandedNodeArray(source, "hasRdfExpectation").map((
       node,
     ) => mapExpandedRdfExpectation(node)),
+    hasJsonExpectation: getExpandedNodeArray(source, "hasJsonExpectation").map((
+      node,
+    ) => mapExpandedJsonExpectation(node)),
   };
 }
 
@@ -512,6 +621,38 @@ function mapExpandedAskAssertion(
     type: getExpandedType(source),
     query: getExpandedString(source, "query"),
     expectedBoolean: getExpandedBoolean(source, "expectedBoolean"),
+  };
+}
+
+function mapExpandedJsonExpectation(
+  source: Record<string, unknown>,
+): JsonExpectation {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    targetsFileExpectation: getExpandedIri(source, "targetsFileExpectation"),
+    hasJsonAssertion: getExpandedNodeArray(source, "hasJsonAssertion").map((
+      node,
+    ) => mapExpandedJsonAssertion(node)),
+  };
+}
+
+function mapExpandedJsonAssertion(
+  source: Record<string, unknown>,
+): JsonAssertion {
+  const id = getExpandedNodeId(source);
+
+  return {
+    id,
+    resolvedId: id,
+    type: getExpandedType(source),
+    jsonPath: getExpandedString(source, "jsonPath"),
+    jsonAssertionKind: getExpandedIriLocalName(source, "jsonAssertionKind"),
+    expectedValue: getExpandedScalar(source, "expectedValue"),
+    expectedCount: getExpandedNumber(source, "expectedCount"),
   };
 }
 
@@ -719,6 +860,17 @@ function getSourceNumber(
   return typeof source[key] === "number" ? source[key] : undefined;
 }
 
+function getSourceScalar(
+  source: Record<string, unknown>,
+  key: string,
+): JsonScalar | undefined {
+  const value = source[key];
+  return typeof value === "string" || typeof value === "number" ||
+      typeof value === "boolean"
+    ? value
+    : undefined;
+}
+
 function mapOptionalSourceNode<T>(
   source: Record<string, unknown>,
   key: string,
@@ -874,6 +1026,33 @@ function getExpandedNumber(
 
     if (typeof entry["@value"] === "number") {
       return entry["@value"];
+    }
+  }
+
+  return undefined;
+}
+
+function getExpandedScalar(
+  source: Record<string, unknown>,
+  term: string,
+): JsonScalar | undefined {
+  const rawValue = source[expandTerm(term)];
+
+  if (!Array.isArray(rawValue)) {
+    return undefined;
+  }
+
+  for (const entry of rawValue) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const value = entry["@value"];
+    if (
+      typeof value === "string" || typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
     }
   }
 

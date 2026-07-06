@@ -2,7 +2,7 @@
 id: 57310fcbd912fe335a5cef72
 title: 2026 05 14 Generalized Replay And Provenance
 desc: ''
-updated: 1778728187266
+updated: 1779681694939
 created: 1778728187266
 ---
 
@@ -201,7 +201,7 @@ For now, compose the pieces this way:
 - `ScenarioStep` points from the scenario index to a `TransitionCase` or manifest and can bind scenario-level lanes to the state locators needed by that step.
 - `TransitionCase` owns the verification contract, git-compatible `fromRef` / `toRef`, optional generalized `fromState` / `toState`, and case-level `ignorePaths`.
 - `ReplayProfile` owns replay-only metadata: command invocation, input materialization, and manual file operations.
-- `ignorePaths` affects current whole-tree transition completeness checks and future generated-workspace completeness checks. Explicit `FileExpectation` entries still win.
+- `ignorePaths` affects current whole-tree transition completeness checks and future generated-workspace completeness checks. If an ignored path is also named by an explicit `FileExpectation`, Accord reports a contradictory manifest instead of letting either rule silently win.
 - source provenance can appear on replay input materialization or manual file operations; command-produced output stays verified by file/RDF expectations unless a later runner records derived execution provenance.
 
 ## Contract Changes
@@ -254,5 +254,5 @@ The current `fromRef` and `toRef` fields can remain supported if they still fit 
 - [x] Update [[ac.user-guide]] with guidance about when to use Accord as a checker only and when to include replay metadata for downstream runners.
 - [x] Define the minimal `ScenarioIndex` / `ScenarioStep` vocabulary and validation rules for fixture-owned scenario indexes.
 - [x] Add an Accord-owned sample scenario index that points at existing black-box transition manifests without replacing the current harness index.
-- [ ] Coordinate with Weave's [[wd.task.2026.2026-05-07-fixture-ladder-generator]] so the first Weave dry-run planner consumes the Accord-owned replay shape.
-- [ ] Coordinate with Weave's fixture-specific render-helper replacement so generalized rendering/planning consumes fixture-owned scenario indexes instead of hard-coded fixture ladders.
+- [x] Coordinate with Weave's [[wa.completed.2026.2026-05-07-fixture-ladder-generator]] so the first Weave dry-run planner consumes the Accord-owned replay shape.
+- [x] Coordinate with Weave's fixture-specific render-helper replacement so generalized rendering/planning consumes fixture-owned scenario indexes instead of hard-coded fixture ladders.

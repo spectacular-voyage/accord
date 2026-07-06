@@ -1,0 +1,20 @@
+{
+  "shape": "leakScan",
+  "participants": [
+    {
+      "role": "speaker",
+      "participantAim": "reviseBeforeUse"
+    }
+  ],
+  "evidence": [
+    {
+      "pointer": "/records/0"
+    }
+  ],
+  "records": [
+    {
+      "id": "a",
+      "status": "draft"
+    }
+  ]
+}

@@ -67,19 +67,23 @@ function normalizeRepoRelativeInput(
   input: string,
   options: { allowGlob: boolean },
 ): string {
-  const normalized = input.replaceAll("\\", "/");
-
-  if (normalized === "") {
+  if (input === "") {
     throw new IgnorePathPatternError("ignorePaths patterns must not be empty.");
   }
 
-  if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) {
+  if (input.includes("\\")) {
     throw new IgnorePathPatternError(
       `ignorePaths patterns must be repo-relative POSIX paths: ${input}`,
     );
   }
 
-  const segments = normalized.split("/");
+  if (input.startsWith("/") || /^[A-Za-z]:\//.test(input)) {
+    throw new IgnorePathPatternError(
+      `ignorePaths patterns must be repo-relative POSIX paths: ${input}`,
+    );
+  }
+
+  const segments = input.split("/");
   if (
     segments.some((segment) =>
       segment === "" ||

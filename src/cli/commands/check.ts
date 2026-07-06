@@ -1,5 +1,10 @@
 import { compareBytes } from "../../checker/compare_bytes.ts";
 import {
+  evaluateJsonAssertion,
+  JsonAssertionError,
+  parseJsonArtifact,
+} from "../../checker/json_assertions.ts";
+import {
   compareRdfContent,
   RdfCompareError,
 } from "../../checker/compare_rdf.ts";
@@ -19,6 +24,8 @@ import { GitAccessError, resolveGitRepositoryRoot } from "../../git/repo.ts";
 import { createPathMappedJsonLdDocumentContext } from "../../jsonld/documents.ts";
 import type {
   FileExpectation,
+  JsonAssertion,
+  JsonExpectation,
   RdfExpectation,
   SparqlAskAssertion,
   TransitionCase,
@@ -41,33 +48,65 @@ import {
 import { renderTextReport } from "../../report/text_report.ts";
 import type { CheckCommand } from "../parse_args.ts";
 
+export interface SingleCheckRunOptions {
+  manifestPath: string;
+  caseId?: string;
+  fixtureRepoPath?: string;
+}
+
+export interface SingleCheckRunResult {
+  report: JsonReport;
+  transitionCase?: TransitionCase;
+}
+
 export async function handleCheckCommand(
   command: CheckCommand,
 ): Promise<number> {
-  let caseId = command.caseId ?? "";
-  let fixtureRepoPath = command.fixtureRepoPath ?? "";
+  try {
+    const result = await runSingleCheck({
+      manifestPath: command.manifestPath,
+      caseId: command.caseId,
+      fixtureRepoPath: command.fixtureRepoPath,
+    });
+
+    writeReport(command, result.report);
+    return exitCodeForStatus(result.report.status);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      console.error(`Manifest not found: ${command.manifestPath}`);
+      return 2;
+    }
+
+    throw error;
+  }
+}
+
+export async function runSingleCheck(
+  options: SingleCheckRunOptions,
+): Promise<SingleCheckRunResult> {
+  let caseId = options.caseId ?? "";
+  let fixtureRepoPath = options.fixtureRepoPath ?? "";
 
   try {
-    const manifest = await readManifestSource(command.manifestPath);
+    const manifest = await readManifestSource(options.manifestPath);
     const transitionCase = selectTransitionCase(
       manifest.document,
-      command.caseId,
+      options.caseId,
     );
     caseId = transitionCase.id ?? caseId;
 
-    fixtureRepoPath = await resolveFixtureRepoPath(command.fixtureRepoPath);
+    fixtureRepoPath = await resolveFixtureRepoPath(options.fixtureRepoPath);
     await assertRefExists(fixtureRepoPath, transitionCase.fromRef);
     await assertRefExists(fixtureRepoPath, transitionCase.toRef);
 
     const checks = await evaluateCaseChecks(fixtureRepoPath, transitionCase);
     const report = buildReport({
-      manifestPath: command.manifestPath,
+      manifestPath: options.manifestPath,
       caseId,
       fixtureRepoPath,
       checks,
     });
-    writeReport(command, report);
-    return exitCodeForStatus(report.status);
+    return { report, transitionCase };
   } catch (error) {
     if (
       error instanceof ManifestLoadError ||
@@ -75,7 +114,7 @@ export async function handleCheckCommand(
       error instanceof SetupCheckError
     ) {
       const report = buildReport({
-        manifestPath: command.manifestPath,
+        manifestPath: options.manifestPath,
         caseId,
         fixtureRepoPath,
         checks: [
@@ -87,13 +126,7 @@ export async function handleCheckCommand(
           },
         ],
       });
-      writeReport(command, report);
-      return 2;
-    }
-
-    if (error instanceof Deno.errors.NotFound) {
-      console.error(`Manifest not found: ${command.manifestPath}`);
-      return 2;
+      return { report };
     }
 
     throw error;
@@ -222,6 +255,12 @@ async function evaluateCaseChecks(
       fileExpectations,
       presenceByExpectation,
     ),
+    ...await evaluateJsonExpectationChecks(
+      repoPath,
+      transitionCase,
+      fileExpectations,
+      presenceByExpectation,
+    ),
   );
 
   return checks;
@@ -305,6 +344,7 @@ async function evaluateRdfExpectationChecks(
   presenceByExpectation: Map<FileExpectation, boolean>,
 ): Promise<CheckRecord[]> {
   const checks: CheckRecord[] = [];
+  const rdfTargetFileExpectations = new Set<FileExpectation>();
 
   for (const rdfExpectation of transitionCase.hasRdfExpectation ?? []) {
     const targetFileExpectation = resolveTargetFileExpectation(
@@ -315,6 +355,7 @@ async function evaluateRdfExpectationChecks(
     if (targetFileExpectation === undefined) {
       continue;
     }
+    rdfTargetFileExpectations.add(targetFileExpectation);
 
     if (!presenceByExpectation.get(targetFileExpectation)) {
       continue;
@@ -358,14 +399,47 @@ async function evaluateRdfExpectationChecks(
     }
   }
 
+  for (const fileExpectation of fileExpectations) {
+    if (
+      rdfTargetFileExpectations.has(fileExpectation) ||
+      !presenceByExpectation.get(fileExpectation)
+    ) {
+      continue;
+    }
+
+    const path = fileExpectation.path;
+    const changeType = fileExpectation.changeType as
+      | FileChangeType
+      | undefined;
+
+    if (
+      path === undefined ||
+      changeType === undefined ||
+      fileExpectation.compareMode !== "rdfCanonical" ||
+      (changeType !== "updated" && changeType !== "unchanged")
+    ) {
+      continue;
+    }
+
+    checks.push(
+      await evaluateRdfComparison({
+        repoPath,
+        fromRef: transitionCase.fromRef!,
+        toRef: transitionCase.toRef!,
+        path,
+        changeType,
+      }),
+    );
+  }
+
   return checks;
 }
 
 function resolveTargetFileExpectation(
-  rdfExpectation: RdfExpectation,
+  expectation: { targetsFileExpectation?: string },
   fileExpectations: FileExpectation[],
 ): FileExpectation | undefined {
-  const target = rdfExpectation.targetsFileExpectation;
+  const target = expectation.targetsFileExpectation;
 
   if (target === undefined) {
     return undefined;
@@ -376,6 +450,130 @@ function resolveTargetFileExpectation(
   );
 }
 
+async function evaluateJsonExpectationChecks(
+  repoPath: string,
+  transitionCase: TransitionCase,
+  fileExpectations: FileExpectation[],
+  presenceByExpectation: Map<FileExpectation, boolean>,
+): Promise<CheckRecord[]> {
+  const checks: CheckRecord[] = [];
+
+  for (const jsonExpectation of transitionCase.hasJsonExpectation ?? []) {
+    const targetFileExpectation = resolveTargetFileExpectation(
+      jsonExpectation,
+      fileExpectations,
+    );
+
+    if (
+      targetFileExpectation === undefined ||
+      !presenceByExpectation.get(targetFileExpectation)
+    ) {
+      continue;
+    }
+
+    const path = targetFileExpectation.path;
+    const changeType = targetFileExpectation.changeType as
+      | FileChangeType
+      | undefined;
+
+    if (
+      path === undefined ||
+      changeType === undefined ||
+      changeType === "removed" ||
+      changeType === "absent"
+    ) {
+      continue;
+    }
+
+    checks.push(
+      ...await evaluateJsonAssertionsForExpectation({
+        repoPath,
+        toRef: transitionCase.toRef!,
+        path,
+        jsonExpectation,
+      }),
+    );
+  }
+
+  return checks;
+}
+
+async function evaluateJsonAssertionsForExpectation(
+  options: {
+    repoPath: string;
+    toRef: string;
+    path: string;
+    jsonExpectation: JsonExpectation;
+  },
+): Promise<CheckRecord[]> {
+  const { repoPath, toRef, path, jsonExpectation } = options;
+  const checks: CheckRecord[] = [];
+  const assertions = jsonExpectation.hasJsonAssertion ?? [];
+  let document: unknown;
+
+  try {
+    document = parseJsonArtifact(
+      await readGitBlob(repoPath, toRef, path),
+      path,
+    );
+  } catch (error) {
+    if (error instanceof JsonAssertionError) {
+      return assertions.map((assertion) =>
+        jsonAssertionErrorRecord(path, assertion, error)
+      );
+    }
+
+    throw error;
+  }
+
+  for (const assertion of assertions) {
+    checks.push(evaluateJsonAssertionCheck(document, path, assertion));
+  }
+
+  return checks;
+}
+
+function evaluateJsonAssertionCheck(
+  document: unknown,
+  path: string,
+  assertion: JsonAssertion,
+): CheckRecord {
+  try {
+    const evaluation = evaluateJsonAssertion(document, assertion);
+    return {
+      kind: "json_assertion",
+      status: evaluation.passed ? "pass" : "fail",
+      code: evaluation.code,
+      message: evaluation.message,
+      path,
+      assertionId: assertion.id ?? assertion.resolvedId,
+      jsonPath: assertion.jsonPath,
+    };
+  } catch (error) {
+    if (error instanceof JsonAssertionError) {
+      return jsonAssertionErrorRecord(path, assertion, error);
+    }
+
+    throw error;
+  }
+}
+
+function jsonAssertionErrorRecord(
+  path: string,
+  assertion: JsonAssertion,
+  error: JsonAssertionError,
+): CheckRecord {
+  return {
+    kind: "json_assertion",
+    status: "error",
+    code: error.code,
+    message: error.message,
+    path,
+    assertionId: assertion.id ?? assertion.resolvedId,
+    jsonPath: assertion.jsonPath,
+  };
+}
+
 async function evaluateRdfComparison(
   options: {
     repoPath: string;
@@ -383,7 +581,7 @@ async function evaluateRdfComparison(
     toRef: string;
     path: string;
     changeType: FileChangeType;
-    rdfExpectation: RdfExpectation;
+    rdfExpectation?: RdfExpectation;
   },
 ): Promise<CheckRecord> {
   const { repoPath, fromRef, toRef, path, changeType, rdfExpectation } =
@@ -400,7 +598,7 @@ async function evaluateRdfComparison(
       left: fromBytes,
       right: toBytes,
       path,
-      ignorePredicates: rdfExpectation.ignorePredicate,
+      ignorePredicates: rdfExpectation?.ignorePredicate,
       leftDocumentContext: createGitJsonLdDocumentContext(
         repoPath,
         fromRef,
@@ -608,7 +806,7 @@ function writeReport(command: CheckCommand, report: JsonReport): void {
   console.log(renderTextReport(report));
 }
 
-function exitCodeForStatus(status: JsonReport["status"]): number {
+export function exitCodeForStatus(status: JsonReport["status"]): number {
   switch (status) {
     case "pass":
       return 0;

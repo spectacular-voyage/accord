@@ -59,6 +59,15 @@ The current `accord-shacl.ttl` already depends on SHACL-SPARQL. Examples include
 
 That means "pick the nicest Core-only validator" is the wrong question. Either Accord uses a validator that can execute the current shapes graph, or Accord rewrites the shapes to avoid `sh:sparql`. Rewriting the shapes just to fit a library would be backwards.
 
+### Stagecraft temporal rung authoring failures
+
+The Stagecraft temporal-vocabulary rung added concrete evidence that authoring validation needs to catch more than RDF shape conformance:
+
+- ASK assertion syntax problems, including `FILTER NOT EXISTS` and bare boolean literals, failed only when `accord check` executed the transition. The owned task for broadening that language surface is [[ac.completed.2026.2026-07-04-real-sparql-ask]].
+- A JSON-LD context duplicate-key issue was easy to miss because standard JSON parsing keeps only one value. That specific failure happened in a contract context file rather than an Accord manifest, but the same silent-overwrite risk applies to authored manifests.
+
+This is a reason to keep `accord validate` separate, but not a reason to pretend SHACL alone is enough. The first version should run SHACL over the manifest graph. The real ASK slice in [[ac.completed.2026.2026-07-04-real-sparql-ask]] did not expose a reusable `SparqlAskAssertion` syntax/profile preflight; ASK syntax and profile failures therefore remain check-time `sparql_query_error` results for now. If duplicate-key detection is added, it should happen before JSON-LD expansion so the original authoring problem is still observable.
+
 ### Candidate libraries
 
 #### `shacl-engine`
@@ -78,6 +87,14 @@ Risks:
 - the SPARQL support is plugin-based, so the validator wiring must be explicit
 - Accord will still need its own result formatting layer rather than dumping raw validation reports directly
 
+2026-07-04 Deno spike result:
+
+- `shacl-engine@1.1.2` imports cleanly under Deno 2.8.3 with the normal npm-cache path.
+- `shacl-engine/sparql.js` does not import cleanly under the normal npm-cache path. It fails through `jsonld-context-parser@2.4.0` requiring `cross-fetch/polyfill`, with Deno reporting the resolved `dist/node-polyfill.js` path as missing. This is the same resolver class encountered in [[ac.completed.2026.2026-07-04-real-sparql-ask]].
+- `shacl-engine/sparql.js` does import when forced through physical `node_modules` with `--node-modules-dir=auto`, but that is not a good release-gate shape for Accord.
+- `deno info npm:shacl-engine` reported 406 unique dependencies and 33.56 MB logical dependency size, largely because the optional SPARQL plugin dependency path pulls Comunica RDFJS-lite.
+- The landed path therefore uses `shacl-engine` core with an Accord-owned `sh:sparql` validation hook over the loaded shipped shapes graph, rather than importing `shacl-engine/sparql.js`.
+
 #### `rdf-validate-shacl`
 
 `rdf-validate-shacl` is not the right first pick for current Accord.
@@ -92,7 +109,7 @@ Blocking issue:
 
 - its README explicitly says it does not support SHACL-SPARQL constraints
 
-That limitation is not theoretical. It means the current Accord shapes graph would only be partially enforced unless the shapes were rewritten.
+That limitation is not theoretical. In the Deno 2.8.3 spike, `rdf-validate-shacl@0.6.5` imported cleanly and was much smaller than `shacl-engine` at 33 unique dependencies and 8.7 MB logical dependency size, but validating the shipped `accord-shacl.ttl` hard-failed with `Cannot find validator for constraint component http://www.w3.org/ns/shacl#SPARQLConstraintComponent`. It is not suitable for Accord's shipped shapes graph unless Accord rewrites or strips `sh:sparql`, which this task explicitly rejects.
 
 #### `shacl-processor-ts`
 
@@ -137,11 +154,12 @@ The important point is that this command validates authored contract data, not f
 
 ## Open Issues
 
-- Confirm whether `shacl-engine` runs cleanly under the current Deno 2.x npm bridge with Accord’s RDF/JS types and parser stack.
-- Decide whether `accord validate` should validate the entire manifest graph only, or also support focus-node filtering for faster author feedback.
-- Decide whether the first report format should include only SHACL result messages or also post-processed Accord-specific help text.
+- Decide whether `accord validate` should later support focus-node filtering for faster author feedback.
+- Decide whether the validation report should grow post-processed Accord-specific help text beyond the stable SHACL result fields.
 - Decide whether warning-only behavior is needed at all once a separate `accord validate` command exists.
-- Decide whether shape overrides should be supported, or whether the command should always use the repository’s shipped `accord-shacl.ttl`.
+- Decide whether shape overrides should be supported for local SHACL development. The current command always uses the repository’s shipped `accord-shacl.ttl`.
+- Decide whether to add duplicate-key detection before JSON-LD expansion as a separate non-SHACL authoring check.
+- Decide whether `accord validate` should grow its own ASK syntax/profile preflight, since [[ac.completed.2026.2026-07-04-real-sparql-ask]] did not expose one.
 
 ## Decisions
 
@@ -151,6 +169,13 @@ The important point is that this command validates authored contract data, not f
 - Evaluate `shacl-engine` first because current Accord shapes require SHACL-SPARQL support.
 - Do not rewrite `accord-shacl.ttl` to avoid `sh:sparql` solely to fit a weaker validator.
 - Keep the same deterministic local-only JSON-LD document-loading policy when validating manifests with SHACL.
+- Use `shacl-engine` core plus an Accord-owned `sh:sparql` validation hook for the landed command. Do not require physical `node_modules` just to import `shacl-engine/sparql.js`.
+- Do not use `rdf-validate-shacl` for the landed command because it hard-fails on `sh:SPARQLConstraintComponent` in the shipped shapes graph.
+- Validate the entire manifest graph in the first command version; defer focus-node filtering.
+- Always use the repository’s shipped `accord-shacl.ttl` in the first command version; defer shape overrides.
+- Do not add duplicate JSON key detection in this slice. `accord validate` uses the existing JSON parse and local-only JSON-LD expansion policy. A duplicate-key-aware parser should be a separate non-SHACL authoring-check decision because it changes JSON parsing behavior before expansion.
+- Do not add ASK syntax/profile preflight in this slice. The current [[ac.completed.2026.2026-07-04-real-sparql-ask]] worktree did not expose a reusable preflight, so ASK query syntax/profile failures remain check-time errors.
+- The Accord-owned SHACL-SPARQL evaluator now matches the ASK profile's filter scoping behavior for supported graph patterns: filters are applied after sibling non-filter patterns in the same group, including inside `UNION` branches, so filter-first and filter-last authored `sh:sparql` constraints agree.
 
 ## Contract Changes
 
@@ -170,6 +195,8 @@ If the work lands, the CLI contract changes would be in the command surface, not
 - Add validator tests that exercise the current `sh:sparql` constraints explicitly rather than only happy-path SHACL Core checks.
 - Add CLI tests for both passing and failing manifests through `accord validate`.
 - Add at least one invalid-manifest fixture per important shape rule so the error report remains stable and understandable.
+- If `accord validate` grows an ASK syntax/profile preflight, add an invalid-manifest fixture proving it reports query syntax/profile failures before transition execution.
+- Add at least one pre-expansion JSON or JSON-LD fixture with a duplicate key if duplicate-key detection is included in `validate`.
 - Re-run the existing checker suite to confirm SHACL support does not leak into `accord check`.
 
 ## Non-Goals
@@ -182,11 +209,13 @@ If the work lands, the CLI contract changes would be in the command surface, not
 
 ## Implementation Plan
 
-- [ ] Confirm Deno compatibility for `shacl-engine` with the current Accord toolchain and RDF/JS dataset flow.
-- [ ] Extend the CLI spec and user documentation to define `accord validate <manifest>` as a separate command from `accord check`.
-- [ ] Reuse the existing manifest JSON-LD loader policy to produce a dataset suitable for SHACL validation.
-- [ ] Load the repository’s shipped `accord-shacl.ttl` into the validator and wire in SHACL-SPARQL support explicitly.
-- [ ] Convert raw validation output into stable Accord text and JSON reports.
-- [ ] Decide whether any opt-in soft mode such as `--warn-only` is still justified after the separate command exists.
-- [ ] Add unit and CLI tests for valid manifests and for failures caused by the current `sh:sparql` constraints.
+- [x] Confirm Deno compatibility for `shacl-engine` with the current Accord toolchain and RDF/JS dataset flow.
+- [x] Extend the CLI spec and user documentation to define `accord validate <manifest>` as a separate command from `accord check`.
+- [x] Reuse the existing manifest JSON-LD loader policy to produce a dataset suitable for SHACL validation.
+- [x] Load the repository’s shipped `accord-shacl.ttl` into the validator and wire in SHACL-SPARQL support explicitly.
+- [x] Record that [[ac.completed.2026.2026-07-04-real-sparql-ask]] did not expose a reusable ASK syntax/profile preflight; ASK syntax/profile failures remain check-time errors until `accord validate` grows its own preflight.
+- [x] Decide whether manifest loading should use a duplicate-key-detecting JSON parser before JSON-LD expansion.
+- [x] Convert raw validation output into stable Accord text and JSON reports.
+- [x] Decide whether any opt-in soft mode such as `--warn-only` is still justified after the separate command exists.
+- [x] Add unit and CLI tests for valid manifests and for failures caused by the current `sh:sparql` constraints.
 - [ ] Revisit whether further SHACL ergonomics are needed only after the separate validator command is proven useful.

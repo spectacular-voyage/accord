@@ -1,0 +1,35 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:validate-101-compare-mode-required",
+  "dcterms:title": "validate missing compare mode",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.validate.compareModeRequired",
+      "fromRef": "r0-empty",
+      "toRef": "r1-bytes-a",
+      "hasFileExpectation": [
+        {
+          "id": "#artifact-added",
+          "type": "FileExpectation",
+          "path": "artifact.bin",
+          "changeType": "added"
+        }
+      ]
+    }
+  ]
+}

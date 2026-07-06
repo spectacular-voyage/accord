@@ -1,4 +1,4 @@
-import type { JsonReport } from "./json_report.ts";
+import type { CheckRecord, JsonReport } from "./json_report.ts";
 
 export function renderTextReport(report: JsonReport): string {
   const lines = [
@@ -14,11 +14,18 @@ export function renderTextReport(report: JsonReport): string {
       continue;
     }
 
-    const target = check.path ?? check.assertionId ?? "-";
     lines.push(
-      `${check.status}: [${check.kind}] ${check.code} target=${target} ${check.message}`,
+      `${check.status}: [${check.kind}] ${check.code} target=${
+        formatCheckTarget(check)
+      } ${check.message}`,
     );
   }
 
   return lines.join("\n");
+}
+
+export function formatCheckTarget(check: CheckRecord): string {
+  return check.path !== undefined && check.jsonPath !== undefined
+    ? `${check.path} ${check.jsonPath}`
+    : check.path ?? check.assertionId ?? "-";
 }

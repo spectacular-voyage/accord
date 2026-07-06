@@ -203,7 +203,7 @@ shacl-engine (RDF-Ext): A high-performance SHACL engine designed for data provid
 
 shacl-processor-ts: A TypeScript-based library specifically for validating RDF data streams using SHACL.
 
-Fill in [[ac.task.2026.2026-04-03-shacl-validation]] please.
+Fill in [[ac.completed.2026.2026-04-03-shacl-validation]] please.
 
 # gpt-5.4_2026-04-03_1701_40
 
@@ -251,7 +251,7 @@ I’ve finished the note. I’m checking git status one more time so I can answe
 
 # gpt-5.4_2026-04-03_1706_29
 
-Filled in [[ac.task.2026.2026-04-03-shacl-validation]] with the recommendation I’d actually stand behind: do not bolt SHACL onto `accord check` as warning-only preflight. The note now argues for a separate `accord validate <manifest>` command, failing by default, because the current [accord-shacl.ttl](../../accord-shacl.ttl) already uses `sh:sparql`, so a Core-only validator would not reflect the real shapes graph.
+Filled in [[ac.completed.2026.2026-04-03-shacl-validation]] with the recommendation I’d actually stand behind: do not bolt SHACL onto `accord check` as warning-only preflight. The note now argues for a separate `accord validate <manifest>` command, failing by default, because the current [accord-shacl.ttl](../../accord-shacl.ttl) already uses `sh:sparql`, so a Core-only validator would not reflect the real shapes graph.
 
 I also answered the library question in the note: `shacl-engine` is the first spike candidate; `rdf-validate-shacl` is a mismatch for current Accord unless the shapes are rewritten; `shacl-processor-ts` looks more pipeline-oriented, which I called out as an inference from its documented surface. On this branch, besides the new SHACL task note, git still shows changes in `.github/workflows/ci.yml`, [[ac.task.2026.2026-04-03-accord-ci]], and the conversation note. No tests ran because this was a note-only edit.
 

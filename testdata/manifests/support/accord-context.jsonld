@@ -1,6 +1,6 @@
 {
   "@context": {
-    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
     "dcterms": "http://purl.org/dc/terms/",
     "id": "@id",
     "type": "@type",
@@ -8,6 +8,9 @@
       "@type": "@vocab"
     },
     "compareMode": {
+      "@type": "@vocab"
+    },
+    "jsonAssertionKind": {
       "@type": "@vocab"
     },
     "locatorKind": {
@@ -23,6 +26,9 @@
       "@type": "@vocab"
     },
     "lane": {
+      "@type": "@id"
+    },
+    "targetsFileExpectation": {
       "@type": "@id"
     },
     "argv": {

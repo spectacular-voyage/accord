@@ -1,0 +1,24 @@
+{
+  "@context": "manifests/support/accord-context.jsonld",
+  "type": "ScenarioIndex",
+  "id": "urn:accord:testdata:check-scenario-mixed",
+  "hasStep": [
+    {
+      "id": "#pass",
+      "type": "ScenarioStep",
+      "manifestPath": "manifests/bb-001-single-case-auto-select-pass.jsonld",
+      "caseId": "#auto-select-case"
+    },
+    {
+      "id": "#error",
+      "type": "ScenarioStep",
+      "manifestPath": "manifests/missing-check-scenario-manifest.jsonld"
+    },
+    {
+      "id": "#fail",
+      "type": "ScenarioStep",
+      "manifestPath": "manifests/bb-104-unchanged-text-fail.jsonld",
+      "caseId": "#unchanged-text-fail-case"
+    }
+  ]
+}

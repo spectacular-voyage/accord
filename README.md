@@ -14,6 +14,7 @@ It is not an attempt to replace TDD, OpenAPI, or ordinary implementation tests. 
 - which designator path or analogous semantic target the operation addresses
 - which files should be added, updated, left unchanged, removed, or absent
 - how outputs should be compared
+- which JSON artifact facts must hold or must be absent
 - which RDF predicates are volatile and should be excluded from strict equivalence
 - which explicit graph assertions must hold
 
@@ -26,6 +27,7 @@ This initial repository is intentionally small:
 - `accord-ontology.ttl` defines the core vocabulary
 - `accord-shacl.ttl` defines authoring and validation constraints
 - JSON-LD manifests and scenario indexes can use the ontology terms directly
+- `accord draft-manifest` can scaffold conservative file expectations from a git diff
 - future runners or executors can consume the same manifests without owning the semantics
 
 The goal is to start with a semantic kernel, not a framework tower.
@@ -48,6 +50,8 @@ The current ontology starts with a deliberately small set of concepts:
 - `accord:Manifest`
 - `accord:TransitionCase`
 - `accord:FileExpectation`
+- `accord:JsonExpectation`
+- `accord:JsonAssertion`
 - `accord:RdfExpectation`
 - `accord:SparqlAskAssertion`
 - `accord:ScenarioIndex`
@@ -67,7 +71,9 @@ The current model is centered on transition cases because many conformance probl
 - perform or simulate one operation
 - compare the resulting state against expected outcomes
 
-That works especially well for systems that combine filesystem layout with RDF content. Each RDF expectation now targets exactly one file expectation so per-file RDF assertions, ignore lists, and canonical comparison rules remain unambiguous.
+That works especially well for systems that combine filesystem layout with JSON and RDF content. JSON expectations and RDF expectations both target file expectations so per-file assertions, ignore lists, and canonical comparison rules remain unambiguous.
+
+JSON assertions are intentionally small and artifact-scoped. `exists`, `notExists`, `equals`, and `count` assertions read the checked git ref, not the working tree, and use a documented JSONPath subset for root access, child access, wildcards, recursive descent, and array indexes.
 
 Scenario indexes are the adjacent topology layer. They order transition manifests, declare fixture defaults, and bind named state lanes across steps without duplicating the file or RDF assertions owned by each transition manifest.
 
@@ -75,6 +81,19 @@ For deterministic execution, file expectations that describe present files shoul
 
 - `added`, `updated`, and `unchanged` file expectations should declare `compareMode`
 - `removed` and `absent` should not
+
+## CLI usage
+
+The current CLI provides four commands:
+
+```text
+accord check <manifest-path> [--case <case-id>] [--fixture-repo-path <path>] [--format <text|json>]
+accord check-scenario <scenario-index-path> [--fixture-repo-path <path>] [--format <text|json>]
+accord draft-manifest --from <ref> --to <ref> [--fixture-repo-path <path>] [--out <path>] [--force]
+accord validate <manifest-path> [--format <text|json>]
+```
+
+`accord check` runs one transition case. `accord check-scenario` runs every step in a `ScenarioIndex` in order and groups the wrapped check report by step. `accord draft-manifest` writes a deterministic JSON-LD scaffold from `git diff --name-status --find-renames`, emitting file expectations only and never inventing ASK or JSON assertions. `accord validate` checks the authored JSON-LD graph against the shipped SHACL shapes.
 
 ## Validation strategy
 
@@ -96,7 +115,7 @@ An authoring profile can look like this:
 ```json
 {
   "@context": {
-    "@vocab": "https://spectacular-voyage.github.io/accord/ns#",
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
     "dcterms": "http://purl.org/dc/terms/",
     "id": "@id",
     "type": "@type",
@@ -167,6 +186,6 @@ The next useful steps for Accord are likely:
 - a published JSON-LD context
 - one or two example manifests
 - keep the current `accord check` validator small, deterministic, and well-documented
-- if SHACL-oriented manifest validation lands, expose it as a separate command surface rather than an implicit preflight inside `accord check`
+- keep SHACL-oriented manifest validation as a separate `accord validate` command rather than an implicit preflight inside `accord check`
 - a small round-trip example that maps cleanly to fixture repo, branch/ref, target path, and per-file RDF assertions
 - later, optional runner adapters for specific ecosystems

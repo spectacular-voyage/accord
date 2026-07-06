@@ -1,0 +1,57 @@
+{
+  "@context": {
+    "@vocab": "https://spectacular-voyage.github.io/accord/ontology/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "changeType": {
+      "@type": "@vocab"
+    },
+    "compareMode": {
+      "@type": "@vocab"
+    },
+    "jsonAssertionKind": {
+      "@type": "@vocab"
+    },
+    "targetsFileExpectation": {
+      "@type": "@id"
+    }
+  },
+  "type": "Manifest",
+  "id": "urn:accord:testdata:bb-602-json-not-exists-fail",
+  "dcterms:title": "bb-602 JSON absence proof fail",
+  "hasCase": [
+    {
+      "type": "TransitionCase",
+      "id": "#json-not-exists-fail-case",
+      "fixtureRepo": "testdata/repos/repo-files",
+      "operationId": "test.jsonNotExistsFail",
+      "fromRef": "r0-empty",
+      "toRef": "r8-json-leak",
+      "hasFileExpectation": [
+        {
+          "id": "#contract-file",
+          "type": "FileExpectation",
+          "path": "contract.json",
+          "changeType": "added",
+          "compareMode": "json"
+        }
+      ],
+      "hasJsonExpectation": [
+        {
+          "id": "#contract-json",
+          "type": "JsonExpectation",
+          "targetsFileExpectation": "#contract-file",
+          "hasJsonAssertion": [
+            {
+              "id": "#no-participant-aim-leak",
+              "type": "JsonAssertion",
+              "jsonPath": "$..participantAim",
+              "jsonAssertionKind": "notExists"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

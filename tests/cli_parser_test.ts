@@ -32,6 +32,102 @@ Deno.test("parseCliArgs parses the check command", () => {
   );
 });
 
+Deno.test("parseCliArgs parses the check-scenario command", () => {
+  assertEquals(
+    parseCliArgs([
+      "check-scenario",
+      "testdata/check-scenario-mixed.jsonld",
+      "--fixture-repo-path",
+      "/tmp/repo",
+      "--format",
+      "json",
+    ]),
+    {
+      kind: "check-scenario",
+      scenarioIndexPath: "testdata/check-scenario-mixed.jsonld",
+      fixtureRepoPath: "/tmp/repo",
+      format: "json",
+    },
+  );
+});
+
+Deno.test("parseCliArgs parses the validate command", () => {
+  assertEquals(
+    parseCliArgs([
+      "validate",
+      "testdata/manifests/validate-001-valid.jsonld",
+      "--format",
+      "json",
+    ]),
+    {
+      kind: "validate",
+      manifestPath: "testdata/manifests/validate-001-valid.jsonld",
+      format: "json",
+    },
+  );
+});
+
+Deno.test("parseCliArgs parses the draft-manifest command", () => {
+  assertEquals(
+    parseCliArgs([
+      "draft-manifest",
+      "--from",
+      "r10-draft-from",
+      "--to",
+      "r11-draft-to",
+      "--fixture-repo-path",
+      "/tmp/repo",
+      "--out",
+      "/tmp/draft.jsonld",
+      "--force",
+    ]),
+    {
+      kind: "draft-manifest",
+      fromRef: "r10-draft-from",
+      toRef: "r11-draft-to",
+      fixtureRepoPath: "/tmp/repo",
+      outPath: "/tmp/draft.jsonld",
+      force: true,
+    },
+  );
+});
+
+Deno.test("parseCliArgs requires refs for draft-manifest", () => {
+  assertThrows(
+    () => parseCliArgs(["draft-manifest", "--from", "r10-draft-from"]),
+    CliParseError,
+    "requires --from and --to",
+  );
+});
+
+Deno.test("parseCliArgs rejects draft options for check", () => {
+  assertThrows(
+    () =>
+      parseCliArgs([
+        "check",
+        "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+        "--from",
+        "r10-draft-from",
+      ]),
+    CliParseError,
+    "check command only accepts",
+  );
+});
+
+Deno.test("parseCliArgs rejects case selection for check-scenario", () => {
+  assertThrows(
+    () =>
+      parseCliArgs([
+        "check-scenario",
+        "testdata/check-scenario-mixed.jsonld",
+        "--case",
+        "#case",
+      ]),
+    CliParseError,
+    "check-scenario command only accepts",
+  );
+});
+
 Deno.test("parseCliArgs rejects unknown commands", () => {
   assertThrows(
     () => parseCliArgs(["status"]),
@@ -40,7 +136,10 @@ Deno.test("parseCliArgs rejects unknown commands", () => {
   );
 });
 
-Deno.test("renderUsage mentions the check command", () => {
+Deno.test("renderUsage mentions the check and validate commands", () => {
   const usage = renderUsage();
   assertEquals(usage.includes("accord check"), true);
+  assertEquals(usage.includes("accord check-scenario"), true);
+  assertEquals(usage.includes("accord draft-manifest"), true);
+  assertEquals(usage.includes("accord validate"), true);
 });
