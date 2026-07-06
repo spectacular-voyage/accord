@@ -122,12 +122,13 @@ function compareChanges(
   left: GitNameStatusChange,
   right: GitNameStatusChange,
 ): number {
-  const pathCompare = changeSortPath(left).localeCompare(
+  const pathCompare = compareOrdinal(
+    changeSortPath(left),
     changeSortPath(right),
   );
 
   return pathCompare === 0
-    ? left.status.localeCompare(right.status)
+    ? compareOrdinal(left.status, right.status)
     : pathCompare;
 }
 
@@ -144,6 +145,7 @@ function expandChangeToExpectations(
     case "D":
       return [{ path: change.path, changeType: "removed" }];
     case "M":
+    case "T":
       return [{ path: change.path, changeType: "updated" }];
     case "R":
       return [
@@ -151,6 +153,18 @@ function expandChangeToExpectations(
         { path: change.newPath, changeType: "added" },
       ];
   }
+}
+
+function compareOrdinal(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+
+  if (left > right) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function extensionOf(path: string): string {

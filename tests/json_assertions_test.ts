@@ -124,6 +124,55 @@ Deno.test("JSON artifacts fail closed on duplicate object keys", () => {
   assertEquals(escapedDuplicate.code, CHECK_CODES.JSON_DUPLICATE_KEY);
 });
 
+Deno.test("JSON assertion configuration errors use distinct report codes", () => {
+  const document = { summary: { status: "ok" } };
+
+  assertEquals(
+    assertThrows(
+      () =>
+        evaluateJsonAssertion(document, {
+          jsonAssertionKind: "exists",
+        }),
+      JsonAssertionError,
+    ).code,
+    CHECK_CODES.JSON_PATH_MISSING,
+  );
+  assertEquals(
+    assertThrows(
+      () =>
+        evaluateJsonAssertion(document, {
+          jsonPath: "$.summary.status",
+          jsonAssertionKind: "equals",
+        }),
+      JsonAssertionError,
+    ).code,
+    CHECK_CODES.JSON_EXPECTED_VALUE_MISSING,
+  );
+  assertEquals(
+    assertThrows(
+      () =>
+        evaluateJsonAssertion(document, {
+          jsonPath: "$.summary.status",
+          jsonAssertionKind: "count",
+          expectedCount: -1,
+        }),
+      JsonAssertionError,
+    ).code,
+    CHECK_CODES.JSON_EXPECTED_COUNT_INVALID,
+  );
+  assertEquals(
+    assertThrows(
+      () =>
+        evaluateJsonAssertion(document, {
+          jsonPath: "$.summary.status",
+          jsonAssertionKind: "contains",
+        }),
+      JsonAssertionError,
+    ).code,
+    CHECK_CODES.JSON_ASSERTION_KIND_UNSUPPORTED,
+  );
+});
+
 for (
   const [label, path] of [
     ["filter", "$.items[?(@.ok)]"],

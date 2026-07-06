@@ -63,7 +63,7 @@ export function evaluateJsonAssertion(
 
   if (typeof path !== "string" || path === "") {
     throw new JsonAssertionError(
-      CHECK_CODES.JSON_PATH_UNSUPPORTED,
+      CHECK_CODES.JSON_PATH_MISSING,
       "JSON assertion is missing jsonPath.",
     );
   }
@@ -103,7 +103,7 @@ export function evaluateJsonAssertion(
     const expectedValue = assertion.expectedValue;
     if (!isJsonScalar(expectedValue)) {
       throw new JsonAssertionError(
-        CHECK_CODES.JSON_PATH_UNSUPPORTED,
+        CHECK_CODES.JSON_EXPECTED_VALUE_MISSING,
         "JSON equals assertion is missing scalar expectedValue.",
       );
     }
@@ -134,7 +134,7 @@ export function evaluateJsonAssertion(
       expectedCount < 0
     ) {
       throw new JsonAssertionError(
-        CHECK_CODES.JSON_PATH_UNSUPPORTED,
+        CHECK_CODES.JSON_EXPECTED_COUNT_INVALID,
         "JSON count assertion is missing non-negative integer expectedCount.",
       );
     }
@@ -153,7 +153,7 @@ export function evaluateJsonAssertion(
   }
 
   throw new JsonAssertionError(
-    CHECK_CODES.JSON_PATH_UNSUPPORTED,
+    CHECK_CODES.JSON_ASSERTION_KIND_UNSUPPORTED,
     `Unsupported JSON assertion kind: ${String(assertionKind)}`,
   );
 }

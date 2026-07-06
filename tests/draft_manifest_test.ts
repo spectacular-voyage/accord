@@ -11,15 +11,16 @@ import type { ValidationReport } from "../src/report/validation_report.ts";
 import { runAccordCli } from "./harness/cli_runner.ts";
 import { materializeRepoFixture } from "./harness/fixture_materializer.ts";
 
-Deno.test("parseGitNameStatusDiff parses add, modify, delete, and rename records", () => {
+Deno.test("parseGitNameStatusDiff parses add, modify, delete, type-change, and rename records", () => {
   assertEquals(
     parseGitNameStatusDiff(
-      "A\0docs/readme.md\0M\0graph.ttl\0D\0old.bin\0R100\0old.md\0new.md\0",
+      "A\0docs/readme.md\0M\0graph.ttl\0D\0old.bin\0T\0script.sh\0R100\0old.md\0new.md\0",
     ),
     [
       { status: "A", path: "docs/readme.md" },
       { status: "M", path: "graph.ttl" },
       { status: "D", path: "old.bin" },
+      { status: "T", path: "script.sh" },
       { status: "R", oldPath: "old.md", newPath: "new.md" },
     ],
   );
@@ -30,6 +31,7 @@ Deno.test("draftFileExpectations maps statuses and mints deterministic ids", () 
     { status: "R", oldPath: "old.md", newPath: "new.md" },
     { status: "A", path: "docs/readme.md" },
     { status: "M", path: "graph.ttl" },
+    { status: "T", path: "script.sh" },
     { status: "D", path: "old.bin" },
   ]);
 
@@ -67,6 +69,25 @@ Deno.test("draftFileExpectations maps statuses and mints deterministic ids", () 
       changeType: "added",
       compareMode: "text",
     },
+    {
+      id: "#updated-script-sh",
+      type: "FileExpectation",
+      path: "script.sh",
+      changeType: "updated",
+      compareMode: "text",
+    },
+  ]);
+});
+
+Deno.test("draftFileExpectations sorts paths by ordinal string order", () => {
+  const expectations = draftFileExpectations([
+    { status: "M", path: "a.txt" },
+    { status: "M", path: "B.txt" },
+  ]);
+
+  assertEquals(expectations.map((expectation) => expectation.path), [
+    "B.txt",
+    "a.txt",
   ]);
 });
 

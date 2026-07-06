@@ -72,8 +72,10 @@ export async function runScenarioCheck(
       fixtureRepoCandidate,
       steps: scenarioSteps,
     });
-    const fixtureRepoPath = steps[0]?.report.fixtureRepoPath ??
-      fixtureRepoCandidate ?? Deno.cwd();
+    const fixtureRepoPath = fallbackFixtureRepoPath(
+      steps[0]?.report.fixtureRepoPath,
+      fixtureRepoCandidate,
+    );
 
     return buildScenarioReport({
       scenarioPath: options.scenarioIndexPath,
@@ -85,7 +87,7 @@ export async function runScenarioCheck(
     if (error instanceof ScenarioIndexLoadError) {
       return buildScenarioSetupErrorReport({
         scenarioPath: options.scenarioIndexPath,
-        fixtureRepoPath: options.fixtureRepoPath ?? "",
+        fixtureRepoPath: fallbackFixtureRepoPath(options.fixtureRepoPath),
         code: error.code,
         message: error.message,
       });
@@ -155,7 +157,10 @@ function resolveFixtureRepoCandidate(options: {
   defaultFixtureRepo?: string;
   scenarioDir: string;
 }): string | undefined {
-  if (options.fixtureRepoPathOverride !== undefined) {
+  if (
+    options.fixtureRepoPathOverride !== undefined &&
+    options.fixtureRepoPathOverride.trim() !== ""
+  ) {
     return options.fixtureRepoPathOverride;
   }
 
@@ -171,6 +176,21 @@ function resolveFixtureRepoCandidate(options: {
   }
 
   return resolve(options.scenarioDir, options.defaultFixtureRepo);
+}
+
+function fallbackFixtureRepoPath(
+  primary?: string,
+  fallback?: string,
+): string {
+  if (primary !== undefined && primary.trim() !== "") {
+    return primary;
+  }
+
+  if (fallback !== undefined && fallback.trim() !== "") {
+    return fallback;
+  }
+
+  return Deno.cwd();
 }
 
 function resolveScenarioManifestPath(

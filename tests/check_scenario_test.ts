@@ -1,7 +1,8 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { basename, join, relative } from "@std/path";
 import { CHECK_CODES } from "../src/report/codes.ts";
 import { runScenarioCheck } from "../src/cli/commands/check_scenario.ts";
+import { renderScenarioTextReport } from "../src/report/scenario_text_report.ts";
 import { materializeRepoFixture } from "./harness/fixture_materializer.ts";
 
 Deno.test("runScenarioCheck preserves step ordering and resolves manifests relative to the index", async () => {
@@ -129,6 +130,42 @@ Deno.test("runScenarioCheck lets --fixture-repo-path override defaultFixtureRepo
   }
 });
 
+Deno.test("runScenarioCheck treats an empty fixture override as missing", async () => {
+  const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
+  const materialized = await materializeRepoFixture("repo-files", {
+    parentDir: tempDir,
+  });
+
+  try {
+    const scenarioDir = join(tempDir, "scenario");
+    await Deno.mkdir(scenarioDir, { recursive: true });
+    const scenarioPath = join(scenarioDir, "scenario-index.jsonld");
+    await writeScenarioIndex(scenarioPath, {
+      defaultFixtureRepo: relative(scenarioDir, materialized.repoPath),
+      steps: [
+        {
+          id: "#empty-override",
+          manifestPath: manifestPathFromScenarioDir(
+            scenarioDir,
+            "testdata/manifests/bb-001-single-case-auto-select-pass.jsonld",
+          ),
+          caseId: "#auto-select-case",
+        },
+      ],
+    });
+
+    const report = await runScenarioCheck({
+      scenarioIndexPath: scenarioPath,
+      fixtureRepoPath: "",
+    });
+
+    assertEquals(report.fixtureRepoPath, materialized.repoPath);
+    assertEquals(report.status, "pass");
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("runScenarioCheck isolates per-step manifest errors and continues", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
   const materialized = await materializeRepoFixture("repo-files");
@@ -184,6 +221,31 @@ Deno.test("runScenarioCheck isolates per-step manifest errors and continues", as
   }
 });
 
+Deno.test("runScenarioCheck does not surface empty fixture paths on setup errors", async () => {
+  const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
+
+  try {
+    const scenarioDir = join(tempDir, "scenario");
+    await Deno.mkdir(scenarioDir, { recursive: true });
+    const scenarioPath = join(scenarioDir, "scenario-index.jsonld");
+    await writeScenarioIndex(scenarioPath, {
+      steps: [
+        {
+          id: "#missing-manifest",
+          manifestPath: "missing-manifest.jsonld",
+        },
+      ],
+    });
+
+    const report = await runScenarioCheck({ scenarioIndexPath: scenarioPath });
+
+    assertEquals(report.status, "error");
+    assertEquals(report.fixtureRepoPath, Deno.cwd());
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("runScenarioCheck reports empty scenario indexes as setup errors", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "accord-scenario-" });
 
@@ -204,6 +266,43 @@ Deno.test("runScenarioCheck reports empty scenario indexes as setup errors", asy
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
+});
+
+Deno.test("renderScenarioTextReport includes JSON assertion paths", () => {
+  const text = renderScenarioTextReport({
+    scenarioPath: "scenario.jsonld",
+    scenarioId: "urn:accord:test:scenario",
+    fixtureRepoPath: "/fixture",
+    status: "fail",
+    summary: { pass: 0, fail: 1, error: 0 },
+    steps: [
+      {
+        stepId: "#json-step",
+        index: 0,
+        manifestPath: "manifest.jsonld",
+        warnings: [],
+        report: {
+          manifestPath: "manifest.jsonld",
+          caseId: "#case",
+          fixtureRepoPath: "/fixture",
+          status: "fail",
+          summary: { pass: 0, fail: 1, error: 0 },
+          checks: [
+            {
+              kind: "json_assertion",
+              status: "fail",
+              code: CHECK_CODES.JSON_ASSERTION_MISMATCH,
+              message: "JSON assertion failed.",
+              path: "artifact.json",
+              jsonPath: "$.summary.status",
+            },
+          ],
+        },
+      },
+    ],
+  });
+
+  assertStringIncludes(text, "target=artifact.json $.summary.status");
 });
 
 Deno.test("runScenarioCheck reports missing scenario steps as setup errors", async () => {

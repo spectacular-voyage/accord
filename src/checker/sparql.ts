@@ -19,6 +19,13 @@ type Bindings = Map<string, Term>;
 type TermPosition = "subject" | "predicate" | "object";
 type TripleTerm = Triple["subject"] | Triple["predicate"] | Triple["object"];
 
+interface QuadIndex {
+  all: Quad[];
+  byObject: Map<string, Quad[]>;
+  byPredicate: Map<string, Quad[]>;
+  bySubject: Map<string, Quad[]>;
+}
+
 export class SparqlAskError extends Error {
   code: CheckCode;
 
@@ -82,8 +89,9 @@ function parseSupportedAskQuery(query: string): AskQuery {
 }
 
 function evaluateAskQuery(dataset: Quad[], query: AskQuery): boolean {
+  const index = buildQuadIndex(dataset);
   const finalBindings = evaluatePatterns(
-    dataset,
+    index,
     query.where ?? [],
     [new Map()],
   );
@@ -91,7 +99,7 @@ function evaluateAskQuery(dataset: Quad[], query: AskQuery): boolean {
 }
 
 function evaluatePatterns(
-  dataset: Quad[],
+  dataset: QuadIndex,
   patterns: Pattern[],
   initialBindings: Bindings[],
 ): Bindings[] {
@@ -123,7 +131,7 @@ function evaluatePatterns(
 }
 
 function evaluatePattern(
-  dataset: Quad[],
+  dataset: QuadIndex,
   pattern: Pattern,
   bindings: Bindings[],
 ): Bindings[] {
@@ -140,7 +148,7 @@ function evaluatePattern(
 }
 
 function evaluateBgpPattern(
-  dataset: Quad[],
+  dataset: QuadIndex,
   pattern: BgpPattern,
   initialBindings: Bindings[],
 ): Bindings[] {
@@ -151,7 +159,7 @@ function evaluateBgpPattern(
 
     const nextBindings: Bindings[] = [];
     for (const bindings of currentBindings) {
-      for (const candidate of dataset) {
+      for (const candidate of candidateQuads(dataset, triple, bindings)) {
         const matchedBindings = quadMatchesTriple(candidate, triple, bindings);
 
         if (matchedBindings !== null) {
@@ -171,7 +179,7 @@ function evaluateBgpPattern(
 }
 
 function evaluateFilterPattern(
-  dataset: Quad[],
+  dataset: QuadIndex,
   pattern: FilterPattern,
   bindings: Bindings[],
 ): Bindings[] {
@@ -181,7 +189,7 @@ function evaluateFilterPattern(
 }
 
 function evaluateFilterExpression(
-  dataset: Quad[],
+  dataset: QuadIndex,
   expression: Expression,
   bindings: Bindings,
 ): boolean {
@@ -200,6 +208,106 @@ function evaluateFilterExpression(
   }
 
   return evaluatePattern(dataset, expression.args[0], [bindings]).length === 0;
+}
+
+function buildQuadIndex(dataset: Quad[]): QuadIndex {
+  const index: QuadIndex = {
+    all: dataset,
+    byObject: new Map(),
+    byPredicate: new Map(),
+    bySubject: new Map(),
+  };
+
+  for (const quad of dataset) {
+    addIndexedQuad(index.bySubject, quad.subject, quad);
+    addIndexedQuad(index.byPredicate, quad.predicate, quad);
+    addIndexedQuad(index.byObject, quad.object, quad);
+  }
+
+  return index;
+}
+
+function addIndexedQuad(
+  index: Map<string, Quad[]>,
+  term: Term,
+  quad: Quad,
+): void {
+  const key = termIndexKey(term);
+  const quads = index.get(key);
+
+  if (quads === undefined) {
+    index.set(key, [quad]);
+    return;
+  }
+
+  quads.push(quad);
+}
+
+function candidateQuads(
+  index: QuadIndex,
+  triple: Triple,
+  bindings: Bindings,
+): Quad[] {
+  const candidates = [
+    candidateList(
+      index.bySubject,
+      indexedPatternTerm(triple.subject, bindings),
+    ),
+    candidateList(
+      index.byPredicate,
+      indexedPatternTerm(triple.predicate, bindings),
+    ),
+    candidateList(index.byObject, indexedPatternTerm(triple.object, bindings)),
+  ].filter((list) => list !== undefined);
+
+  if (candidates.length === 0) {
+    return index.all;
+  }
+
+  return candidates.reduce((smallest, candidate) =>
+    candidate.length < smallest.length ? candidate : smallest
+  );
+}
+
+function candidateList(
+  index: Map<string, Quad[]>,
+  term: Term | null,
+): Quad[] | undefined {
+  if (term === null) {
+    return undefined;
+  }
+
+  return index.get(termIndexKey(term)) ?? [];
+}
+
+function indexedPatternTerm(
+  pattern: TripleTerm,
+  bindings: Bindings,
+): Term | null {
+  if (!("termType" in pattern)) {
+    return null;
+  }
+
+  const bindingKey = getBindingKey(pattern);
+
+  if (bindingKey !== null) {
+    return bindings.get(bindingKey) ?? null;
+  }
+
+  return pattern;
+}
+
+function termIndexKey(term: Term): string {
+  if (term.termType === "Literal") {
+    return [
+      term.termType,
+      term.value,
+      term.language,
+      term.datatype.value,
+    ].join("\u0000");
+  }
+
+  return [term.termType, term.value].join("\u0000");
 }
 
 function quadMatchesTriple(

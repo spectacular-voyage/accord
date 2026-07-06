@@ -1,8 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { Parser, Store } from "n3";
 import type { Quad } from "n3";
 import {
   validateWithShaclEngineForTest,
+  ValidationExecutionError,
 } from "../src/shacl/validate_manifest.ts";
 import type { ValidationResultRecord } from "../src/report/validation_report.ts";
 
@@ -63,6 +64,21 @@ Deno.test("SHACL SPARQL filters apply after sibling patterns regardless of sourc
       value: '"bad"',
     },
   ]);
+});
+
+Deno.test("SHACL SPARQL rejects unsupported SELECT modifiers", async () => {
+  await assertRejects(
+    () =>
+      validateWithSelect(`
+        PREFIX ex: <https://example.test/>
+        SELECT $this ?value WHERE {
+          $this ex:status ?value .
+        }
+        ORDER BY ?value
+      `),
+    ValidationExecutionError,
+    "ORDER BY",
+  );
 });
 
 async function validateWithSelect(

@@ -1,7 +1,7 @@
 import { GitAccessError } from "./repo.ts";
 
 export type GitNameStatusChange =
-  | { status: "A" | "D" | "M"; path: string }
+  | { status: "A" | "D" | "M" | "T"; path: string }
   | { status: "R"; oldPath: string; newPath: string };
 
 export async function readGitNameStatusDiff(
@@ -47,7 +47,9 @@ export function parseGitNameStatusDiff(
   while (index < fields.length) {
     const status = fields[index++];
 
-    if (status === "A" || status === "D" || status === "M") {
+    if (
+      status === "A" || status === "D" || status === "M" || status === "T"
+    ) {
       const path = fields[index++];
       if (path === undefined) {
         throw new GitAccessError(

@@ -1,5 +1,6 @@
 import type { CheckRecord } from "./json_report.ts";
 import type { ScenarioReport, ScenarioStepReport } from "./scenario_report.ts";
+import { formatCheckTarget } from "./text_report.ts";
 
 export function renderScenarioTextReport(report: ScenarioReport): string {
   const lines = [
@@ -49,6 +50,7 @@ function renderStepHeader(step: ScenarioStepReport): string {
 }
 
 function renderCheckDiagnosticLine(check: CheckRecord): string {
-  const target = check.path ?? check.assertionId ?? "-";
-  return `${check.status}: [${check.kind}] ${check.code} target=${target} ${check.message}`;
+  return `${check.status}: [${check.kind}] ${check.code} target=${
+    formatCheckTarget(check)
+  } ${check.message}`;
 }

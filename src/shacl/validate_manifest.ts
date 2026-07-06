@@ -36,8 +36,17 @@ export interface ValidateManifestOptions {
 type BindingMap = Map<string, Term>;
 
 interface SparqlQuery {
+  distinct?: boolean;
+  from?: unknown;
+  group?: unknown[];
+  having?: unknown[];
+  offset?: number;
+  order?: unknown[];
   queryType?: string;
+  reduced?: boolean;
   type?: string;
+  values?: unknown;
+  variables?: unknown[];
   where?: SparqlPattern[];
   limit?: number;
 }
@@ -284,7 +293,66 @@ function parseSparqlSelect(
     );
   }
 
-  return parsed as SparqlQuery;
+  const query = parsed as SparqlQuery;
+  assertSupportedSelectProfile(query);
+  return query;
+}
+
+function assertSupportedSelectProfile(query: SparqlQuery): void {
+  if (query.from !== undefined) {
+    throw unsupportedSelectProfileError("FROM and FROM NAMED");
+  }
+
+  if (query.values !== undefined) {
+    throw unsupportedSelectProfileError("top-level VALUES");
+  }
+
+  if (query.distinct === true) {
+    throw unsupportedSelectProfileError("DISTINCT");
+  }
+
+  if (query.reduced === true) {
+    throw unsupportedSelectProfileError("REDUCED");
+  }
+
+  if (query.order !== undefined && query.order.length > 0) {
+    throw unsupportedSelectProfileError("ORDER BY");
+  }
+
+  if (query.offset !== undefined) {
+    throw unsupportedSelectProfileError("OFFSET");
+  }
+
+  if (query.group !== undefined && query.group.length > 0) {
+    throw unsupportedSelectProfileError("GROUP BY");
+  }
+
+  if (query.having !== undefined && query.having.length > 0) {
+    throw unsupportedSelectProfileError("HAVING");
+  }
+
+  if (
+    (query.variables ?? []).some((variable) => !isSupportedProjection(variable))
+  ) {
+    throw unsupportedSelectProfileError("projection expressions");
+  }
+}
+
+function isSupportedProjection(variable: unknown): boolean {
+  if (!isRecord(variable)) {
+    return false;
+  }
+
+  return Object.keys(variable).length === 0 ||
+    variable.termType === "Variable";
+}
+
+function unsupportedSelectProfileError(
+  feature: string,
+): ValidationExecutionError {
+  return new ValidationExecutionError(
+    `Unsupported SHACL SPARQL SELECT profile feature: ${feature}.`,
+  );
 }
 
 function evaluateSelect(

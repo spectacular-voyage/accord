@@ -145,7 +145,7 @@ Ignore patterns must be repo-relative POSIX paths. Empty patterns, absolute path
 
 ### Text output
 
-Text is the default format for all commands.
+Text is the default format for report-producing commands: `accord check`, `accord check-scenario`, and `accord validate`.
 
 For `accord check`, it prints:
 
@@ -159,6 +159,8 @@ For `accord check`, it prints:
 Passing checks are counted in the summary but are not listed individually in text output.
 
 For `accord check-scenario`, text output prints scenario metadata and a scenario-level step summary, then groups output by step. Each step group includes the step id, resolved manifest path, selected case id when available, transition refs when available, lane-binding warnings when applicable, the wrapped check status, the wrapped check summary, and only failing or error checks.
+
+Scenario-index load failures and scenario-level setup errors are reported as a synthetic `#scenario-setup` step rather than a real scenario step. In that case the step carries setup failure details in its wrapped report and omits normal step metadata such as the manifest, case, and transition refs.
 
 For `accord validate`, it prints the manifest path, shapes path, validation status, conformance boolean, result/error counts, and every validation result.
 
@@ -194,7 +196,7 @@ The current `accord check-scenario --format json` report includes:
 - `summary` counting step verdicts
 - `steps`
 
-Each step includes `stepId`, zero-based `index`, resolved `manifestPath`, optional `caseId`, optional `fromRef` and `toRef`, `warnings`, and `report`. The nested `report` is the existing `accord check --format json` report shape for that step.
+Each normal step includes `stepId`, zero-based `index`, resolved `manifestPath`, optional `caseId`, optional `fromRef` and `toRef`, `warnings`, and `report`. The nested `report` is the existing `accord check --format json` report shape for that step. Scenario-index load failures and scenario-level setup errors use a synthetic `#scenario-setup` step instead; that special entry carries failure details in `report.checks` and may omit the normal manifest, case, and transition metadata.
 
 The current `accord validate --format json` report includes:
 
@@ -390,7 +392,7 @@ deno run -A src/main.ts validate path/to/manifest.jsonld --format json
 - `accord check-scenario` does not yet use lane bindings to select or override git refs; it reports them as ignored warnings and executes each selected manifest case as authored.
 - `accord validate` does not preflight `SparqlAskAssertion.query` syntax; ASK query syntax/profile errors remain check-time errors.
 - `accord validate` does not perform duplicate JSON key detection before JSON-LD expansion. `accord check` does detect duplicate keys in artifacts being evaluated by JSON assertions.
-- Accord does not yet support `json` compare mode.
+- Accord supports `json` compare mode for artifact-scoped JSON assertions, but it does not yet support whole-document JSON structural comparison as a standalone file comparison mode.
 - Accord does not yet support RDF/XML as an RDF artifact format.
 - Arbitrary remote JSON-LD document loading is intentionally disabled.
 
