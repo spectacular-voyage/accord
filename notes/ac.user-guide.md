@@ -27,18 +27,22 @@ deno run -A src/main.ts validate <manifest-path>
 After the JSR package is published, the same CLI entrypoint is available through the package:
 
 ```bash
-deno run -A jsr:@spectacular-voyage/accord/cli --help
-deno run -A jsr:@spectacular-voyage/accord/cli check <manifest-path>
-deno run -A jsr:@spectacular-voyage/accord/cli check-scenario <scenario-index-path>
-deno run -A jsr:@spectacular-voyage/accord/cli draft-manifest --from <ref> --to <ref>
-deno run -A jsr:@spectacular-voyage/accord/cli validate <manifest-path>
+deno run --allow-env jsr:@spectacular-voyage/accord/cli --help
+deno run --allow-env --allow-read=. --allow-run=git jsr:@spectacular-voyage/accord/cli check <manifest-path>
+deno run --allow-env --allow-read=. --allow-run=git jsr:@spectacular-voyage/accord/cli check-scenario <scenario-index-path>
+deno run --allow-env --allow-run=git jsr:@spectacular-voyage/accord/cli draft-manifest --from <ref> --to <ref>
+deno run --allow-env --allow-read=. jsr:@spectacular-voyage/accord/cli validate <manifest-path>
 ```
+
+`--allow-env` is required when running from JSR because Accord's JSON-LD dependency stack imports `undici`, which reads environment variables during module initialization. The `--allow-read=.` examples assume the manifest, scenario index, fixture metadata, and local JSON-LD contexts are under the current directory; use a narrower or different read root when your files live elsewhere. `accord validate` needs `--allow-read` for the manifest and any local JSON-LD context files; its shipped SHACL shapes are embedded in the package and do not require filesystem or network access. `accord check` and `accord check-scenario` need `--allow-read` for manifests, scenario indexes, and local context files, plus `--allow-run=git` to inspect fixture refs and blobs. `accord draft-manifest` needs `--allow-run=git`, and it also needs `--allow-write=<out-path>` when using `--out`. No current Accord subcommand needs `--allow-net`.
 
 For repeated local use before native binaries exist:
 
 ```bash
-deno install -A --global --name accord jsr:@spectacular-voyage/accord/cli
+deno install --global --name accord --allow-env --allow-read --allow-run=git --allow-write jsr:@spectacular-voyage/accord/cli
 ```
+
+The install command grants the union of ordinary CLI permissions so the installed `accord` command can run every current subcommand. For CI, prefer one-shot `deno run` invocations with the narrower command-specific permissions above.
 
 The current CLI usage is:
 

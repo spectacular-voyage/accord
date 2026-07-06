@@ -9,6 +9,7 @@ import {
   type ValidationReport,
   type ValidationResultRecord,
 } from "../report/validation_report.ts";
+import { SHIPPED_SHAPES_TURTLE } from "./shipped_shapes.ts";
 
 const { namedNode } = DataFactory;
 
@@ -18,7 +19,6 @@ const SH_SPARQL = "http://www.w3.org/ns/shacl#sparql";
 const SH_SPARQL_CONSTRAINT_COMPONENT =
   "http://www.w3.org/ns/shacl#SPARQLConstraintComponent";
 
-const SHAPES_URL = new URL("../../accord-shacl.ttl", import.meta.url);
 const SHAPES_BASE_IRI = "https://spectacular-voyage.github.io/accord/shacl/";
 const SHAPES_DISPLAY_PATH = "accord-shacl.ttl";
 
@@ -120,7 +120,7 @@ export async function validateManifest(
 ): Promise<ValidationReport> {
   const manifest = await readManifestRdfSource(options.manifestPath);
   const data = new Store(manifest.quads);
-  const shapes = await loadShippedShapes();
+  const shapes = loadShippedShapes();
 
   const results = await validateWithShaclEngine(data, shapes);
 
@@ -138,10 +138,11 @@ export async function validateWithShaclEngineForTest(
   return await validateWithShaclEngine(data, shapes);
 }
 
-async function loadShippedShapes(): Promise<Store> {
+function loadShippedShapes(): Store {
   try {
-    const text = await Deno.readTextFile(SHAPES_URL);
-    return new Store(parseRdf(text, "text/turtle", SHAPES_BASE_IRI));
+    return new Store(
+      parseRdf(SHIPPED_SHAPES_TURTLE, "text/turtle", SHAPES_BASE_IRI),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new ValidationExecutionError(

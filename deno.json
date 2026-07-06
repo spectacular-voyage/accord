@@ -1,6 +1,6 @@
 {
   "name": "@spectacular-voyage/accord",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/mod.ts",
@@ -8,6 +8,7 @@
   },
   "tasks": {
     "bump:version": "deno run --allow-read --allow-write scripts/bump-version.ts",
+    "generate:shipped-shapes": "deno run --allow-read=accord-shacl.ttl --allow-write=src/shacl/shipped_shapes.ts scripts/generate-shipped-shapes.ts",
     "fmt": "deno fmt deno.json scripts src tests testdata",
     "fmt:check": "deno fmt --check deno.json scripts src tests testdata",
     "lint": "deno lint scripts src tests",
