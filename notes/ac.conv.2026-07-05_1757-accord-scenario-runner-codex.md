@@ -857,3 +857,32 @@ Commit landed as `dd0d790`. I’m doing one last status check so I can tell you 
 # gpt-5.5_2026-07-05_1935_44
 
 One live conversation note appended after the commit because I sent a status update. I’m folding that into the just-created commit and then I’ll avoid more commentary until the final answer.
+
+# gpt-5.5_2026-07-05_1935_56
+
+Done and committed.
+
+Commits:
+- `42833a9` `notes: record scenario runner conversation`
+- `0a7f88d` `accord: add draft-manifest scaffolding`
+
+Included:
+- `accord draft-manifest --from <ref> --to <ref>` with git `name-status` diffing, deterministic JSON-LD output, `--out`/`--force`, compare-mode inference, and no fabricated ASK/JSON assertions.
+- Scenario runner setup errors for missing/empty `hasStep` via stable `scenario_steps_required`, plus spec docs for synthetic `#scenario-setup` load failures.
+- Draft round-trip tests through `accord check` and `accord validate`, fixture refs, docs/task-note updates, and the RDF/SHACL adjustment for untargeted `rdfCanonical` file expectations.
+
+Gate passed:
+- `deno task fmt:check`
+- `deno task check`
+- `deno task lint`
+- `deno task test` with `151 passed`
+
+Worktree was clean at the final status check.
+
+# User_2026-07-05_1935_58
+
+commit please
+
+# gpt-5.5_2026-07-05_1936_02
+
+I’ll check the Accord worktree and commit whatever changed after the last commit, likely the live conversation note append.
