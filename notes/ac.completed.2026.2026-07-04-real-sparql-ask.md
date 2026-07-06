@@ -84,7 +84,7 @@ Out of scope unless a chosen engine gives it essentially for free and tests prov
 
 ## Relationship To Validation
 
-[[ac.task.2026.2026-04-03-shacl-validation]] should not own SPARQL parser semantics. If this task exposes a reusable query-syntax preflight, `accord validate` can call it later so authoring errors surface before `accord check` runs a transition. If no reusable preflight is exposed, the SHACL validation task should say that ASK syntax failures remain check-time errors.
+[[ac.completed.2026.2026-04-03-shacl-validation]] should not own SPARQL parser semantics. If this task exposes a reusable query-syntax preflight, `accord validate` can call it later so authoring errors surface before `accord check` runs a transition. If no reusable preflight is exposed, the SHACL validation task should say that ASK syntax failures remain check-time errors.
 
 ## Open Issues
 
@@ -146,4 +146,4 @@ If the implementation adopts a full SPARQL engine and thereby supports additiona
 - [x] Add acceptance tests before changing behavior, using the Stagecraft temporal-rung absence check as the motivating shape.
 - [x] Keep query-error and boolean-mismatch reporting stable.
 - [x] Update [[ac.dev.general-guidance]], [[ac.spec.2026.2026-04-03-accord-cli]], and user docs to describe the supported ASK profile.
-- [x] Update [[ac.task.2026.2026-04-03-shacl-validation]] to record that this task did not expose a reusable syntax/profile preflight; ASK syntax/profile failures remain check-time `sparql_query_error` results for now.
+- [x] Update [[ac.completed.2026.2026-04-03-shacl-validation]] to record that this task did not expose a reusable syntax/profile preflight; ASK syntax/profile failures remain check-time `sparql_query_error` results for now.

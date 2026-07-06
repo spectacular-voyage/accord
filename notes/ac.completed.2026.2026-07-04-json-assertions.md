@@ -43,7 +43,7 @@ Recommended posture: spike a small RFC 9535 implementation for Deno first; if no
 
 ### Duplicate keys
 
-[[ac.task.2026.2026-04-03-shacl-validation]] records the JSON-LD duplicate-key silent-overwrite hazard. The JSON assertion loader should decide explicitly whether duplicate keys in an asserted artifact are an error. Failing closed (report a parse-stage error) is the safer default for evidence purposes and should be the starting position.
+[[ac.completed.2026.2026-04-03-shacl-validation]] records the JSON-LD duplicate-key silent-overwrite hazard. The JSON assertion loader should decide explicitly whether duplicate keys in an asserted artifact are an error. Failing closed (report a parse-stage error) is the safer default for evidence purposes and should be the starting position.
 
 ### What this is not
 

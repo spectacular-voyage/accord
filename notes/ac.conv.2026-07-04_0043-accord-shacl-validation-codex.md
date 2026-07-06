@@ -14,11 +14,11 @@ kato-recordingIds: [26863efd-505d-400f-bf1e-a8ecc2844a19]
 
 accord shacl validation
 
-Kim — next accord task: notes/ac.task.2026.2026-04-03-shacl-validation.md. Read it fully, plus notes/ac.dev.general-guidance.md.
+Kim — next accord task: notes/ac.completed.2026.2026-04-03-shacl-validation.md. Read it fully, plus notes/ac.dev.general-guidance.md.
 
 Build accord validate <manifest> as a separate command — no SHACL preflight inside accord check, not even warning-only. It must execute the shipped accord-shacl.ttl as-is, which uses sh:sparql constraints, so spike shacl-engine (with its sparql.js plugin) AND rdf-validate-shacl under Deno first and record findings in the task note. Do not rewrite the shapes graph to fit a weaker validator.
 
-Execution model: existing fail-closed local-only JSON-LD loader → dataset → shipped shapes → stable text/JSON report → non-zero exit on non-conformance. Check whether ac.task.2026.2026-07-04-real-sparql-ask exposed a reusable ASK syntax preflight; wire it in if so, or document in the task note that ASK syntax failures remain check-time errors. Decide the duplicate-key-detection question (pre-expansion) explicitly and record the decision.
+Execution model: existing fail-closed local-only JSON-LD loader → dataset → shipped shapes → stable text/JSON report → non-zero exit on non-conformance. Check whether ac.completed.2026.2026-07-04-real-sparql-ask exposed a reusable ASK syntax preflight; wire it in if so, or document in the task note that ASK syntax failures remain check-time errors. Decide the duplicate-key-detection question (pre-expansion) explicitly and record the decision.
 
 Tests: exercise the sh:sparql constraints specifically (compareMode required/forbidden rules, same-transition-case targeting, duplicate accord:path), passing and failing manifests through the CLI, and confirm accord check behavior is untouched. Update spec + user guide. Gate: deno task fmt:check, deno task check, deno task test.
 

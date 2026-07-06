@@ -14,13 +14,13 @@ kato-recordingIds: [7a76f7a8-3ee0-4c9a-be56-17406f3ea920]
 
 accord real sparql
 
-Kim — next accord task: notes/ac.task.2026.2026-07-04-real-sparql-ask.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
+Kim — next accord task: notes/ac.completed.2026.2026-07-04-real-sparql-ask.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
 
 This is a spike-gated task. First re-spike a real SPARQL ASK engine (Comunica or alternative) under the current Deno toolchain and record dependency/permission/performance findings in the task note. Only then choose: engine, sparqljs-plus-local-evaluator, or a deliberately documented extension of the current src/checker/sparql.ts evaluator. Do not drift into an accidental one-feature-at-a-time parser.
 
 Acceptance bar: FILTER NOT EXISTS works as a positive expectedBoolean: true assertion; bare true/false and numeric literals match typed RDF literals; bb-205 through bb-211 stay green; invalid/unsupported queries yield stable sparql_ask reports, never raw stack traces; no network access; the manifest vocabulary (SparqlAskAssertion, expectedBoolean) is unchanged.
 
-Write acceptance tests before changing behavior, using the Stagecraft temporal-rung absence check as the motivating shape. Update the spec (ac.spec.2026.2026-04-03-accord-cli), ac.dev.general-guidance, and user docs to state the supported ASK profile honestly. If you expose a reusable query-syntax preflight, note that in ac.task.2026.2026-04-03-shacl-validation; if not, say there that ASK syntax failures remain check-time errors. Gate: deno task fmt:check, deno task check, deno task test.
+Write acceptance tests before changing behavior, using the Stagecraft temporal-rung absence check as the motivating shape. Update the spec (ac.spec.2026.2026-04-03-accord-cli), ac.dev.general-guidance, and user docs to state the supported ASK profile honestly. If you expose a reusable query-syntax preflight, note that in ac.completed.2026.2026-04-03-shacl-validation; if not, say there that ASK syntax failures remain check-time errors. Gate: deno task fmt:check, deno task check, deno task test.
 
 # gpt-5.5_2026-07-04_0035_51
 

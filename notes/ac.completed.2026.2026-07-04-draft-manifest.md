@@ -10,7 +10,7 @@ created: 1783149845965
 
 - Remove the brittle handwork of enumerating file expectations for a transition by scaffolding them from the actual git diff.
 - Stay conservative: the command drafts file expectations and infers compare modes; humans add semantic assertions.
-- Emit a manifest that is immediately loadable by `accord check` and, once [[ac.task.2026.2026-04-03-shacl-validation]] lands, conforms to `accord validate`.
+- Emit a manifest that is immediately loadable by `accord check` and, once [[ac.completed.2026.2026-04-03-shacl-validation]] lands, conforms to `accord validate`.
 
 ## Summary
 
@@ -96,7 +96,7 @@ The drafted manifest should pass `accord validate` once that command exists. Unt
 
 - Auto-generating semantic (ASK/JSON) assertions.
 - Diffing working-tree state or uncommitted changes.
-- Scenario-index scaffolding (single-manifest drafting only; scenario drafting can be a later idea if [[ac.task.2026.2026-07-04-scenario-runner]] usage demands it).
+- Scenario-index scaffolding (single-manifest drafting only; scenario drafting can be a later idea if [[ac.completed.2026.2026-07-04-scenario-runner]] usage demands it).
 - Guessing `ignorePaths` or history conventions.
 
 ## Implementation Plan

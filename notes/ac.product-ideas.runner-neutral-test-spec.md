@@ -10,12 +10,12 @@ created: 1779838235135
 
 These ideas are now tracked by owned task notes; this note stays as the product-thinking source.
 
-- Native JSON assertions (bet 1) and JSON-side negative expectations (bet 5) → [[ac.task.2026.2026-07-04-json-assertions]]
-- Scenario runner (bet 2) and per-step evidence grouping (bet 6, temporal addition 1) → [[ac.task.2026.2026-07-04-scenario-runner]]
-- Manifest scaffolding from git diff (bet 3, temporal addition 2) → [[ac.task.2026.2026-07-04-draft-manifest]]
-- Assertion ergonomics and RDF absence proofs (bet 4, bet 5's RDF half, temporal addition 3) → [[ac.task.2026.2026-07-04-real-sparql-ask]]; a higher-level `notExists`/`mustNotHaveTriple` vocabulary stays an idea here until `FILTER NOT EXISTS` proves insufficient
-- Authoring validation before slow transition checks (temporal addition 6) → [[ac.task.2026.2026-04-03-shacl-validation]]
-- Profile packs (bet 7), immutability assertions (temporal addition 4), and drift checks (temporal addition 5) → not yet task-owned; drift checks are recorded as a likely second slice in [[ac.task.2026.2026-07-04-scenario-runner]], and `--include-unchanged` in [[ac.task.2026.2026-07-04-draft-manifest]] is the first step toward immutability ergonomics
+- Native JSON assertions (bet 1) and JSON-side negative expectations (bet 5) → [[ac.completed.2026.2026-07-04-json-assertions]]
+- Scenario runner (bet 2) and per-step evidence grouping (bet 6, temporal addition 1) → [[ac.completed.2026.2026-07-04-scenario-runner]]
+- Manifest scaffolding from git diff (bet 3, temporal addition 2) → [[ac.completed.2026.2026-07-04-draft-manifest]]
+- Assertion ergonomics and RDF absence proofs (bet 4, bet 5's RDF half, temporal addition 3) → [[ac.completed.2026.2026-07-04-real-sparql-ask]]; a higher-level `notExists`/`mustNotHaveTriple` vocabulary stays an idea here until `FILTER NOT EXISTS` proves insufficient
+- Authoring validation before slow transition checks (temporal addition 6) → [[ac.completed.2026.2026-04-03-shacl-validation]]
+- Profile packs (bet 7), immutability assertions (temporal addition 4), and drift checks (temporal addition 5) → not yet task-owned; drift checks are recorded as a likely second slice in [[ac.completed.2026.2026-07-04-scenario-runner]], and `--include-unchanged` in [[ac.completed.2026.2026-07-04-draft-manifest]] is the first step toward immutability ergonomics
 - Testing Vocab (below) → deliberately not task-owned; it is a larger runner-neutral REST/HTTP conformance direction, out of scope for the current Stagecraft-driven round
 
 ## Stagecraft needs / Kim recommendations

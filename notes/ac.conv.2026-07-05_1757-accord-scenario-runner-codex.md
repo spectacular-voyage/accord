@@ -14,7 +14,7 @@ kato-recordingIds: [c11b3f9e-76a0-4880-98b8-bd74907398d3]
 
 accord scenario runner
 
-Kim — next accord task: notes/ac.task.2026.2026-07-04-scenario-runner.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
+Kim — next accord task: notes/ac.completed.2026.2026-07-04-scenario-runner.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
 
 Build accord check-scenario <scenario-index.jsonld> [--fixture-repo-path <path>] [--format <text|json>]. The groundwork already exists — accord:ScenarioIndex/ScenarioStep/StateLane are in accord-ontology.ttl and src/scenario/load_jsonld.ts already loads indexes with hasStep (manifestPath, caseId, lane bindings) — so reuse the loader; do not invent a second scenario format, and do not conflate this with the testdata/scenarios/black-box.json test harness.
 
@@ -241,7 +241,7 @@ feat(cli): add scenario index runner
 
 # User_2026-07-05_1807_27
 
-Small carry-over from review before the main task: evaluatePatterns in src/shacl/validate_manifest.ts applies FILTERs in syntactic order. Hoist them the same way src/checker/sparql.ts now does (evaluate non-filter patterns first, then apply the group's filters to surviving bindings, per group including union branches), add a unit test asserting filter-first and filter-last sh:sparql queries agree, and note in ac.task.2026.2026-04-03-shacl-validation that the evaluator is now consistent with the ASK profile on filter scoping.
+Small carry-over from review before the main task: evaluatePatterns in src/shacl/validate_manifest.ts applies FILTERs in syntactic order. Hoist them the same way src/checker/sparql.ts now does (evaluate non-filter patterns first, then apply the group's filters to surviving bindings, per group including union branches), add a unit test asserting filter-first and filter-last sh:sparql queries agree, and note in ac.completed.2026.2026-04-03-shacl-validation that the evaluator is now consistent with the ASK profile on filter scoping.
 
 # gpt-5.5_2026-07-05_1807_38
 
@@ -291,7 +291,7 @@ Everything passed, including lint this time. I’m just checking the final chang
 
 Done. I updated the SHACL-SPARQL evaluator in [validate_manifest.ts](../src/shacl/validate_manifest.ts) so filters are hoisted per group like the ASK evaluator: non-filter patterns run first, then filters apply to surviving bindings, including inside `UNION` branch groups. I also added group-pattern support and removed the stale `async` that was tripping lint.
 
-Added regression coverage in [shacl_sparql_test.ts](../tests/shacl_sparql_test.ts), comparing filter-first and filter-last `sh:sparql` constraints for both top-level and union-branch cases. Noted the behavior in [ac.task.2026.2026-04-03-shacl-validation.md](ac.task.2026.2026-04-03-shacl-validation.md).
+Added regression coverage in [shacl_sparql_test.ts](../tests/shacl_sparql_test.ts), comparing filter-first and filter-last `sh:sparql` constraints for both top-level and union-branch cases. Noted the behavior in [ac.completed.2026.2026-04-03-shacl-validation.md](ac.completed.2026.2026-04-03-shacl-validation.md).
 
 Verification passed:
 - `deno task lint`
@@ -312,9 +312,9 @@ fix(shacl): hoist SPARQL filters within pattern groups
 
 # User_2026-07-05_1810_24
 
-Kim — next accord task: notes/ac.task.2026.2026-07-04-json-assertions.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
+Kim — next accord task: notes/ac.completed.2026.2026-07-04-json-assertions.md. Read it fully, plus notes/ac.dev.general-guidance.md, before writing code.
 
-Small carry-over from review first: evaluatePatterns in src/shacl/validate_manifest.ts still applies FILTERs in syntactic order. Hoist them the way src/checker/sparql.ts now does — evaluate non-filter patterns first, then apply the group's filters to surviving bindings, per group including union branches — add a test asserting filter-first and filter-last sh:sparql queries agree, and note in ac.task.2026.2026-04-03-shacl-validation that the evaluator now matches the ASK profile on filter scoping.
+Small carry-over from review first: evaluatePatterns in src/shacl/validate_manifest.ts still applies FILTERs in syntactic order. Hoist them the way src/checker/sparql.ts now does — evaluate non-filter patterns first, then apply the group's filters to surviving bindings, per group including union branches — add a test asserting filter-first and filter-last sh:sparql queries agree, and note in ac.completed.2026.2026-04-03-shacl-validation that the evaluator now matches the ASK profile on filter scoping.
 
 Main task: add JSON assertions to accord check (no new command): exists, notExists, equals, count. notExists is first-class, not an inversion flag — absence proof is the point (the motivating shapes are Stagecraft's "no participant-aim text leaks" and "evidence pointers resolve"). Asserted artifact content is read from the checked git ref, never the working tree; no remote loading. The iff-conditional shape is explicitly out of scope.
 
@@ -559,7 +559,7 @@ Implemented the carry-over and JSON assertions task.
 Carry-over:
 - Hoisted SHACL `sh:sparql` FILTER handling in `src/shacl/validate_manifest.ts`.
 - Added filter-first/filter-last SHACL test coverage in `tests/shacl_sparql_test.ts`.
-- Noted the evaluator alignment in `notes/ac.task.2026.2026-04-03-shacl-validation.md`.
+- Noted the evaluator alignment in `notes/ac.completed.2026.2026-04-03-shacl-validation.md`.
 
 Main JSON assertions:
 - Added `JsonExpectation` / `JsonAssertion` ontology terms and SHACL authoring shapes.
@@ -624,7 +624,7 @@ I left that out of the commit as intended.
 
 # User_2026-07-05_1841_05
 
-Kim — final accord task this round: notes/ac.task.2026.2026-07-04-draft-manifest.md. Read it fully, plus notes/ac.dev.general-guidance.md.
+Kim — final accord task this round: notes/ac.completed.2026.2026-07-04-draft-manifest.md. Read it fully, plus notes/ac.dev.general-guidance.md.
 
 Two small carry-overs from review first: (1) accord check-scenario treats a zero-step scenario index (missing or empty hasStep) as a vacuous pass — make it a scenario-level setup error with a stable code, add a test, document it in the spec; (2) document in the spec that scenario-index load failures are reported as a synthetic "#scenario-setup" step in the steps array. Also commit the untracked ac.conv scenario-runner note.
 
@@ -886,3 +886,69 @@ commit please
 # gpt-5.5_2026-07-05_1936_02
 
 I’ll check the Accord worktree and commit whatever changed after the last commit, likely the live conversation note append.
+
+# gpt-5.5_2026-07-05_1936_05
+
+Only the scenario-runner conversation note has new appended transcript text. I’ll commit that by itself so the code commit stays intact.
+
+# gpt-5.5_2026-07-05_1936_11
+
+Committed the new note changes.
+
+Commit: `ad4a948` `notes: update accord conversation log`
+
+Worktree was clean immediately after the commit.
+
+# User_2026-07-05_2041_26
+
+Please update the [release-notes.v0.1.0.md](../../../../../documentation/notes/release-notes.v0.1.0.md) with your changes and all the other great improvements we've made.
+
+# gpt-5.5_2026-07-05_2041_37
+
+I’ll update the release note in the linked Weave docs path. First I’m going to read the repo guidance and the existing release note, then I’ll cross-check the recent Accord commits so the notes reflect what actually landed.
+
+# gpt-5.5_2026-07-05_2041_46
+
+The existing note predates the Accord push, and Accord has a small live conversation-note change again from the last response. I’ll leave that alone unless you ask for another Accord commit; for this request I’m editing the linked Weave release note. Next I’m checking recent Weave-side commits so I don’t accidentally make the release notes Accord-only.
+
+# gpt-5.5_2026-07-05_2041_55
+
+There are pre-existing Weave edits in CLI docs/tests, so I’ll only touch `documentation/notes/release-notes.v0.1.0.md`. I’m going to borrow the release-note style from nearby notes and fold in the concrete Weave and Accord improvements visible in recent history.
+
+# gpt-5.5_2026-07-05_2042_05
+
+I’ve got enough context now. I’m going to update the note as a high-signal release summary: keep the Weave packaging/runtime points, add the recent multi-target/runtime improvements, and add a distinct Accord/conformance section for the SPARQL, SHACL, JSON assertion, scenario runner, and draft-manifest work.
+
+# gpt-5.5_2026-07-05_2042_32
+
+The release note now includes the Accord conformance work and the newer Weave runtime/planning improvements. I’m doing a quick readback and status check so I can catch any awkward wording or unintended file changes.
+
+# gpt-5.5_2026-07-05_2042_41
+
+Updated [release-notes.v0.1.0.md](../../../../../documentation/notes/release-notes.v0.1.0.md) with the recent Weave runtime/planning improvements and a new Accord/conformance section covering SHACL validation, JSON assertions, scenario runner, SPARQL ASK profile, JSON-LD/RDF support, and `draft-manifest`.
+
+I did not run tests since this was a docs-only edit. I also left the pre-existing local changes in `wu.cli-reference.version.md`, `wu.cli-reference.weave.md`, and `tests/e2e/weave_cli_test.ts` untouched.
+
+# User_2026-07-05_2044_47
+
+Sorry, I wanted the accord release notes, I reverted the change you made to the old weave v0.1.0 release notes.
+
+# gpt-5.5_2026-07-05_2045_00
+
+No worries, that’s an easy course correction. I’ll leave the reverted Weave note alone and update the Accord `v0.1.0` release notes in the Accord checkout.
+
+# gpt-5.5_2026-07-05_2045_06
+
+I see the Accord release note is still the older namespace-only draft. I’m going to expand that into the actual `v0.1.0` story: slash namespaces plus the executable CLI, validation, scenario, JSON assertion, SPARQL, and drafting slices.
+
+# gpt-5.5_2026-07-05_2045_43
+
+The Accord release note has been expanded. I’ll read it back and check status to make sure only the intended release note changed, apart from the existing live conversation log.
+
+# gpt-5.5_2026-07-05_2045_56
+
+Updated the Accord release note here: [release-notes.v0.1.0.md](release-notes.v0.1.0.md).
+
+It now covers the full `v0.1.0` shape: slash namespaces, CLI commands, JSON-LD loading, file/RDF/JSON/SPARQL checks, SHACL validation, scenario runner, `draft-manifest`, validation coverage, and known limitations.
+
+I didn’t run tests since this was docs-only. Accord status also shows the live Kato conversation note modified separately.

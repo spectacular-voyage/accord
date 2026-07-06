@@ -66,7 +66,7 @@ The temporal rung also wants post-merge drift evidence: proving the final ref di
 
 - How should `hasLaneBinding` / `fromLaneState` / `toLaneState` participate in the first slice: honored, or explicitly ignored-with-warning until a consumer needs them?
 - Should the first slice include step filtering such as `--step <id>`, or is whole-index execution enough initially?
-- Should scenario indexes get SHACL shapes in `accord-shacl.ttl` so [[ac.task.2026.2026-04-03-shacl-validation]] can validate them, and if so, in that task or this one?
+- Should scenario indexes get SHACL shapes in `accord-shacl.ttl` so [[ac.completed.2026.2026-04-03-shacl-validation]] can validate them, and if so, in that task or this one?
 - Is a scenario-level summary line (n passed / n failed / n errored) part of the text contract from day one?
 
 ## Decisions
@@ -108,7 +108,7 @@ The temporal rung also wants post-merge drift evidence: proving the final ref di
 
 - Drift checking against allowed-path sets (recorded above as a likely second slice).
 - Fail-fast execution modes or parallel step execution.
-- Scenario authoring helpers or scaffolding (owned by [[ac.task.2026.2026-07-04-draft-manifest]] for single manifests).
+- Scenario authoring helpers or scaffolding (owned by [[ac.completed.2026.2026-07-04-draft-manifest]] for single manifests).
 - Turning Accord into a general test framework or watch-mode runner.
 
 ## Implementation Plan
